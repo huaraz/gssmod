@@ -1,0 +1,288 @@
+diff -r -c yafc-1.1/lib/gssapi.c yafc-1.1-new/lib/gssapi.c
+*** yafc-1.1/lib/gssapi.c	2002-12-05 22:12:36.000000000 +0000
+--- yafc-1.1-new/lib/gssapi.c	2004-06-22 18:01:17.000000000 +0100
+***************
+*** 34,39 ****
+--- 34,40 ----
+  #include "syshdr.h"
+  #include "ftp.h"
+  #include "base64.h"
++ #include "gvars.h"
+  
+  #if defined(HAVE_GSSAPI_H)
+  # include <gssapi.h>
+***************
+*** 241,247 ****
+      int context_established = 0;
+      char *p;
+      int n;
+!     gss_channel_bindings_t bindings;
+      struct gss_data *d = app_data;
+  
+      const char *knames[] = { "ftp", "host", NULL }, **kname = knames;
+--- 242,248 ----
+      int context_established = 0;
+      char *p;
+      int n;
+!     gss_channel_bindings_t bindings=GSS_C_NO_CHANNEL_BINDINGS;
+      struct gss_data *d = app_data;
+  
+      const char *knames[] = { "ftp", "host", NULL }, **kname = knames;
+***************
+*** 253,269 ****
+      input.length = 0;
+      input.value = NULL;
+  
+!     bindings = malloc(sizeof(*bindings));
+  
+!     sockaddr_to_gss_address (myctladdr,
+! 			     &bindings->initiator_addrtype,
+! 			     &bindings->initiator_address);
+!     sockaddr_to_gss_address (hisctladdr,
+! 			     &bindings->acceptor_addrtype,
+! 			     &bindings->acceptor_address);
+  
+!     bindings->application_data.length = 0;
+!     bindings->application_data.value = NULL;
+  
+      while(!context_established) {
+         maj_stat = gss_init_sec_context(&min_stat,
+--- 254,272 ----
+      input.length = 0;
+      input.value = NULL;
+  
+!     if (! gvFirewallNoChannelBinding) {
+!       bindings = malloc(sizeof(*bindings));
+  
+!       sockaddr_to_gss_address (myctladdr,
+! 			       &bindings->initiator_addrtype,
+! 			       &bindings->initiator_address);
+!       sockaddr_to_gss_address (hisctladdr,
+!   			       &bindings->acceptor_addrtype,
+! 			       &bindings->acceptor_address);
+  
+!       bindings->application_data.length = 0;
+!       bindings->application_data.value = NULL;
+!     }
+  
+      while(!context_established) {
+         maj_stat = gss_init_sec_context(&min_stat,
+diff -r -c yafc-1.1/lib/security.c yafc-1.1-new/lib/security.c
+*** yafc-1.1/lib/security.c	2002-12-05 22:12:37.000000000 +0000
+--- yafc-1.1-new/lib/security.c	2004-06-22 18:03:19.000000000 +0100
+***************
+*** 42,47 ****
+--- 42,48 ----
+  #include "ftp.h"
+  #include "base64.h"
+  #include "commands.h"
++ #include "gvars.h"
+  
+  /*RCSID("$Id$");*/
+  
+***************
+*** 590,593 ****
+--- 591,618 ----
+  	ftp->data_prot = (enum protection_level)0;
+  }
+  
++ void cmd_fwccc(int argc, char **argv)
++ {
++         if(argv) {
++                 OPT_HELP("Toggle PORT/PASV/EPSV/EPTR clear commands.  Usage:\n"
++                                  "  fwccc [options]\n"
++                                  "Options:\n"
++                                  "  -h, --help    show this help\n");
++ 
++                 maxargs(optind - 1);
++         }
++         need_connected();
++         need_loggedin();
++ 
++         if(ftp_get_verbosity() != vbDebug)
++                 fprintf(stderr, _("remote system: "));
++         ftp_set_tmp_verbosity(vbCommand);
++         ftp_cmd("FWCCC");
++         if (ftp->code != ctComplete) {
++                 ftp_err(_("Failed to toggle PORT/PASV/EPSV/EPTR clear commands.\n"));
++ 		gvFirewallClearCommandChannel = false;
++                 return -1;
++         }
++ 	gvFirewallClearCommandChannel = !gvFirewallClearCommandChannel;
++ }
+  #endif /* SECFTP */
+diff -r -c yafc-1.1/src/commands.c yafc-1.1-new/src/commands.c
+*** yafc-1.1/src/commands.c	2003-07-12 11:25:41.000000000 +0100
+--- yafc-1.1-new/src/commands.c	2004-06-22 18:00:09.000000000 +0100
+***************
+*** 81,86 ****
+--- 81,87 ----
+  	CMD(warranty, 0,0,1, cpNone),
+  #ifdef HAVE_KERBEROS
+  	CMD(prot, 1,1,1, cpNone),
++ 	CMD(fwccc, 0,0,0, cpNone),
+  #endif
+  #ifdef HAVE_KRB4
+  	CMD(afslog, 0,0,1, cpNone),
+diff -r -c yafc-1.1/src/commands.h yafc-1.1-new/src/commands.h
+*** yafc-1.1/src/commands.h	2003-07-12 11:25:41.000000000 +0100
+--- yafc-1.1-new/src/commands.h	2004-06-22 18:00:09.000000000 +0100
+***************
+*** 153,158 ****
+--- 153,159 ----
+  #ifdef SECFTP
+  /* in ../lib/security.c */
+  DEFCMD(prot);
++ DEFCMD(fwccc);
+  #endif
+  #ifdef HAVE_KRB4
+  /* in ../lib/kauth.c */
+diff -r -c yafc-1.1/src/ftp/ftpsend.c yafc-1.1-new/src/ftp/ftpsend.c
+*** yafc-1.1/src/ftp/ftpsend.c	2004-05-20 12:10:52.000000000 +0100
+--- yafc-1.1-new/src/ftp/ftpsend.c	2004-06-22 18:01:48.000000000 +0100
+***************
+*** 27,32 ****
+--- 27,37 ----
+  	char *e;
+  	int i;
+  
++ #ifdef HAVE_KERBEROS
++         int sc;
++ #endif
++ 
++ 
+  	if(!ftp->has_pasv_command) {
+  		ftp_err(_("Host doesn't support passive mode\n"));
+  		return -1;
+***************
+*** 34,40 ****
+--- 39,53 ----
+  	ftp_set_tmp_verbosity(vbNone);
+  
+  	/* request passive mode */
++ #ifdef HAVE_KERBEROS
++         sc=ftp->sec_complete;
++         if (gvFirewallClearCommandChannel) 
++            ftp->sec_complete = 0;
++ #endif
+  	ftp_cmd("PASV");
++ #ifdef HAVE_KERBEROS
++         ftp->sec_complete = sc;
++ #endif
+  
+  	if(!ftp_connected())
+  		return -1;
+***************
+*** 74,79 ****
+--- 87,95 ----
+  	struct sockaddr_in sa;
+  	unsigned char *a, *p;
+  	unsigned char pac[6];
++ #ifdef HAVE_KERBEROS
++         int sc;
++ #endif
+  
+  	if(!ftp_connected())
+  		goto err0;
+***************
+*** 100,107 ****
+--- 116,132 ----
+  		p = (unsigned char *)&ftp->data->local_addr.sin_port;
+  
+  		ftp_set_tmp_verbosity(vbError);
++ #ifdef HAVE_KERBEROS
++                 sc=ftp->sec_complete;
++                 if (gvFirewallClearCommandChannel) 
++                    ftp->sec_complete = 0;
++ #endif
+  		ftp_cmd("PORT %d,%d,%d,%d,%d,%d",
+  				a[0], a[1], a[2], a[3], p[0], p[1]);
++ #ifdef HAVE_KERBEROS
++                 ftp->sec_complete = sc;
++ #endif
++ 
+  		if(ftp->code != ctComplete)
+  			goto err1;
+  	}
+***************
+*** 786,791 ****
+--- 811,819 ----
+  	unsigned int old_reply_timeout;
+  	Ftp *thisftp;
+  	unsigned char addr[6];
++ #ifdef HAVE_KERBEROS
++         int sc;
++ #endif
+  
+  /*	printf("FxP: %s -> %s\n", srcftp->url->hostname, destftp->url->hostname);*/
+  
+***************
+*** 813,820 ****
+--- 841,856 ----
+  	/* setup destination side */
+  	ftp_use(destftp);
+  	ftp_type(mode);
++ #ifdef HAVE_KERBEROS
++         sc=ftp->sec_complete;
++         if (gvFirewallClearCommandChannel)
++            ftp->sec_complete = 0;
++ #endif
+  	ftp_cmd("PORT %d,%d,%d,%d,%d,%d",
+  			addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]);
++ #ifdef HAVE_KERBEROS
++         ftp->sec_complete = sc;
++ #endif
+  	if(ftp->code != ctComplete) {
+  		ftp_use(thisftp);
+  		return -1;
+diff -r -c yafc-1.1/src/gvars.c yafc-1.1-new/src/gvars.c
+*** yafc-1.1/src/gvars.c	2003-07-12 11:22:45.000000000 +0100
+--- yafc-1.1-new/src/gvars.c	2004-06-22 18:00:09.000000000 +0100
+***************
+*** 133,138 ****
+--- 133,143 ----
+  bool gvTrace = false;
+  bool gvPasvmode = true;
+  bool gvReadNetrc = false;
++ #ifdef HAVE_KERBEROS
++ bool gvFirewallClearCommandChannel = false;
++ bool gvFirewallNoChannelBinding = false;
++ #endif
++ 
+  
+  int gvAutoBookmark = 1; /* 0 = no, 1 = yes, 2 = ask */
+  int gvAutoBookmarkUpdate = 1; /* 0 = no, 1 = yes, 2 = ask */
+diff -r -c yafc-1.1/src/gvars.h yafc-1.1-new/src/gvars.h
+*** yafc-1.1/src/gvars.h	2003-07-12 11:22:45.000000000 +0100
+--- yafc-1.1-new/src/gvars.h	2004-06-22 18:00:09.000000000 +0100
+***************
+*** 167,172 ****
+--- 167,176 ----
+  extern jmp_buf gvRestartJmp;
+  #endif
+  extern bool gvJmpBufSet;
++ #ifdef HAVE_KERBEROS
++ extern bool gvFirewallClearCommandChannel;
++ extern bool gvFirewallNoChannelBinding;
++ #endif
+  
+  void gvars_destroy(void);
+  
+diff -r -c yafc-1.1/src/rc.c yafc-1.1-new/src/rc.c
+*** yafc-1.1/src/rc.c	2004-05-20 11:04:07.000000000 +0100
+--- yafc-1.1-new/src/rc.c	2004-06-22 18:00:09.000000000 +0100
+***************
+*** 534,539 ****
+--- 534,545 ----
+  			parse_host(TRIG_DEFAULT, fp);
+  		else if(strcasecmp(e, "local") == 0)
+  			parse_host(TRIG_LOCAL, fp);
++ #ifdef HAVE_KERBEROS
++                 else if(strcasecmp(e, "FirewallClearCommandChannel") == 0)
++                         gvFirewallClearCommandChannel = nextbool(fp);
++                 else if(strcasecmp(e, "FirewallNoChannelBinding") == 0)
++                         gvFirewallNoChannelBinding = nextbool(fp);
++ #endif
+  		else
+  			errp(_("Config parse error: '%s'\n"), e);
+  	}
