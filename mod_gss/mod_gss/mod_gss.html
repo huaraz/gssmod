@@ -1,0 +1,233 @@
+<!-- $Id$ -->
+<!-- $Source$ -->
+
+<html>
+<head>
+<title>ProFTPD module mod_gss</title>
+</head>
+
+<body bgcolor=white>
+
+<hr><br>
+<center>
+<h2><b>ProFTPD module <code>mod_gss</code></b></h2>
+</center>
+<hr><br>
+
+This module is contained in the <code>mod_gss.c</code> file for ProFTPD 1.2,
+and is not compiled by default.  Installation instructions
+are discussed <a href="#Installation">here</a>.
+
+<p>
+The most current version of <code>mod_gss</code> can be found at:
+<pre>
+  <a href="http://ourworld.compuserve.com/homepages/Markus_Moeller/mod_gss.tgz">http://ourworld.compuserve.com/homepages/Markus_Moeller/mod_gss.tgz</a>
+</pre>
+
+<h2>Author</h2>
+<p>
+Please contact M M&ouml;ller &lt;markus_moeller <i>at</i> compuserve.com&gt; with any
+questions, concerns, or suggestions regarding this module.
+
+
+<h2>Directives</h2>
+<ul>
+  <li><a href="#GSSEngine">GSSEngine</a>
+  <li><a href="#GSSLog">GSSLog</a>
+  <li><a href="#GSSOptions">GSSOptions</a>
+  <li><a href="#GSSRequired">GSSRequired</a>
+  <li><a href="#GSSKeytab">GSSKeytab</a>
+</ul>
+
+<p>
+<hr>
+<h2><a name="GSSEngine">GSSEngine</a></h2>
+<strong>Syntax:</strong> GSSEngine <em>on|off</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_gss<br>
+<strong>Compatibility:</strong> 1.2.8 and later
+
+<p>
+The <code>GSSEngine</code> directive toggles the use of the GSS protocol
+engine (<i>e.g.</i> <code>mod_gss</code>).  This is usually used inside a
+<code>&lt;VirtualHost&gt;</code> section to enable GSS sessions for a
+particular virtual host. By default <code>mod_gss</code> is disabled for both
+the main server and all configured virtual hosts. 
+
+<p>
+<hr>
+<h2><a name="GSSLog">GSSLog</a></h2>
+<strong>Syntax:</strong> GSSLog <em>file</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_gss<br>
+<strong>Compatibility:</strong> 1.2.8 and later
+
+<p>
+The <code>GSSLog</code> directive is used to specify a log file for
+<code>mod_gss</code>'s reporting on a per-server basis.  The <em>file</em>
+parameter given must be the full path to the file to use for
+logging. If <em>syslog</em> is used as <em>file</em> then logging is
+send to syslog.
+
+<p>
+<hr>
+<h2><a name="GSSOptions">GSSOptions</a></h2>
+<strong>Syntax:</strong> GSSOptions <em>opt1 ...</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_gss<br>
+<strong>Compatibility:</strong> 1.2.8 and later
+
+<p>
+The <code>GSSOptions</code> directive is used to configure various optional
+behavior of <code>mod_gss</code>.
+
+<p>
+Example:
+<pre>
+  None yet
+</pre>
+
+<p>
+<hr>
+<h2><a name="GSSRequired">GSSRequired</a></h2>
+<strong>Syntax:</strong> GSSRequired <em>on|off|ctrl|data</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_gss<br>
+<strong>Compatibility:</strong> 1.2.8 and later
+
+<p>
+The <code>GSSRequired</code> directive is used to define a basic security
+policy, one that dictates whether the control channel, or data channel, or
+both, of an FTP session must occur over GSS.
+
+<p>
+The <em>on</em> parameter enables GSS requirements on both control and
+data channels; <em>off</em> disables the requirements on both channels.
+Use <em>ctrl</em> and <em>data</em> to require GSS on either channel
+individually.
+
+<p>
+Example:
+<pre>
+  # Require GSS on the control channel, so that passwords are not sent
+  # in the clear.
+  GSSRequired ctrl
+
+  # Require GSS on both channels.
+  GSSRequired on
+</pre>
+
+<p>
+<hr>
+<h2><a name="GSSKeytab">GSSKeytab</a></h2>
+<strong>Syntax:</strong> GSSKeytab <em>file</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_gss<br>
+<strong>Compatibility:</strong> 1.2.8 and later
+
+<p>
+The <code>GSSKeytab</code> directive is used to specify a Kerberos5 keytab file for
+<code>mod_gss</code>'s Kerberos5 service key on a per-server basis.  The <em>file</em>
+parameter given must be the full path to the file.
+
+<p>
+<hr><br>
+<h2><a name="Usage">Usage</a></h2>
+Much of the documentation for the GSSAPI applies to this module:
+<pre>
+  <a href="http://docs-pdf.sun.com/816-1331/816-1331.pdf">http://docs-pdf.sun.com/816-1331/816-1331.pdf </a>
+</pre> or
+<pre>
+  <a
+  href="http://www.nectar.cc/zope/krb/sun_gss_api.pdf">http://www.nectar.cc/zope/krb/sun_gss_api.pdf </a>
+</pre>
+
+<p>
+The Kerberos documentation, and its
+<a
+href="http://www.nrl.navy.mil/CCS/people/kenh/kerberos-faq.html">FAQ</a>,
+are recommended as well:
+<pre>
+  <a href="http://web.mit.edu/kerberos/www/">http://web.mit.edu/kerberos/www/</a>
+</pre>
+
+
+
+
+
+
+<p>
+A copy of RFC2228 describing <em>FTP Security Extensions</em> and of RFC1509
+describing <em>Generic Security Service API : C-bindings</em> is
+included with the source code for this module.
+
+<p>
+<hr><br>
+<h2><a name="Installation">Installation</a></h2>
+To install <code>mod_gss.c</code>, follow these instructions.  After unpacking
+the tarball, run the <code>configure</code> script:
+<pre>
+  cd mod_gss
+  ./configure
+</pre>
+If you wish <code>mod_gss</code> to support Heimdal GSS/Kerberos5, you'll want to use
+<code>configure</code>'s <code>--enable-heimdal</code> option.
+
+<p>
+Now, copy after unpacking the latest proftpd-1.2 source code 
+the <code>mod_gss.h</code> file into:
+<pre>
+  <i>proftpd-dir</i>/include/
+</pre>
+and the <code>mod_gss.c</code> file into:
+<pre>
+  <i>proftpd-dir</i>/contrib/
+</pre>
+<p>
+Then follow the normal steps for 
+using third-party modules in proftpd: 
+<pre>
+  ./configure --with-modules=mod_gss
+  make
+  make install
+</pre>
+You may need to specify the location of the GSS/Kerberos5 header and library files
+in your <code>configure</code> command, <i>e.g.</i>:
+<pre>
+ ./configure --with-modules=mod_gss \
+    --with-includes=/usr/local/include \
+    --with-libraries=/usr/local/lib
+</pre>
+<p>
+To be able to use GSS/Kerberos5 add the following line to the
+configuration file.
+<pre>
+ CommandBufferSize    1023
+</pre>
+
+<p>
+If the Kerberos5 credential cache is bigger than 1023 bytes compile
+proftpd with --enable-buffer-size=<em>max cache size<em>
+
+<p>
+<hr><br>
+Author: <i>$Author$</i><br>
+Last Updated: <i>$Date$</i><br>
+
+<br><hr>
+
+<font size=2><b><i>
+&copy; Copyright 2002 M M&ouml;ller<br>
+ All Rights Reserved<br>
+</i></b></font>
+
+<hr><br>
+
+</body>
+</html>
+

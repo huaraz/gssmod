@@ -1,0 +1,27 @@
+cd mod_gss
+
+./configure
+or
+./configure --enable-heimdal
+
+cd proftpd 
+
+copy mod_gss.c to the contrib directory and call 
+copy mod_gss.h to the include directory and call 
+
+./configure --with-modules=mod_gss --with-includes=/usr/local/include --with-libraries=/usr/local/lib
+make
+
+proftpd configure options
+#MM
+GSSEngine on
+#GSSRequired both
+GSSkeytab /usr/local/etc/proftpd.keytab
+GSSLog /var/log/gssftp.log
+#MM
+
+Make sure the Command Buffer Size is big enough. It has to be at least the same size as the KRB5 ccache file.
+
+CommandBufferSize       1023
+
+Use --enable-buffer-size to increase the BufferSize above 1023.
