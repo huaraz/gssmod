@@ -24,8 +24,13 @@
  * for the Libraries in the source distribution.
  *
  *  --- DO NOT DELETE BELOW THIS LINE ----
- *  $Libraries: -lgssapi_krb5 -ldes425 -lkrb5 -lk5crypto -lcom_err$
+ *  $Libraries: |GSS_LIBS|
  *
+ *  $MIT-Libraries: -lgssapi_krb5 -ldes425 -lkrb5 -lkcrypto -lcom_err$
+ *  $HEIMDAL-Libraries: -lgssapi -lkrb5 -lcom_err -lasn1 -lroken$
+ *  $SEAM-Libraries: -lgss -R/usr/lib/gss/(gl/) /usr/lib/gss/(gl/)mech_krb5.so$
+ *  $NAS-Libraries: -L/usr/lib -lgssapi_krb5 -lkrb5$
+ * 
  * $Id$
  * $Source$
  * $Author$
@@ -236,9 +241,9 @@ static ssize_t gss_write(pr_netio_stream_t *nstrm, char *buf,int buflen) {
     net_len = htonl((u_long) length);
     if ( (count=looping_write(nstrm->strm_fd,(char *) &net_len, 4)) != 4 ) {
         pr_response_add_err(R_535, "Could not write PROT buffer length %d/%s",
-			 count, count == -1 ? strerror(errno):"premature EOF");
+			 (int) count, count == -1 ? strerror(errno):"premature EOF");
         gss_log("GSSAPI Could not write PROT buffer length %d/%s",
-                count, count == -1 ? strerror(errno):"premature EOF");
+                (int) count, count == -1 ? strerror(errno):"premature EOF");
         if (pool)
             destroy_pool(pool);
         return -1;
@@ -258,7 +263,7 @@ static ssize_t gss_write(pr_netio_stream_t *nstrm, char *buf,int buflen) {
     return buflen;
 }
 
-static ssize_t gss_netio_write_cb(pr_netio_stream_t *nstrm, char *buf,size_t buflen) {
+static int gss_netio_write_cb(pr_netio_stream_t *nstrm, char *buf,size_t buflen) {
 
     int     count=0;
     int     total_count=0;        
@@ -954,7 +959,7 @@ MODRET gss_dec(cmd_rec *cmd) {
     xmit_buf.length=strlen(cmd->arg)+1;
     /* protected string <= unprotected string */
     xmit_buf.value=pcalloc(cmd->pool,strlen(cmd->arg)+1);
-    if ((error = radix_encode(cmd->arg, xmit_buf.value, &xmit_buf.length, 1)) != 0 ) {
+    if ((error = radix_encode(cmd->arg, xmit_buf.value, (int *)&xmit_buf.length, 1)) != 0 ) {
 	pr_response_add_err(R_501, "Couldn't base 64 decode argument to %s command (%s)",
 		session.sp_flags & SP_ENC ? "ENC" : 
                 session.sp_flags & SP_MIC ? "MIC" : "", radix_error(error));
@@ -1351,7 +1356,7 @@ MODRET gss_adat(cmd_rec *cmd) {
     */
 
     tok.value=pcalloc(cmd->tmp_pool,strlen(cmd->arg));
-    if ((error = radix_encode(cmd->arg, tok.value , &tok.length, 1)) !=0  ) {
+    if ((error = radix_encode(cmd->arg, tok.value , (int *)&tok.length, 1)) !=0  ) {
 	pr_response_add_err(R_501, "Couldn't decode ADAT (%s)",radix_error(error)); 
 	gss_log("GSSAPI Could not decode ADAT (%s)",radix_error(error));
 	return ERROR(cmd);
@@ -1438,7 +1443,7 @@ MODRET gss_adat(cmd_rec *cmd) {
 
     if (out_tok.length) {
         gbuf = pcalloc(cmd->tmp_pool,out_tok.length*4+1);
-	if ( (error = radix_encode(out_tok.value, gbuf, &out_tok.length, 0)) != 0 ) {
+	if ( (error = radix_encode(out_tok.value, gbuf, (int *)&out_tok.length, 0)) != 0 ) {
 	    pr_response_add_err(R_535,"Couldn't encode ADAT reply (%s)",
 			     radix_error(error));
 	    gss_log("GSSAPI Could not encode ADAT reply (%s)",radix_error(error));
@@ -2304,7 +2309,7 @@ static char *gss_format_cb(pool *pool, const char *fmt, ...)
     } 
     /* protected reply <= 4*unprotected reply */
     reply=pcalloc(pool, gss_out_buf.length*4+1);
-    if ((error = radix_encode(gss_out_buf.value, reply, &gss_out_buf.length, 0)) != 0 ) {
+    if ((error = radix_encode(gss_out_buf.value, reply, (int *)&gss_out_buf.length, 0)) != 0 ) {
 	gss_log("Couldn't encode reply (%s)", radix_error(error));
 	gss_release_buffer(&min_stat, &gss_out_buf);
 	return NULL;      
@@ -2417,6 +2422,7 @@ static int kpass(char *name, char *passwd)
 	creds.times.endtime = now + 60 * 60 * 10;
 	creds.times.renew_till = 0;
 
+#ifdef HAVE_INIT_CREDS_PASSWORD
         kerr = krb5_get_init_creds_password(kc, &creds, p, passwd,
                                             NULL, NULL,
                                             0, NULL, NULL);
@@ -2425,6 +2431,7 @@ static int kpass(char *name, char *passwd)
             krb5_free_context(kc);
             return 1;
         }	      
+#endif
 
         krb5_free_context(kc);
 	return 0;

@@ -33,7 +33,24 @@ AC_ARG_ENABLE(seam,
   [
     if test "$enableeval" != "no" ; then
        AC_DEFINE(HAVE_SEAM_KERBEROS,1,[Define SEAM Kerberos])
-       ac_gss_libs="-lgss -R\/usr\/lib\/gss \/usr\/lib\/gss\/mech_krb5.so";
+       AC_CHECK_DECLS(gss_int32,includes='/usr/include/gssapi/gssapi.h /usr/include/gssapi/gssapi_ext.h')
+       if test -e /usr/lib/gss/gl/mech_krb5.so ; then
+          ac_gss_libs="-lgss -R\/usr\/lib\/gss\/gl \/usr\/lib\/gss\/gl\/mech_krb5.so";
+          ln -s /usr/lib/gss/gl/mech_krb5.so /tmp/libmech_krb5.so;
+          LDFLAGS_sav=$LDFLAGS;
+          LDFLAGS="-L/tmp"; 
+          AC_CHECK_LIB(mech_krb5,krb5_get_init_creds_password,AC_DEFINE(HAVE_INIT_CREDS_PASSWORD,1,[Define krb5_get_init_creds_password]))
+          LDFLAGS=$LDFLAGS_sav
+          rm /tmp/libmech_krb5.so
+       else
+          ac_gss_libs="-lgss -R\/usr\/lib\/gss \/usr\/lib\/gss\/mech_krb5.so";
+          ln -s /usr/lib/gss/gl/mech_krb5.so /tmp/libmech_krb5.so;
+          LDFLAGS_sav=$LDFLAGS;
+          LDFLAGS="-L/tmp"; 
+          AC_CHECK_LIB(mech_krb5,krb5_get_init_creds_password,AC_DEFINE(HAVE_INIT_CREDS_PASSWORD,1,[Define krb5_get_init_creds_password]))
+          LDFLAGS=$LDFLAGS_sav
+          rm /tmp/libmech_krb5.so
+       fi
     fi ])
 
 dnl Define NAS libraries
@@ -42,7 +59,7 @@ AC_ARG_ENABLE(nas,
   [
     if test "$enableeval" != "no" ; then
        AC_DEFINE(HAVE_NAS_KERBEROS,1,[Define NAS Kerberos])
-       ac_gss_libs="-lgssapi_krb5 -lkrb5";
+       ac_gss_libs="-L\/usr\/lib -lgssapi_krb5 -lkrb5";
     fi ])
 
 AC_CHECK_FUNCS(unsetenv)
@@ -72,14 +89,6 @@ AH_TOP([/*
  * the resulting executable, without including the source code for
  * the Libraries in the source distribution.
  *
- *  --- DO NOT DELETE BELOW THIS LINE ----
- *  $Libraries: |GSS_LIBS|$
- *
- *  $HEIMDAL-Libraries: -lgssapi -lkrb5 -lcom_err -lasn1 -lroken$
- *  $MIT-Libraries: -lgssapi_krb5 -ldes425 -lkrb5 -lk5crypto -lcom_err$
- *  $SEAM-Libraries: -lgss -R/usr/lib/gss /usr/lib/gss/mech_krb5.so$
- *  $NAS-Libraries: -lgssapi_krb5 -lgssapi_krb5 -lkrb5$
- *
  */
 ])
 AH_BOTTOM([#include "conf.h"
@@ -101,6 +110,9 @@ AH_BOTTOM([#include "conf.h"
 #include <gssapi/gssapi.h>
 #include <gssapi/gssapi_ext.h>
 #define gss_nt_service_name GSS_C_NT_HOSTBASED_SERVICE
+#ifndef HAVE_DECLS_GSS_INT32
+#define gss_int32 int32_t
+#endif
 /* Seam doesn't have krb5.h so define all here. Assume SEAM is based on MIT sources */
 
 #if INT_MAX == 0x7fffffffL
@@ -236,6 +248,7 @@ extern krb5_error_code KRB5_CALLCONV krb5_init_context(krb5_context *);
 extern krb5_error_code KRB5_CALLCONV krb5_timeofday(krb5_context, krb5_int32 * );
 extern krb5_error_code KRB5_CALLCONV krb5_parse_name(krb5_context, const char *, krb5_principal * );
 
+#ifdef HAVE_INIT_CREDS_PASSWORD
 extern krb5_error_code KRB5_CALLCONV krb5_get_init_creds_password(krb5_context context,
                 krb5_creds *creds,
                 krb5_principal client,
@@ -245,7 +258,7 @@ extern krb5_error_code KRB5_CALLCONV krb5_get_init_creds_password(krb5_context c
                 krb5_deltat start_time,
                 char *in_tkt_service,
                 krb5_get_init_creds_opt *k5_gic_options);
-
+#endif
 #else /*MIT*/
 #include <gssapi/gssapi.h>
 #include <gssapi/gssapi_generic.h>
@@ -282,10 +295,8 @@ void unsetenv(char *env_name) {
 ])
 AC_OUTPUT()
 
-echo "configure: updating \$Libraries in mod_gss.h"
+echo "configure: updating mod_gss.h"
 sed -e "s/|MAIL|/"$PACKAGE_BUGREPORT"/" mod_gss.h > .mod_gss.h.tmp
-mv .mod_gss.h.tmp mod_gss.h
-sed -e "s/|GSS_LIBS|/$ac_gss_libs/" mod_gss.h > .mod_gss.h.tmp
 mv .mod_gss.h.tmp mod_gss.h
 
 echo "configure: updating \$Libraries in mod_gss.c"
