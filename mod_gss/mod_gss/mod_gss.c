@@ -780,7 +780,7 @@ MODRET gss_auth_check(cmd_rec *cmd) {
     k5ret = krb5_kuserok(kc, p, cmd->argv[1]);
     krb5_free_principal(kc, p);
     if (k5ret == TRUE) {
-       gss_log("GSSAPI User %s is authorized as %s.", (char *) client_name.value,cmd->argv[0]);
+       gss_log("GSSAPI User %s is authorized as %s.", (char *) client_name.value,cmd->argv[1]);
        return mod_create_data(cmd, (void *) PR_AUTH_RFC2228_OK);
     } else {
 	/* check password against kdc */
