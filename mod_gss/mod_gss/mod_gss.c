@@ -2220,7 +2220,7 @@ static int gss_dispatch(char *buf)
 
     /* Nothing there...bail out.
      */
-    if((wrd = get_word(&cp,TRUE)) == NULL) 
+    if((wrd = pr_str_get_word(&cp,TRUE)) == NULL) 
        return 1;
 
     newpool = make_sub_pool(session.pool ? session.pool : permanent_pool);
@@ -2233,7 +2233,7 @@ static int gss_dispatch(char *buf)
     newcmd->argc++;
     newcmd->arg = pstrdup(newpool, cp);
 
-    while((wrd = get_word(&cp,TRUE)) != NULL) {
+    while((wrd = pr_str_get_word(&cp,TRUE)) != NULL) {
       *((char **) push_array(tarr)) = pstrdup(newpool, wrd);
       newcmd->argc++;
     }
