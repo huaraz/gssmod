@@ -814,6 +814,7 @@ MODRET gss_ccc(cmd_rec *cmd) {
         return ERROR(cmd);
     }
  
+    pr_log_debug(DEBUG9, "GSSAPI GSSOption %x ",gss_opts);
     if (gss_opts & GSS_OPT_ALLOW_CCC){
         gss_flags |= GSS_SESS_CCC;
         pr_response_add(R_200, "CCC command successful");
@@ -979,6 +980,7 @@ MODRET gss_any(cmd_rec *cmd) {
     }
 
     /* Ignore clear PORT/PASV commands if FW_CCC is allowed*/
+    pr_log_debug(DEBUG9, "GSSAPI GSSOption %x ",gss_opts);
     if (( (gss_opts & GSS_OPT_ALLOW_FW_CCC) && !strcmp(cmd->argv[0], C_PORT) ) ||
         ( (gss_opts & GSS_OPT_ALLOW_FW_CCC) && !strcmp(cmd->argv[0], C_PASV) ) ||
         ( (gss_opts & GSS_OPT_ALLOW_FW_CCC) && !strcmp(cmd->argv[0], C_EPRT) ) ||
@@ -1232,6 +1234,7 @@ MODRET gss_adat(cmd_rec *cmd) {
     if (!gss_engine)
         return DECLINED(cmd);
 
+    pr_log_debug(DEBUG9, "GSSAPI GSSOption %x ",gss_opts);
     if (!(gss_opts & GSS_OPT_ALLOW_FW_NAT)) { 
         chan = pcalloc(cmd->tmp_pool,sizeof(*chan));
         switch (pr_netaddr_get_family(session.c->remote_addr)) {
@@ -1266,6 +1269,8 @@ MODRET gss_adat(cmd_rec *cmd) {
 
         chan->application_data.length = 0;
         chan->application_data.value = 0;
+    } else {
+	gss_log("GSSAPI Ignore Channel Binding");
     }
 
     CHECK_CMD_ARGS(cmd, 2);
@@ -1840,6 +1845,7 @@ MODRET set_gssoptions(cmd_rec *cmd) {
     c->argv[0] = pcalloc(c->pool, sizeof(unsigned long));
     *((unsigned long *) c->argv[0]) = opts;
 
+    pr_log_debug(DEBUG9, "GSSAPI GSSOption %x ",opts);
     return HANDLED(cmd);
 }
 
