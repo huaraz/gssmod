@@ -1290,7 +1290,7 @@ MODRET gss_adat(cmd_rec *cmd) {
     }
 
     if (out_tok.length) {
-        gbuf = pcalloc(cmd->tmp_pool,out_tok.length*2+1);
+        gbuf = pcalloc(cmd->tmp_pool,out_tok.length*4+1);
 	if ( (error = radix_encode(out_tok.value, gbuf, &out_tok.length, 0)) != 0 ) {
 	    pr_response_add_err(R_535,"Couldn't encode ADAT reply (%s)",
 			     radix_error(error));
@@ -2054,7 +2054,7 @@ static char *gss_format_cb(pool *pool, const char *fmt, ...)
 	return NULL;
     } 
     /* protected reply <= 4*unprotected reply */
-    reply=pcalloc(pool, gss_out_buf.length*4);
+    reply=pcalloc(pool, gss_out_buf.length*4+1);
     if ((error = radix_encode(gss_out_buf.value, reply, &gss_out_buf.length, 0)) != 0 ) {
 	gss_log("Couldn't encode reply (%s)", radix_error(error));
 	gss_release_buffer(&min_stat, &gss_out_buf);
