@@ -85,6 +85,7 @@ static gss_buffer_desc client_name,server_name;
 /* mod_gss option flags*/
 #define GSS_OPT_ALLOW_CCC               0x0001
 #define GSS_OPT_ALLOW_FW_CCC            0x0002
+#define GSS_OPT_ALLOW_FW_NAT		0x0004
 
 static pr_netio_t *gss_data_netio = NULL;
 static pr_netio_stream_t *gss_data_rd_nstrm = NULL;
@@ -1224,28 +1225,46 @@ MODRET gss_adat(cmd_rec *cmd) {
     char **service;
     char *gbuf ;
   
-    struct gss_channel_bindings_struct chan;
-
-#ifdef USE_IPV6
-    chan.initiator_addrtype = GSS_C_AF_INET6;
-#else
-    chan.initiator_addrtype = GSS_C_AF_INET;
-#endif
-    chan.initiator_address.length = pr_netaddr_get_inaddr_len(session.c->remote_addr);
-    chan.initiator_address.value = pr_netaddr_get_inaddr(session.c->remote_addr);
-#ifdef USE_IPV6
-    chan.acceptor_addrtype = GSS_C_AF_INET6;
-#else
-    chan.acceptor_addrtype = GSS_C_AF_INET;
-#endif
-    chan.acceptor_address.length = pr_netaddr_get_inaddr_len(session.c->local_addr);
-    chan.acceptor_address.value = pr_netaddr_get_inaddr(session.c->local_addr);
-
-    chan.application_data.length = 0;
-    chan.application_data.value = 0;
+    gss_channel_bindings_t chan=GSS_C_NO_CHANNEL_BINDINGS;
 
     if (!gss_engine)
-	return DECLINED(cmd);
+        return DECLINED(cmd);
+
+    if (!(gss_opts & GSS_OPT_ALLOW_FW_NAT)) { 
+        chan = pcalloc(cmd->tmp_pool,sizeof(*chan));
+        switch (pr_netaddr_get_family(session.c->remote_addr)) {
+#ifdef USE_IPV6
+            case AF_INET6:
+                chan->initiator_addrtype = GSS_C_AF_INET6;
+	        break;
+#endif
+            case AF_INET:
+                chan->initiator_addrtype = GSS_C_AF_INET;
+	        break;
+            default:
+	        gss_log("GSSAPI Unknown remote address family %d",pr_netaddr_get_family(session.c->remote_addr));
+        }
+        chan->initiator_address.length = pr_netaddr_get_inaddr_len(session.c->remote_addr);
+        chan->initiator_address.value = pr_netaddr_get_inaddr(session.c->remote_addr);
+
+        switch (pr_netaddr_get_family(session.c->local_addr)) {
+#ifdef USE_IPV6
+            case AF_INET6:
+                chan->acceptor_addrtype = GSS_C_AF_INET6;
+                break;
+#endif
+            case AF_INET:
+                chan->acceptor_addrtype = GSS_C_AF_INET;
+                break;
+            default:
+                gss_log("GSSAPI Unknown local address family %d",pr_netaddr_get_family(session.c->local_addr));
+        }
+        chan->acceptor_address.length = pr_netaddr_get_inaddr_len(session.c->local_addr);
+        chan->acceptor_address.value = pr_netaddr_get_inaddr(session.c->local_addr);
+
+        chan->application_data.length = 0;
+        chan->application_data.value = 0;
+    }
 
     CHECK_CMD_ARGS(cmd, 2);
 
@@ -1301,7 +1320,6 @@ MODRET gss_adat(cmd_rec *cmd) {
 				       &server_creds, NULL, NULL);
 
 	if (acquire_maj != GSS_S_COMPLETE) {
-
             log_gss_error(acquire_maj, acquire_min, "could not acquire credential");
 	    continue;
 	}
@@ -1309,22 +1327,22 @@ MODRET gss_adat(cmd_rec *cmd) {
 	found++;
 	gcontext = GSS_C_NO_CONTEXT;
 	accept_maj = gss_accept_sec_context(&accept_min,
-					    &gcontext, /* context_handle */
+	   				    &gcontext, /* context_handle */
 					    server_creds, /* verifier_cred_handle */
 					    &tok, /* input_token */
-					    &chan, /* channel bindings */
+					    chan, /* channel bindings */
 					    &client, /* src_name */
 					    &mechid, /* mech_type */
 					    &out_tok, /* output_token */
 					    &ret_flags,
 					    NULL,       /* ignore time_rec */
 					    NULL   /* ignore del_cred_handle */
-	    );
+	                                    );
 	if (accept_maj == GSS_S_COMPLETE || accept_maj == GSS_S_CONTINUE_NEEDED ) {
 	    break;
         } else {
-            log_gss_error(accept_maj, accept_min, "did not accept credential");        
-        }
+           log_gss_error(accept_maj, accept_min, "did not accept credential");        
+	}
     }
     if (found) {
 	if (accept_maj != GSS_S_COMPLETE && accept_maj != GSS_S_CONTINUE_NEEDED ) {
@@ -1804,6 +1822,10 @@ MODRET set_gssoptions(cmd_rec *cmd) {
             opts |= GSS_OPT_ALLOW_CCC;
         else if (!strcmp(cmd->argv[i], "AllowFWCCC"))
             opts |= GSS_OPT_ALLOW_FW_CCC;
+        else if (!strcmp(cmd->argv[i], "AllowFWNAT"))
+            opts |= GSS_OPT_ALLOW_FW_NAT;
+        else if (!strcmp(cmd->argv[i], "NoChannelBinding"))
+            opts |= GSS_OPT_ALLOW_FW_NAT;
         else
             CONF_ERROR(cmd, pstrcat(cmd->tmp_pool, ": unknown GSSOption: '",
                                 cmd->argv[i], "'", NULL));

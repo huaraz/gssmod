@@ -1,3 +1,73 @@
+diff -rc yafc-1.0/lib/gssapi.c yafc-1.0-mm/lib/gssapi.c
+*** yafc-1.0/lib/gssapi.c	2003-04-17 12:52:11.000000000 +0100
+--- yafc-1.0-mm/lib/gssapi.c	2003-10-20 18:02:03.000000000 +0100
+***************
+*** 34,39 ****
+--- 34,40 ----
+  #include "syshdr.h"
+  #include "ftp.h"
+  #include "base64.h"
++ #include "gvars.h"
+  
+  #if defined(HAVE_GSSAPI_H)
+  # include <gssapi.h>
+***************
+*** 241,247 ****
+      int context_established = 0;
+      char *p;
+      int n;
+!     gss_channel_bindings_t bindings;
+      struct gss_data *d = app_data;
+  
+      const char *knames[] = { "ftp", "host", NULL }, **kname = knames;
+--- 242,248 ----
+      int context_established = 0;
+      char *p;
+      int n;
+!     gss_channel_bindings_t bindings=GSS_C_NO_CHANNEL_BINDINGS;
+      struct gss_data *d = app_data;
+  
+      const char *knames[] = { "ftp", "host", NULL }, **kname = knames;
+***************
+*** 253,269 ****
+      input.length = 0;
+      input.value = NULL;
+  
+-     bindings = malloc(sizeof(*bindings));
+  
+!     sockaddr_to_gss_address (myctladdr,
+  			     &bindings->initiator_addrtype,
+  			     &bindings->initiator_address);
+!     sockaddr_to_gss_address (hisctladdr,
+  			     &bindings->acceptor_addrtype,
+  			     &bindings->acceptor_address);
+  
+!     bindings->application_data.length = 0;
+!     bindings->application_data.value = NULL;
+  
+      while(!context_established) {
+         maj_stat = gss_init_sec_context(&min_stat,
+--- 254,273 ----
+      input.length = 0;
+      input.value = NULL;
+  
+  
+!     if (! gvFirewallNoChannelBinding) {
+!        bindings = malloc(sizeof(*bindings));
+! 
+!        sockaddr_to_gss_address (myctladdr,
+  			     &bindings->initiator_addrtype,
+  			     &bindings->initiator_address);
+!        sockaddr_to_gss_address (hisctladdr,
+  			     &bindings->acceptor_addrtype,
+  			     &bindings->acceptor_address);
+  
+!        bindings->application_data.length = 0;
+!        bindings->application_data.value = NULL;
+!     }
+  
+      while(!context_established) {
+         maj_stat = gss_init_sec_context(&min_stat,
 diff -rc yafc-1.0/src/ftp/ftpsend.c yafc-1.0-mm/src/ftp/ftpsend.c
 *** yafc-1.0/src/ftp/ftpsend.c	2003-04-17 12:52:13.000000000 +0100
 --- yafc-1.0-mm/src/ftp/ftpsend.c	2003-06-03 11:50:29.000000000 +0100
@@ -108,15 +178,16 @@ diff -rc yafc-1.0/src/ftp/ftpsend.c yafc-1.0-mm/src/ftp/ftpsend.c
   		return -1;
 diff -rc yafc-1.0/src/gvars.c yafc-1.0-mm/src/gvars.c
 *** yafc-1.0/src/gvars.c	2003-04-17 12:52:14.000000000 +0100
---- yafc-1.0-mm/src/gvars.c	2003-04-17 12:52:01.000000000 +0100
+--- yafc-1.0-mm/src/gvars.c	2003-10-20 18:02:49.000000000 +0100
 ***************
 *** 169,174 ****
---- 169,178 ----
+--- 169,179 ----
   #endif
   bool gvJmpBufSet = false;
   
 + #if defined(HAVE_KRB4) || defined(HAVE_KRB5)
 + bool gvFirewallClearCommandChannel = false;
++ bool gvFirewallNoChannelBinding = false;
 + #endif
 + 
   void gvars_destroy(void)
@@ -124,7 +195,7 @@ diff -rc yafc-1.0/src/gvars.c yafc-1.0-mm/src/gvars.c
   	xfree(gvEditor);
 diff -rc yafc-1.0/src/gvars.h yafc-1.0-mm/src/gvars.h
 *** yafc-1.0/src/gvars.h	2003-04-17 12:52:14.000000000 +0100
---- yafc-1.0-mm/src/gvars.h	2003-04-17 12:52:01.000000000 +0100
+--- yafc-1.0-mm/src/gvars.h	2003-10-20 18:02:49.000000000 +0100
 ***************
 *** 165,170 ****
   #endif
@@ -133,28 +204,31 @@ diff -rc yafc-1.0/src/gvars.h yafc-1.0-mm/src/gvars.h
 ! void gvars_destroy(void);
   
   #endif
---- 165,173 ----
+--- 165,174 ----
   #endif
   extern bool gvJmpBufSet;
   
 ! #if defined(HAVE_KRB4) || defined(HAVE_KRB5)
 ! extern bool gvFirewallClearCommandChannel;
+! extern bool gvFirewallNoChannelBinding;
 ! #endif
   
 + void gvars_destroy(void);
   #endif
 diff -rc yafc-1.0/src/rc.c yafc-1.0-mm/src/rc.c
 *** yafc-1.0/src/rc.c	2003-04-17 12:52:15.000000000 +0100
---- yafc-1.0-mm/src/rc.c	2003-04-17 12:52:03.000000000 +0100
+--- yafc-1.0-mm/src/rc.c	2003-10-20 18:02:18.000000000 +0100
 ***************
 *** 530,535 ****
---- 530,539 ----
+--- 530,541 ----
   			parse_host(TRIG_DEFAULT, fp);
   		else if(strcasecmp(e, "local") == 0)
   			parse_host(TRIG_LOCAL, fp);
 + #if defined(HAVE_KRB4) || defined(HAVE_KRB5)
 + 		else if(strcasecmp(e, "FirewallClearCommandChannel") == 0)
 +                         gvFirewallClearCommandChannel = nextbool(fp);
++ 		else if(strcasecmp(e, "FirewallNoChannelBinding") == 0)
++                         gvFirewallNoChannelBinding = nextbool(fp);
 + #endif
   		else
   			errp(_("Config parse error: '%s'\n"), e);

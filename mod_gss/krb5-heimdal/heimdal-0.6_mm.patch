@@ -1,6 +1,6 @@
 diff -rc heimdal-0.6/appl/ftp/ftp/ftp.c heimdal-0.6-mm/appl/ftp/ftp/ftp.c
 *** heimdal-0.6/appl/ftp/ftp/ftp.c	2002-10-16 16:46:43.000000000 +0100
---- heimdal-0.6-mm/appl/ftp/ftp/ftp.c	2003-08-18 09:45:37.000000000 +0100
+--- heimdal-0.6-mm/appl/ftp/ftp/ftp.c	2003-10-21 13:52:21.000000000 +0100
 ***************
 *** 1204,1209 ****
 --- 1204,1210 ----
@@ -153,41 +153,104 @@ diff -rc heimdal-0.6/appl/ftp/ftp/ftp.c heimdal-0.6-mm/appl/ftp/ftp/ftp.c
       oldintr = signal (SIGINT, abortpt);
 diff -rc heimdal-0.6/appl/ftp/ftp/ftp_var.h heimdal-0.6-mm/appl/ftp/ftp/ftp_var.h
 *** heimdal-0.6/appl/ftp/ftp/ftp_var.h	2000-11-15 22:55:52.000000000 +0000
---- heimdal-0.6-mm/appl/ftp/ftp/ftp_var.h	2003-08-18 09:48:38.000000000 +0100
+--- heimdal-0.6-mm/appl/ftp/ftp/ftp_var.h	2003-10-21 15:06:48.000000000 +0100
 ***************
 *** 52,57 ****
---- 52,58 ----
+--- 52,59 ----
   extern int	connected;		/* connected to server */
   extern int	fromatty;		/* input is from a terminal */
   extern int	interactive;		/* interactively prompt on m* cmds */
 + extern int	allowfwccc;             /* send ccc command before PORT/PASV command */
++ extern int	allowfwnat;             /* allow noc channel binding to support NAT */
   extern int	lineedit;		/* use line-editing */
   extern int	debug;			/* debugging level */
   extern int	bell;			/* ring bell on cmd completion */
 diff -rc heimdal-0.6/appl/ftp/ftp/globals.c heimdal-0.6-mm/appl/ftp/ftp/globals.c
 *** heimdal-0.6/appl/ftp/ftp/globals.c	2000-11-15 22:56:08.000000000 +0000
---- heimdal-0.6-mm/appl/ftp/ftp/globals.c	2003-08-18 09:49:09.000000000 +0100
+--- heimdal-0.6-mm/appl/ftp/ftp/globals.c	2003-10-21 13:54:37.000000000 +0100
 ***************
 *** 11,16 ****
---- 11,17 ----
+--- 11,18 ----
   int	connected;		/* connected to server */
   int	fromatty;		/* input is from a terminal */
   int	interactive;		/* interactively prompt on m* cmds */
 + int	allowfwccc;             /* send PORT/PASV and EPRT/EPSV commands in clear*/
++ int	allowfwnat;             /* Allow NoChannelBinding */
   int	lineedit;		/* use line-editing */
   int	debug;			/* debugging level */
   int	bell;			/* ring bell on cmd completion */
+diff -rc heimdal-0.6/appl/ftp/ftp/gssapi.c heimdal-0.6-mm/appl/ftp/ftp/gssapi.c
+*** heimdal-0.6/appl/ftp/ftp/gssapi.c	2003-03-16 19:40:18.000000000 +0000
+--- heimdal-0.6-mm/appl/ftp/ftp/gssapi.c	2003-10-21 15:17:17.000000000 +0100
+***************
+*** 338,344 ****
+      int context_established = 0;
+      char *p;
+      int n;
+!     gss_channel_bindings_t bindings;
+      struct gss_data *d = app_data;
+  
+      const char *knames[] = { "ftp", "host", NULL }, **kname = knames;
+--- 338,344 ----
+      int context_established = 0;
+      char *p;
+      int n;
+!     gss_channel_bindings_t bindings=GSS_C_NO_CHANNEL_BINDINGS;
+      struct gss_data *d = app_data;
+  
+      const char *knames[] = { "ftp", "host", NULL }, **kname = knames;
+***************
+*** 350,366 ****
+      input.length = 0;
+      input.value = NULL;
+  
+!     bindings = malloc(sizeof(*bindings));
+  
+!     sockaddr_to_gss_address (myctladdr,
+  			     &bindings->initiator_addrtype,
+  			     &bindings->initiator_address);
+!     sockaddr_to_gss_address (hisctladdr,
+  			     &bindings->acceptor_addrtype,
+  			     &bindings->acceptor_address);
+  
+!     bindings->application_data.length = 0;
+!     bindings->application_data.value = NULL;
+  
+      while(!context_established) {
+  	maj_stat = gss_init_sec_context(&min_stat,
+--- 350,368 ----
+      input.length = 0;
+      input.value = NULL;
+  
+!     if ( ! allowfwnat ) {
+!         bindings = malloc(sizeof(*bindings));
+  
+!         sockaddr_to_gss_address (myctladdr,
+  			     &bindings->initiator_addrtype,
+  			     &bindings->initiator_address);
+!         sockaddr_to_gss_address (hisctladdr,
+  			     &bindings->acceptor_addrtype,
+  			     &bindings->acceptor_address);
+  
+!         bindings->application_data.length = 0;
+!         bindings->application_data.value = NULL;
+!     }
+  
+      while(!context_established) {
+  	maj_stat = gss_init_sec_context(&min_stat,
 diff -rc heimdal-0.6/appl/ftp/ftp/main.c heimdal-0.6-mm/appl/ftp/ftp/main.c
 *** heimdal-0.6/appl/ftp/ftp/main.c	2002-10-29 09:47:51.000000000 +0000
---- heimdal-0.6-mm/appl/ftp/ftp/main.c	2003-08-18 09:49:59.000000000 +0100
+--- heimdal-0.6-mm/appl/ftp/ftp/main.c	2003-10-21 13:53:52.000000000 +0100
 ***************
 *** 63,68 ****
---- 63,70 ----
+--- 63,72 ----
         "verbosity", NULL},
       { NULL,	'K', arg_negative_flag, &use_kerberos,
         "Disable kerberos authentication", NULL},
 +     { NULL,   'c', arg_flag, &allowfwccc,
-+       "Allow PORT/PASV commands in clear for stateful FW support", NULL},
++       "Allow PORT/PASV commands in clear for stateful FW support and GSSAPI", NULL},
++     { NULL,   'b', arg_flag, &allowfwnat,
++       "Allow No Channel Binding for NAT support and GSSAPI", NULL},
       { "version", 0,  arg_flag, &version_flag },
       { "help",	'h', arg_flag, &help_flag },
   };

@@ -5,4 +5,7 @@ The result of the -c option is that the client sends the PORT/PASV command unpro
 
 Overall this solutions is more secure then opening on the firewall a port range.
 
+To support NAT(Network Address Translation) the Channel Binding has to be disabled which can be archieved by using the
+-b option to the ftp client for Kerberos 5
+
 Markus
