@@ -1622,6 +1622,10 @@ MODRET gss_prot(cmd_rec *cmd) {
 	return ERROR(cmd);
     }
 
+    /* Convert the parameter to upper case */
+    for (i = 0; i < strlen(cmd->argv[1]); i++)
+	(cmd->argv[1])[i] = toupper((cmd->argv[1])[i]);
+
     /* Only PROT S , PROT C or PROT P is valid with respect to GSS. */
     if (!strcmp(cmd->argv[1], "C")) {
 	char *mesg = "Protection set to Clear";
