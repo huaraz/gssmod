@@ -3,11 +3,15 @@ cd mod_gss
 ./configure
 or
 ./configure --enable-heimdal
+or
+./configure --enable-seam
 
 cd proftpd 
 
-copy mod_gss.c to the contrib directory and call 
-copy mod_gss.h to the include directory and call 
+copy mod_gss.c to the contrib directory 
+copy mod_gss.h to the include directory 
+
+and call 
 
 ./configure --with-modules=mod_gss --with-includes=/usr/local/include --with-libraries=/usr/local/lib
 make

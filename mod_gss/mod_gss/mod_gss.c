@@ -2234,7 +2234,7 @@ static int gss_dispatch(char *buf)
     pool *newpool;
     array_header *tarr;
 
-    if (isspace(buf[0]))
+    if (isspace((int)buf[0]))
 	return 1;
 
     /* Nothing there...bail out.
