@@ -57,6 +57,7 @@ module gss_module;
 static char *radixN = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 static char *gss_services[] = { "ftp", "host", 0 };
 static char *gss_keytab_file = NULL;
+static char *keytab_file = NULL;
 static unsigned char gss_engine = FALSE;
 static unsigned long gss_flags = 0UL, gss_prot_flags = 0UL, gss_opts = 0UL;
 static int           gss_logfd = -1;
@@ -554,6 +555,7 @@ static void gss_netio_install_data(void) {
 	pr_log_pri(LOG_INFO, MOD_GSS_VERSION ": error registering netio: %s",
 		strerror(errno));
 
+    /* Install our response protection handler */
     pr_response_register_handler(gss_format_cb);
 }
 
@@ -1353,6 +1355,16 @@ MODRET gss_adat(cmd_rec *cmd) {
     }
     strcpy(localname,pr_netaddr_get_dnsstr(session.c->local_addr));
 
+    if (gss_keytab_file) {
+	char *p;
+        gss_log("GSSAPI Set KRB5_KTNAME=FILE:%s",gss_keytab_file);
+        if ( (p = getenv("KRB5_KTNAME")) != NULL )
+            keytab_file = strdup(p);
+        putenv(pstrcat(main_server->pool, "KRB5_KTNAME=FILE:", gss_keytab_file, NULL));
+    } else {
+        gss_log("GSSAPI Use default KRB5 keytab");
+    }
+
     for (service = gss_services; *service; service++) {
 	sprintf(service_name, "%s@%s", *service, localname);
 	name_buf.value = service_name;
@@ -1365,7 +1377,7 @@ MODRET gss_adat(cmd_rec *cmd) {
 	if (maj_stat != GSS_S_COMPLETE) {
 	    reply_gss_error(R_535, maj_stat, min_stat,"Failed importing name");
             gss_release_buffer(&min_stat,&name_buf);
-	    return ERROR(cmd);
+            goto err;
 	}
 
 	acquire_maj = gss_acquire_cred(&acquire_min, server, 0,
@@ -1404,7 +1416,7 @@ MODRET gss_adat(cmd_rec *cmd) {
 	    gss_release_buffer(&accept_min, &out_tok);
 	    gss_release_cred(&acquire_min, &server_creds);
 	    gss_release_name(&min_stat, &server);
-	    return ERROR(cmd);
+            goto err;
 	}
     } else {
 	reply_gss_error(R_535, acquire_maj, acquire_min,
@@ -1412,7 +1424,7 @@ MODRET gss_adat(cmd_rec *cmd) {
 	gss_release_buffer(&accept_min, &out_tok);
         gss_release_cred(&acquire_min, &server_creds);
 	gss_release_name(&min_stat, &server);
-	return ERROR(cmd);
+        goto err;
     }
 
     if (out_tok.length) {
@@ -1424,7 +1436,7 @@ MODRET gss_adat(cmd_rec *cmd) {
    	    gss_release_buffer(&accept_min, &out_tok);
             gss_release_cred(&acquire_min, &server_creds);
 	    gss_release_name(&min_stat, &server);
-	    return ERROR(cmd);
+            goto err;
 	}
 	if (accept_maj == GSS_S_COMPLETE) {
 	    pr_response_send(R_235, "ADAT=%s", gbuf);
@@ -1450,7 +1462,7 @@ MODRET gss_adat(cmd_rec *cmd) {
    	    gss_release_buffer(&accept_min, &out_tok);
             gss_release_cred(&acquire_min, &server_creds);
 	    gss_release_name(&min_stat, &server);
-	    return ERROR(cmd);
+            goto err;
 	}
 	maj_stat = gss_display_name(&min_stat, server, &server_name,
 				    &mechid);
@@ -1463,7 +1475,7 @@ MODRET gss_adat(cmd_rec *cmd) {
    	    gss_release_buffer(&accept_min, &out_tok);
             gss_release_cred(&acquire_min, &server_creds);
 	    gss_release_name(&min_stat, &server);
-	    return ERROR(cmd);
+            goto err;
 	}
 	/* If the server accepts the security data, but does
 	   not require any additional data (i.e., the security
@@ -1479,7 +1491,6 @@ MODRET gss_adat(cmd_rec *cmd) {
       
 	/* Install now our data channel NetIO handlers. */
 	gss_netio_install_data();
-        /* Install our response protection handler */
         session.sp_flags = 0;
 
         if ( !(ret_flags & GSS_C_REPLAY_FLAG || ret_flags & GSS_C_SEQUENCE_FLAG) ){
@@ -1489,7 +1500,13 @@ MODRET gss_adat(cmd_rec *cmd) {
             gss_log("GSSAPI Warning: no sequence protection !");
         }
 
-
+        if (keytab_file) {
+            gss_log("GSSAPI ReSet %s",keytab_file);
+            putenv(pstrcat(main_server->pool, "KRB5_KTNAME=", keytab_file, NULL));
+        } else {
+            gss_log("GSSAPI UnSet KRB5_KTNAME");
+            unsetenv("KRB5_KTNAME");
+        } 
         return HANDLED(cmd);
     } else if (maj_stat == GSS_S_CONTINUE_NEEDED) {
 	/* If the server accepts the security data, and
@@ -1499,6 +1516,13 @@ MODRET gss_adat(cmd_rec *cmd) {
    	gss_release_buffer(&accept_min, &out_tok);
         gss_release_cred(&acquire_min, &server_creds);
 	gss_release_name(&min_stat, &server);
+        if (keytab_file) {
+            gss_log("GSSAPI ReSet %s",keytab_file);
+            putenv(pstrcat(main_server->pool, "KRB5_KTNAME=", keytab_file, NULL));
+        } else {
+            gss_log("GSSAPI UnSet KRB5_KTNAME");
+            unsetenv("KRB5_KTNAME");
+        }
 	return HANDLED(cmd);
     } else {
 	/* "If the server rejects the security data (if
@@ -1509,13 +1533,21 @@ MODRET gss_adat(cmd_rec *cmd) {
    	gss_release_buffer(&accept_min, &out_tok);
         gss_release_cred(&acquire_min, &server_creds);
 	gss_release_name(&min_stat, &server);
-	return ERROR(cmd);
+        goto err;
     }
     gss_release_buffer(&accept_min, &out_tok);
     gss_release_cred(&acquire_min, &server_creds);
     gss_release_name(&min_stat, &server);
     pr_response_add_err(R_535, "failed processing ADAT");
     gss_log("GSSAPI Failed processing ADAT");
+err:
+    if (keytab_file) {
+        gss_log("GSSAPI ReSet %s",keytab_file);
+        putenv(pstrcat(main_server->pool, "KRB5_KTNAME=", keytab_file, NULL));
+    } else {
+       gss_log("GSSAPI UnSet KRB5_KTNAME");
+       unsetenv("KRB5_KTNAME");
+    }
     return ERROR(cmd);
 }
 
@@ -2042,16 +2074,16 @@ static int gss_sess_init(void) {
 	gss_required_on_data = *((unsigned char *) c->argv[1]);
     }
 
-    /* Set GSSkeytab file */
+    /* Get GSSkeytab file */
     gss_keytab_file = get_param_ptr(main_server->conf, "GSSKeytab", FALSE);
 
-    if (gss_keytab_file) {
+ /* if (gss_keytab_file) {
 	gss_log("GSSAPI Set KRB5_KTNAME=FILE:%s",gss_keytab_file);
 	putenv(pstrcat(main_server->pool, "KRB5_KTNAME=FILE:", gss_keytab_file, NULL));
     } else {
 	gss_log("GSSAPI Use default KRB5 keytab");
     }
-
+*/
     pr_exit_register_handler(gss_sess_exit);
 
     return 0;

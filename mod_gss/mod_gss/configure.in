@@ -36,6 +36,7 @@ AC_ARG_ENABLE(seam,
        ac_gss_libs="-lgss -R\/usr\/lib\/gss \/usr\/lib\/gss\/mech_krb5.so";
     fi ])
 
+AC_CHECK_FUNCS(unsetenv)
 AC_CONFIG_HEADER(mod_gss.h)
 AH_TOP([/*
  * mod_gss - an RFC2228 GSSAPI module for ProFTPD
@@ -252,6 +253,19 @@ extern krb5_error_code KRB5_CALLCONV krb5_prompter_posix (krb5_context context,
 #define C_FWCCC   "FWCCC"       /* FW support PORT/EPORT/PASV/EPASV in clear */
 
 extern session_t session;
+
+#ifndef HAVE_UNSETENV
+void unsetenv(char *env_name) {
+  extern char **environ;
+  char **cc;
+  int l;
+  l=strlen(env_name);
+  for (cc=environ;*cc!=NULL;cc++) {
+    if (strncmp(env_name,*cc,l)==0 && ((*cc)[l]=='='||(*cc)[l]=='\0')) break;
+  } for (; *cc != NULL; cc++) *cc=cc[1];
+}
+#endif
+
 ])
 AC_OUTPUT()
 
