@@ -1,11 +1,8 @@
 This patch adds an option -c to the ftp client for Kerberos 5
  connections to e.g. proftpd. Stateful firewalls need to intercept the PORT or 
-PASV command to be able to setup their session tables. The flag sends a CCC command 
-to the server before sending the PORT or PASV command. With the CCC command the server
-will switch to clear text replies until the next MIC/ENC or CONF command is send.
+PASV command to be able to setup their session tables. 
+The result of the -c option is that the client sends the PORT/PASV command unprotected and the server replies with an unprotected message.
 
-The final result is that the client sends the PORT/PASV command unprotected and the
- server replies with an unprotected message.
 
 Overall this solutions is more secure then opening on the firewall a port range.
 

@@ -41,8 +41,8 @@
 #include "privs.h"
 
 /* Make sure the version of proftpd is as necessary. */
-#if PROFTPD_VERSION_NUMBER < 0x0001020802
-# error "ProFTPD 1.2.8 or later required"
+#if PROFTPD_VERSION_NUMBER < 0x0001020901
+# error "ProFTPD 1.2.9 or later required"
 #endif
 
 #ifdef HEIMDAL
@@ -57,7 +57,7 @@
 #include <gssapi/gssapi_krb5.h>
 #endif
 
-#define MOD_GSS_VERSION		"mod_gss/1.1.0"
+#define MOD_GSS_VERSION		"mod_gss/1.1.1"
 
 extern session_t session;
 

@@ -75,6 +75,7 @@ static gss_buffer_desc client_name,server_name;
 #define GSS_SESS_DATA_OPEN		0x0010
 #define GSS_SESS_DATA_ERROR		0x0020
 #define GSS_SESS_DISPATCH		0x0040
+#define GSS_SESS_CCC			0x0100
 
 #define GSS_SESS_PROT_C                 0x0000
 #define GSS_SESS_PROT_S                 0x0001
@@ -809,16 +810,10 @@ MODRET gss_ccc(cmd_rec *cmd) {
     }
  
     if (gss_opts & GSS_OPT_ALLOW_CCC){
-        session.sp_flags = SP_CCC;
+        gss_flags |= GSS_SESS_CCC;
         pr_response_add(R_200, "CCC command successful");
         return HANDLED(cmd);
     }
-    if (gss_opts & GSS_OPT_ALLOW_FW_CCC) {
-        session.sp_flags = SP_CCC;
-        pr_response_add(R_200, "CCC command successful");
-        return HANDLED(cmd);
-    }
-
 
     pr_response_add_err(R_534, mesg);
     gss_log("GSSAPI %s", mesg);
@@ -967,9 +962,7 @@ MODRET gss_any(cmd_rec *cmd) {
 	!strcmp(cmd->argv[0], C_ADAT) ||
 	!strcmp(cmd->argv[0], C_ENC) ||
 	!strcmp(cmd->argv[0], C_MIC) ||
-	!strcmp(cmd->argv[0], C_CONF) ||
-        ((gss_opts & GSS_OPT_ALLOW_FW_CCC ) && !strcmp(cmd->argv[0], C_PORT) ) ||
-        ((gss_opts & GSS_OPT_ALLOW_FW_CCC ) && !strcmp(cmd->argv[0], C_PASV) ))
+	!strcmp(cmd->argv[0], C_CONF))
         return DECLINED(cmd);
 
     /* protection on control channel is required (except for commands dispatched by gss_dec) */
@@ -979,13 +972,27 @@ MODRET gss_any(cmd_rec *cmd) {
 	return ERROR(cmd);
     }
 
-    /* Ignore commands from dispatched gss_dec and if CCC is allowed*/
-    if ( (gss_flags & GSS_SESS_DISPATCH) || ((session.sp_flags & SP_CCC) && (gss_opts & GSS_OPT_ALLOW_CCC))) {
+    /* Ignore commands from dispatched gss_dec*/
+    if (gss_flags & GSS_SESS_DISPATCH) {
         return DECLINED(cmd);
     }
 
-    /* After ADAT all commands have to be protected by ENC/MIC*/
-    if ( (gss_flags & GSS_SESS_ADAT_OK) && ! session.sp_flags ) {
+    /* Ignore clear PORT/PASV commands if FW_CCC is allowed*/
+    if (( (gss_opts & GSS_OPT_ALLOW_FW_CCC) && !strcmp(cmd->argv[0], C_PORT) ) ||
+        ( (gss_opts & GSS_OPT_ALLOW_FW_CCC) && !strcmp(cmd->argv[0], C_PASV) )) {
+        session.sp_flags = SP_CCC; 
+        return DECLINED(cmd);
+    }
+
+    /* Ignore clear commands if CCC is allowed*/
+    if ((gss_opts & GSS_OPT_ALLOW_CCC) && (gss_flags & GSS_SESS_CCC)) {
+        session.sp_flags = SP_CCC; 
+        return DECLINED(cmd);
+    }
+
+    /* After ADAT all commands have to be protected by ENC/MIC/CONF */
+    if ( (gss_flags & GSS_SESS_ADAT_OK) ) {
+        session.sp_flags = SP_CCC; 
 	pr_response_add_err(R_533, "All commands must be protected.");
 	gss_log("GSSAPI Unprotected command received");
 	return ERROR(cmd);
@@ -2109,6 +2116,7 @@ static char *gss_format_cb(pool *pool, const char *fmt, ...)
                   session.sp_flags & SP_MIC ?  R_632 : 
   		  session.sp_flags & SP_CONF ?  R_633 : NULL,
                   " ",reply,"\r\n",NULL);
+    log_debug(DEBUG9,"wrapped response '%s'",reply);
     return reply;
 }
 

@@ -1,6 +1,6 @@
 diff -rc krb5-1.2.8/src/appl/gssftp/ftp/ftp.c krb5-1.2.8-mm/src/appl/gssftp/ftp/ftp.c
 *** krb5-1.2.8/src/appl/gssftp/ftp/ftp.c	2001-12-21 18:10:43.000000000 +0000
---- krb5-1.2.8-mm/src/appl/gssftp/ftp/ftp.c	2003-04-24 16:28:06.000000000 +0100
+--- krb5-1.2.8-mm/src/appl/gssftp/ftp/ftp.c	2003-06-03 11:57:25.000000000 +0100
 ***************
 *** 472,477 ****
 --- 472,478 ----
@@ -18,13 +18,13 @@ diff -rc krb5-1.2.8/src/appl/gssftp/ftp/ftp.c krb5-1.2.8-mm/src/appl/gssftp/ftp/
   		return(0);
   	cpend = 1;
 +         if (allowfwccc && 
-+            ( !strncmp(fmt, "CCC",3) || !strncmp(fmt, "PORT",4) || !strncmp(fmt, "PASV",4) ) ) {
++            ( !strncmp(fmt, "PORT",4) || !strncmp(fmt, "PASV",4) ) ) {
 + 		tmpa = auth_type;
 + 		auth_type = NULL;
 +         }
   	r = getreply(!strcmp(fmt, "QUIT"));
 +         if (allowfwccc && 
-+            ( !strncmp(fmt, "CCC",3) || !strncmp(fmt, "PORT",4) || !strncmp(fmt, "PASV",4) ) ) {
++            ( !strncmp(fmt, "PORT",4) || !strncmp(fmt, "PASV",4) ) ) {
 + 		auth_type = tmpa;
 + 		tmpa=NULL;
 +         }
@@ -43,15 +43,13 @@ diff -rc krb5-1.2.8/src/appl/gssftp/ftp/ftp.c krb5-1.2.8-mm/src/appl/gssftp/ftp/
   		data = socket(AF_INET, SOCK_STREAM, 0);
 ***************
 *** 1390,1400 ****
---- 1402,1422 ----
+--- 1402,1420 ----
   		if (options & SO_DEBUG &&
   		    setsockopt(data, SOL_SOCKET, SO_DEBUG, (char *)&on, sizeof (on)) < 0)
   			perror("ftp: setsockopt (ignored)");
 +                 if (allowfwccc ) {
-+ 			result=command("CCC");
 + 			sl = clevel;
-+ 			if ( result == COMPLETE )
-+ 				clevel = PROT_C;
++ 			clevel = PROT_C;
 +                 }
   		if (command("PASV") != COMPLETE) {
   			printf("Passive mode refused.  Turning off passive mode.\n");
@@ -78,15 +76,13 @@ diff -rc krb5-1.2.8/src/appl/gssftp/ftp/ftp.c krb5-1.2.8-mm/src/appl/gssftp/ftp/
   			sendport = 0;
   			tmpno = 1;
   			goto noport;
---- 1487,1505 ----
+--- 1485,1501 ----
   		a = (char *)&data_addr.sin_addr;
   		p = (char *)&data_addr.sin_port;
   #define	UC(b)	(((int)b)&0xff)
 +                 if (allowfwccc ) {
-+ 			result=command("CCC");
 + 			sl = clevel;
-+ 			if ( result == COMPLETE )
-+ 				clevel = PROT_C;
++ 			clevel = PROT_C;
 +                 }
   		result =
   		    command("PORT %d,%d,%d,%d,%d,%d",
@@ -100,7 +96,7 @@ diff -rc krb5-1.2.8/src/appl/gssftp/ftp/ftp.c krb5-1.2.8-mm/src/appl/gssftp/ftp/
   			goto noport;
 ***************
 *** 1713,1718 ****
---- 1743,1749 ----
+--- 1739,1745 ----
   	char *volatile cmd2;
   	 fd_set mask;
   	sigtype abortpt();
@@ -121,15 +117,12 @@ diff -rc krb5-1.2.8/src/appl/gssftp/ftp/ftp.c krb5-1.2.8-mm/src/appl/gssftp/ftp/
   	if (!connected) {
   		printf("No primary connection\n");
   		pswitch(1);
---- 1757,1778 ----
+--- 1753,1771 ----
   	}
   	if (curtype != prox_type)
   		changetype(prox_type, 1);
 +         if (allowfwccc) {
-+ 		int result;
-+ 		result=command("CCC");
 + 		sl = clevel;
-+ 		if ( result == COMPLETE )
 + 		clevel = PROT_C;
 +         }
   	if (command("PASV") != COMPLETE) {
@@ -157,16 +150,13 @@ diff -rc krb5-1.2.8/src/appl/gssftp/ftp/ftp.c krb5-1.2.8-mm/src/appl/gssftp/ftp/
   		goto abort;
   	oldintr = signal(SIGINT, abortpt);
   	if (command("%s %s", cmd, remote) != PRELIM) {
---- 1781,1802 ----
+--- 1774,1792 ----
   	}
   	if (curtype != prox_type)
   		changetype(prox_type, 1);
 + 	if (allowfwccc) {
-+ 		int result;
-+ 		result=command("CCC");
 + 		sl = clevel;
-+ 		if ( result == COMPLETE )
-+ 			clevel = PROT_C;
++ 		clevel = PROT_C;
 + 	}
   	if (command("PORT %s", pasv) != COMPLETE) {
   		pswitch(1);
@@ -182,14 +172,14 @@ diff -rc krb5-1.2.8/src/appl/gssftp/ftp/ftp.c krb5-1.2.8-mm/src/appl/gssftp/ftp/
   	if (command("%s %s", cmd, remote) != PRELIM) {
 diff -rc krb5-1.2.8/src/appl/gssftp/ftp/ftp_var.h krb5-1.2.8-mm/src/appl/gssftp/ftp/ftp_var.h
 *** krb5-1.2.8/src/appl/gssftp/ftp/ftp_var.h	1998-08-12 07:53:38.000000000 +0100
---- krb5-1.2.8-mm/src/appl/gssftp/ftp/ftp_var.h	2003-04-24 16:29:16.000000000 +0100
+--- krb5-1.2.8-mm/src/appl/gssftp/ftp/ftp_var.h	2003-06-03 11:58:36.000000000 +0100
 ***************
 *** 49,54 ****
 --- 49,55 ----
   extern int	sendport;	/* use PORT cmd for each data connection */
   extern int	verbose;	/* print messages coming back from server */
   extern int	connected;	/* connected to server */
-+ extern int	allowfwccc;     /* Set CCC mode before PORT/PASV command */
++ extern int	allowfwccc;     /* Allow PORT/PASV command in clear*/
   extern int	fromatty;	/* input is from a terminal */
   extern int	interactive;	/* interactively prompt on m* cmds */
   extern int	debug;		/* debugging level */
