@@ -24,7 +24,7 @@
  * for the Libraries in the source distribution.
  *
  *  --- DO NOT DELETE BELOW THIS LINE ----
- *  $Libraries: -lgss -R/usr/lib/gss /usr/lib/gss/mech_krb5.so$
+ *  $Libraries: $
  *
  *  $MIT-Libraries: -lgssapi_krb5 -ldes425 -lkrb5 -lkcrypto -lcom_err$
  *  $HEIMDAL-Libraries: -lgssapi -lkrb5 -lcom_err -lasn1 -lroken$
