@@ -1225,11 +1225,18 @@ MODRET gss_adat(cmd_rec *cmd) {
 
     chan.initiator_addrtype = GSS_C_AF_INET;
     chan.initiator_address.length = 4;
-    chan.initiator_address.value = &session.c->remote_ipaddr->s_addr;
-
+#ifndef USE_IPV6
+    chan.initiator_address.value = &((struct in_addr *)pr_netaddr_get_inaddr(session.c->remote_addr))->s_addr;
+#else
+/* don't know yet */
+#endif /* USE_IPV6 */
     chan.acceptor_addrtype = GSS_C_AF_INET;
     chan.acceptor_address.length = 4;
-    chan.acceptor_address.value = &session.c->local_ipaddr->s_addr;
+#ifndef USE_IPV6
+    chan.acceptor_address.value = &((struct in_addr *)pr_netaddr_get_inaddr(session.c->local_addr))->s_addr;
+#else
+/* don't know yet */
+#endif /* USE_IPV6 */
 
     chan.application_data.length = 0;
     chan.application_data.value = 0;
@@ -1264,12 +1271,12 @@ MODRET gss_adat(cmd_rec *cmd) {
 	return ERROR(cmd);
     }
 
-    if (strlen(inet_getname(session.c->pool, session.c->local_ipaddr)) > MAXHOSTNAMELEN -1 ) {
-	gss_log("GSSAPI Hostname (%s) longer then MAXHOSTNAMELEN:%d",inet_getname(session.c->pool, session.c->local_ipaddr),MAXHOSTNAMELEN);
+    if (strlen(pr_netaddr_get_dnsstr(session.c->local_addr)) > MAXHOSTNAMELEN -1 ) {
+	gss_log("GSSAPI Hostname (%s) longer then MAXHOSTNAMELEN:%d",pr_netaddr_get_dnsstr(session.c->local_addr),MAXHOSTNAMELEN);
         pr_response_add_err(R_535, "Internal error"); 
 	return ERROR(cmd);
     }
-    strcpy(localname,inet_getname(session.c->pool, session.c->local_ipaddr));
+    strcpy(localname,pr_netaddr_get_dnsstr(session.c->local_addr));
 
     for (service = gss_services; *service; service++) {
 	sprintf(service_name, "%s@%s", *service, localname);
