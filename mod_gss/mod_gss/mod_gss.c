@@ -709,7 +709,11 @@ MODRET gss_authenticate(cmd_rec *cmd) {
     /* Check first if principal and local user match or .k5login has correct entry,
      * then check password against kdc
      */
+    pr_signals_block();
+    PRIVS_ROOT
     k5ret = krb5_kuserok(kc, p, cmd->argv[0]);
+    PRIVS_RELINQUISH
+    pr_signals_unblock();
     krb5_free_principal(kc, p);
     if (k5ret == TRUE) {
        gss_log("GSSAPI User %s is authorized as %s.", (char *) client_name.value,cmd->argv[0]);
@@ -1874,8 +1878,8 @@ static void gss_sess_exit(void) {
 static int gss_init(void) {
 
     /* Make sure the version of proftpd is as necessary. */
-    if (PROFTPD_VERSION_NUMBER < 0x0001020802) {
-	log_pri(LOG_ERR, MOD_GSS_VERSION " requires proftpd 1.2.8rc2 and later");
+    if (PROFTPD_VERSION_NUMBER < 0x0001020901) {
+	log_pri(LOG_ERR, MOD_GSS_VERSION " requires proftpd 1.2.9rc1 and later");
 	exit(1);
     }
     /* set command size buffer to maximum */
