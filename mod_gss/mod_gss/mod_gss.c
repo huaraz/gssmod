@@ -74,9 +74,10 @@ static gss_buffer_desc client_name,server_name;
 #define GSS_SESS_PBSZ_OK		0x0004
 #define GSS_SESS_DATA_OPEN		0x0010
 #define GSS_SESS_DATA_ERROR		0x0020
-#define GSS_SESS_DISPATCH		0x0040
-#define GSS_SESS_CCC			0x0100
-#define GSS_SESS_FWCCC			0x0200
+#define GSS_SESS_DATA_READ_ERROR	0x0040
+#define GSS_SESS_DISPATCH		0x0100
+#define GSS_SESS_CCC			0x0200
+#define GSS_SESS_FWCCC			0x0400
 
 #define GSS_SESS_PROT_C                 0x0000
 #define GSS_SESS_PROT_S                 0x0001
@@ -402,6 +403,7 @@ static int gss_netio_read_cb(pr_netio_stream_t *nstrm, char *buf,
         if (  msg_buf.length == 0 ){
             /* last encoded empty block */
     	    gss_release_buffer(&min_stat, &msg_buf);
+            gss_flags &= ~GSS_SESS_DATA_READ_ERROR;
 	    return 0;
         }
         /* copy decrypted message to dec_buf */
@@ -428,16 +430,28 @@ static int gss_netio_read_cb(pr_netio_stream_t *nstrm, char *buf,
 
 static void gss_netio_abort_cb(pr_netio_stream_t *nstrm) {
     nstrm->strm_flags |= PR_NETIO_SESS_ABORT;
+    if ( nstrm->strm_type == PR_NETIO_STRM_DATA && (gss_flags & GSS_SESS_DATA_OPEN) ) {
+    	gss_flags |= GSS_SESS_DATA_ERROR;
+    }
 }
 
 static int gss_netio_shutdown_cb(pr_netio_stream_t *nstrm, int how) {
     ssize_t count=0; 
 
-    if ( nstrm->strm_type == PR_NETIO_STRM_DATA && (gss_flags & GSS_SESS_DATA_OPEN) ) {
-        if ( ! (gss_flags & GSS_SESS_DATA_ERROR) && gss_prot_flags )  { 
-            count = gss_write(nstrm,"",0);
-            if ( count ) 
-                gss_log("GSSAPI Could not write end of protection stream");
+    if ( nstrm->strm_type == PR_NETIO_STRM_DATA && (gss_flags & GSS_SESS_DATA_OPEN) && gss_prot_flags )  { 
+        if ( ! (gss_flags & GSS_SESS_DATA_ERROR) )  { 
+            if (nstrm->strm_mode == PR_NETIO_IO_WR) {
+            	count = gss_write(nstrm,"",0);
+            	if ( count ) 
+                    gss_log("GSSAPI Could not write end of protection stream");
+	    } else if ( gss_flags & GSS_SESS_DATA_READ_ERROR) { 
+                gss_log("GSSAPI Could not read end of protection stream");
+	    }
+        } else {
+            if (nstrm->strm_mode == PR_NETIO_IO_WR)
+                gss_log("GSSAPI ABORT Could not write end of protection stream");
+            else 
+                gss_log("GSSAPI ABORT Could not read end of protection stream");
         }
         gss_flags &= ~GSS_SESS_DATA_OPEN;
     }
@@ -468,8 +482,10 @@ static pr_netio_stream_t *gss_netio_open_cb(pr_netio_stream_t *nstrm, int fd,
 
    /* Cache a pointer to this stream. */
     if (nstrm->strm_type == PR_NETIO_STRM_DATA) {
-	if (nstrm->strm_mode == PR_NETIO_IO_RD)
+	if (nstrm->strm_mode == PR_NETIO_IO_RD) {
 	    gss_data_rd_nstrm = nstrm;
+            gss_flags |= GSS_SESS_DATA_READ_ERROR;
+        }
 
 	if (nstrm->strm_mode == PR_NETIO_IO_WR) {
 	    gss_data_wr_nstrm = nstrm;
