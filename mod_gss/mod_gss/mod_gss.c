@@ -761,11 +761,11 @@ MODRET gss_authenticate(cmd_rec *cmd) {
             gss_log("GSSAPI User %s is not authorized as %s. Use other methods to authenticate.", (char *) client_name.value,cmd->argv[0]);
             return DECLINED(cmd);
         } else {
-        }
-    } else {
-        gss_log("GSSAPI User %s is not authorized. Use other methods to authenticate.", (char *) client_name.value,cmd->argv[0]);
-        return DECLINED(cmd);
-    }
+           gss_log("GSSAPI User %s/%s authorized by kdc.",cmd->argv[0],client_name.value? (char *) client_name.value:"-");
+           return mod_create_data(cmd, (void *) PR_AUTH_RFC2228_OK);
+	}
+    } 
+    return DECLINED(cmd);
 }
 /* This function does the main authentication work, and is called in the
  * normal course of events:
