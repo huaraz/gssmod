@@ -1,4 +1,4 @@
-/ftpd-server-rsa.peo*
+/*
  * mod_gss - an RFC2228 GSSAPI module for ProFTPD
  *
  * Copyright (c) 2002-2003 M Moeller <markus_moeller@compuserve.com>
