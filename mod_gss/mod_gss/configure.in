@@ -81,7 +81,7 @@ AC_ARG_ENABLE(nas,
     if test "$enableeval" != "no" ; then
        AC_DEFINE(HAVE_NAS_KERBEROS,1,[Define NAS Kerberos])
        AC_DEFINE(HAVE_INIT_CREDS_PASSWORD,1,[Define krb5_get_init_creds_password])
-       ac_gss_libs="-L\/usr\/lib -lgssapi_krb5 -lkrb5";
+       ac_gss_libs="-L\/usr\/lib -lksvc -lgssapi_krb5 -lkrb5";
        enable_arg="nas"
     fi ])
 
@@ -293,10 +293,10 @@ extern krb5_error_code KRB5_CALLCONV krb5_get_init_creds_password(krb5_context c
 #include <gssapi/gssapi_generic.h>
 #include <gssapi/gssapi_krb5.h>
 #ifdef HAVE_NAS_KERBEROS
+#include <ibm_svc/krb5_svc.h>
 const char *KRB5_CALLCONV error_message(long code) {
- char *msg;
- msg=(char *)malloc(strlen("Unknown error code: ")+33);
- snprintf(msg,strlen("Unknown error code: ")+32,"Unknown error code: %lu",code);
+ char *msg=NULL;
+ krb5_svc_get_msg(code,&msg);
  return msg;
 }
 #endif

@@ -2715,7 +2715,7 @@ cat >>confdefs.h <<\_ACEOF
 #define HAVE_INIT_CREDS_PASSWORD 1
 _ACEOF
 
-       ac_gss_libs="-L\/usr\/lib -lgssapi_krb5 -lkrb5";
+       ac_gss_libs="-L\/usr\/lib -lksvc -lgssapi_krb5 -lkrb5";
        enable_arg="nas"
     fi
 fi;
