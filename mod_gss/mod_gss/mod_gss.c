@@ -2088,7 +2088,7 @@ static int gss_dispatch(char *buf)
     if((wrd = get_word(&cp)) == NULL) 
        return 1;
 
-    newpool = make_sub_pool(permanent_pool);
+    newpool = make_sub_pool(session.pool ? session.pool : permanent_pool);
     newcmd = (cmd_rec *) pcalloc(newpool,sizeof(cmd_rec));
     newcmd->pool = newpool;
     newcmd->stash_index = -1;
