@@ -1223,20 +1223,20 @@ MODRET gss_adat(cmd_rec *cmd) {
   
     struct gss_channel_bindings_struct chan;
 
+#ifdef USE_IPV6
+    chan.initiator_addrtype = GSS_C_AF_INET6;
+#else
     chan.initiator_addrtype = GSS_C_AF_INET;
-    chan.initiator_address.length = 4;
-#ifndef USE_IPV6
-    chan.initiator_address.value = &((struct in_addr *)pr_netaddr_get_inaddr(session.c->remote_addr))->s_addr;
+#endif
+    chan.initiator_address.length = pr_netaddr_get_inaddr_len(session.c->remote_addr);
+    chan.initiator_address.value = pr_netaddr_get_inaddr(session.c->remote_addr);
+#ifdef USE_IPV6
+    chan.acceptor_addrtype = GSS_C_AF_INET6;
 #else
-/* don't know yet */
-#endif /* USE_IPV6 */
     chan.acceptor_addrtype = GSS_C_AF_INET;
-    chan.acceptor_address.length = 4;
-#ifndef USE_IPV6
-    chan.acceptor_address.value = &((struct in_addr *)pr_netaddr_get_inaddr(session.c->local_addr))->s_addr;
-#else
-/* don't know yet */
-#endif /* USE_IPV6 */
+#endif
+    chan.acceptor_address.length = pr_netaddr_get_inaddr_len(session.c->local_addr);
+    chan.acceptor_address.value = pr_netaddr_get_inaddr(session.c->local_addr);
 
     chan.application_data.length = 0;
     chan.application_data.value = 0;
@@ -1885,8 +1885,8 @@ static void gss_sess_exit(void) {
 static int gss_init(void) {
 
     /* Make sure the version of proftpd is as necessary. */
-    if (PROFTPD_VERSION_NUMBER < 0x0001020901) {
-	log_pri(LOG_ERR, MOD_GSS_VERSION " requires proftpd 1.2.9rc1 and later");
+    if (PROFTPD_VERSION_NUMBER < 0x0001020902) {
+	log_pri(LOG_ERR, MOD_GSS_VERSION " requires proftpd 1.2.9rc2 and later");
 	exit(1);
     }
     /* set command size buffer to maximum */
