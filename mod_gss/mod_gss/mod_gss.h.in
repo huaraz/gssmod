@@ -1,7 +1,7 @@
 /*
  * mod_gss - an RFC2228 GSSAPI module for ProFTPD
  *
- * Copyright (c) 2002 M Moeller <markus_moeller@compuserve.com>
+ * Copyright (c) 2002-2003 M Moeller <markus_moeller@compuserve.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modifi-
