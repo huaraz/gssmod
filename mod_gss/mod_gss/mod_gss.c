@@ -29,7 +29,7 @@
  *  $MIT-Libraries: -lgssapi_krb5 -ldes425 -lkrb5 -lkcrypto -lcom_err$
  *  $HEIMDAL-Libraries: -lgssapi -lkrb5 -lcom_err -lasn1 -lroken$
  *  $SEAM-Libraries: -lgss -R/usr/lib/gss/(gl|do/) /usr/lib/gss/(gl|do/)mech_krb5.so$
- *  $NAS-Libraries: -L/usr/lib -lgssapi_krb5 -lkrb5$
+ *  $NAS-Libraries: -L/usr/lib -lksvc -lgssapi_krb5 -lkrb5$
  * 
  * $Id$
  * $Source$
