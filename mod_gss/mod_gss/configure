@@ -1160,6 +1160,10 @@ fi;
 
 ac_config_headers="$ac_config_headers mod_gss.h"
 
+
+
+
+
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
 # tests run on this system so they can be shared between configure
@@ -1909,6 +1913,8 @@ if test "$no_create" != yes; then
 fi
 
 
-sed -e "s/@GSS_LIBS@/$ac_gss_libs/" mod_gss.h > .mod_gss.h.tmp
+sed -e "s/|MAIL|/"$PACKAGE_BUGREPORT"/" mod_gss.h > .mod_gss.h.tmp
+mv .mod_gss.h.tmp mod_gss.h
+sed -e "s/|GSS_LIBS|/$ac_gss_libs/" mod_gss.h > .mod_gss.h.tmp
 mv .mod_gss.h.tmp mod_gss.h
 

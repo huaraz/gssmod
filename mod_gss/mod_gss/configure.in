@@ -23,7 +23,7 @@ AC_ARG_ENABLE(heimdal,
   [  --enable-heimdal	  enable use of Heimdal package (default=no) ],
   [
     if test "$enableeval" != "no" ; then
-       AC_DEFINE(HAVE_HEIMDAL_KERBEROS,1,"Define Heimdal Kerberos")
+       AC_DEFINE(HAVE_HEIMDAL_KERBEROS,1,[Define Heimdal Kerberos])
        ac_gss_libs="-lgssapi -lkrb5 -lcom_err -lasn1 -lroken";
     fi ])
 
@@ -32,13 +32,231 @@ AC_ARG_ENABLE(seam,
   [  --enable-seam		  enable use of SEAM package (default=no) ],
   [
     if test "$enableeval" != "no" ; then
-       AC_DEFINE(HAVE_SEAM_KERBEROS,1,"Define SEAM Kerberos")
+       AC_DEFINE(HAVE_SEAM_KERBEROS,1,[Define SEAM Kerberos])
        ac_gss_libs="-lgss -R\/usr\/lib\/gss \/usr\/lib\/gss\/mech_krb5.so";
     fi ])
 
 AC_CONFIG_HEADER(mod_gss.h)
+AH_TOP([/*
+ * mod_gss - an RFC2228 GSSAPI module for ProFTPD
+ *
+ * Copyright (c) 2002-2004 M Moeller <|MAIL|>
+ * All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307, USA.
+ *
+ * As a special exemption, M Moeller gives permission to link this program
+ * with MIT, Heimdal or other GSS/Kerberos libraries, and distribute
+ * the resulting executable, without including the source code for
+ * the Libraries in the source distribution.
+ *
+ *  --- DO NOT DELETE BELOW THIS LINE ----
+ *  $Libraries: |GSS_LIBS|$
+ *
+ *  $HEIMDAL-Libraries: -lgssapi -lkrb5 -lcom_err -lasn1 -lroken$
+ *  $MIT-Libraries: -lgssapi_krb5 -ldes425 -lkrb5 -lk5crypto -lcom_err$
+ *
+ */
+])
+AH_BOTTOM([#include "conf.h"
+#include "privs.h"
+
+/* Make sure the version of proftpd is as necessary. */
+#if PROFTPD_VERSION_NUMBER < 0x0001021002
+# error "ProFTPD 1.2.10rc2 or later required"
+#endif
+
+#ifdef HAVE_HEIMDAL_KERBEROS
+#include <gssapi.h>
+#include <krb5.h>
+#define error_message(code) krb5_get_err_text(NULL,code)
+#define gss_nt_service_name GSS_C_NT_HOSTBASED_SERVICE
+#define gss_int32 int32_t
+#else
+#ifdef HAVE_SEAM_KERBEROS
+#include <gssapi/gssapi.h>
+#include <gssapi/gssapi_ext.h>
+#define gss_nt_service_name GSS_C_NT_HOSTBASED_SERVICE
+/* Seam doesn't have krb5.h so define all here. Assume SEAM is based on MIT sources */
+
+#if INT_MAX == 0x7fffffffL
+typedef int     krb5_int32;
+typedef unsigned int    krb5_ui_4;
+#elif LONG_MAX == 0x7fffffffL
+typedef long    krb5_int32;
+typedef unsigned long   krb5_ui_4;
+#elif SHRT_MAX == 0x7fffffffL
+typedef short   krb5_int32;
+typedef unsigned short  krb5_ui_4;
+#else
+#error: undefined 32 bit type
+#endif
+
+typedef long            errcode_t;
+typedef unsigned int    krb5_boolean;
+typedef unsigned char   krb5_octet;
+
+typedef krb5_int32      krb5_addrtype;
+typedef krb5_int32      krb5_authdatatype;
+typedef krb5_int32      krb5_deltat;
+typedef krb5_int32      krb5_enctype;
+typedef krb5_int32      krb5_error_code;
+typedef krb5_int32      krb5_flags;
+typedef krb5_int32      krb5_preauthtype;
+typedef krb5_int32      krb5_timestamp;
+
+typedef krb5_error_code krb5_magic;
+
+struct  _krb5_context;
+typedef struct _krb5_context *krb5_context;
+
+typedef struct _krb5_data {
+        krb5_magic magic;
+        unsigned int length;
+        char *data;
+} krb5_data;
+
+typedef struct krb5_principal_data {
+    krb5_magic magic;
+    krb5_data realm;
+    krb5_data *data;            /* An array of strings */
+    krb5_int32 length;
+    krb5_int32 type;
+} krb5_principal_data;
+typedef krb5_principal_data *krb5_principal;
+
+typedef struct _krb5_keyblock {
+    krb5_magic magic;
+    krb5_enctype enctype;
+    unsigned int length;
+    krb5_octet *contents;
+} krb5_keyblock;
+
+typedef struct _krb5_ticket_times {
+    krb5_timestamp authtime;
+    krb5_timestamp starttime;
+    krb5_timestamp endtime;
+    krb5_timestamp renew_till;
+} krb5_ticket_times;
+
+typedef struct _krb5_address {
+    krb5_magic magic;
+    krb5_addrtype addrtype;
+    unsigned int length;
+    krb5_octet *contents;
+} krb5_address;
+
+typedef struct _krb5_authdata {
+    krb5_magic magic;
+    krb5_authdatatype ad_type;
+    unsigned int length;
+    krb5_octet *contents;
+} krb5_authdata;
+
+typedef struct _krb5_creds {
+    krb5_magic magic;
+    krb5_principal client;
+    krb5_principal server;
+    krb5_keyblock keyblock;
+    krb5_ticket_times times;
+    krb5_boolean is_skey;
+    krb5_flags ticket_flags;
+    krb5_address **addresses;
+    krb5_data ticket;
+    krb5_data second_ticket;
+    krb5_authdata **authdata;
+} krb5_creds;
+
+typedef struct _krb5_get_init_creds_opt {
+    krb5_flags flags;
+    krb5_deltat tkt_life;
+    krb5_deltat renew_life;
+    int forwardable;
+    int proxiable;
+    krb5_enctype *etype_list;
+    int etype_list_length;
+    krb5_address **address_list;
+    krb5_preauthtype *preauth_list;
+    int preauth_list_length;
+    krb5_data *salt;
+} krb5_get_init_creds_opt;
+
+typedef struct _krb5_prompt {
+    char *prompt;
+    int hidden;
+    krb5_data *reply;
+} krb5_prompt;
+
+#ifndef KRB5_CONFIG__
+#ifndef KRB5_CALLCONV
+#define KRB5_CALLCONV
+#define KRB5_CALLCONV_C
+#endif /* !KRB5_CALLCONV */
+#endif /* !KRB5_CONFIG__ */
+
+typedef krb5_error_code (KRB5_CALLCONV *krb5_prompter_fct)(krb5_context context,
+                                             void *data,
+                                             const char *name,
+                                             const char *banner,
+                                             int num_prompts,
+                                             krb5_prompt prompts[]);
+
+extern /*@observer@*//*@dependent@*/ const char * KRB5_CALLCONV error_message (errcode_t) /*@modifies internalState@*/;
+
+extern void KRB5_CALLCONV krb5_free_context(krb5_context);
+extern void KRB5_CALLCONV krb5_free_principal(krb5_context, krb5_principal );
+
+extern krb5_boolean KRB5_CALLCONV krb5_kuserok(krb5_context, krb5_principal, const char *);
+
+extern krb5_error_code KRB5_CALLCONV krb5_init_context(krb5_context *);
+extern krb5_error_code KRB5_CALLCONV krb5_timeofday(krb5_context, krb5_int32 * );
+extern krb5_error_code KRB5_CALLCONV krb5_parse_name(krb5_context, const char *, krb5_principal * );
+
+extern krb5_error_code KRB5_CALLCONV krb5_get_init_creds_password(krb5_context context,
+                krb5_creds *creds,
+                krb5_principal client,
+                char *password,
+                krb5_prompter_fct prompter,
+                void *data,
+                krb5_deltat start_time,
+                char *in_tkt_service,
+                krb5_get_init_creds_opt *k5_gic_options);
+
+extern krb5_error_code KRB5_CALLCONV krb5_prompter_posix (krb5_context context,
+                void *data,
+                const char *name,
+                const char *banner,
+                int num_prompts,
+                krb5_prompt prompts[]);
+
+#else /*MIT*/
+#include <gssapi/gssapi.h>
+#include <gssapi/gssapi_generic.h>
+#include <gssapi/gssapi_krb5.h>
+#endif
+#endif
+
+#define MOD_GSS_VERSION         PACKAGE_NAME"/"PACKAGE_VERSION
+#define C_FWCCC   "FWCCC"       /* FW support PORT/EPORT/PASV/EPASV in clear */
+
+extern session_t session;
+])
 AC_OUTPUT()
 
-sed -e "s/@GSS_LIBS@/$ac_gss_libs/" mod_gss.h > .mod_gss.h.tmp
+sed -e "s/|MAIL|/"$PACKAGE_BUGREPORT"/" mod_gss.h > .mod_gss.h.tmp
+mv .mod_gss.h.tmp mod_gss.h
+sed -e "s/|GSS_LIBS|/$ac_gss_libs/" mod_gss.h > .mod_gss.h.tmp
 mv .mod_gss.h.tmp mod_gss.h
 
