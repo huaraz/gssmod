@@ -2091,15 +2091,15 @@ static int gss_dispatch(char *buf)
     newpool = make_sub_pool(permanent_pool);
     newcmd = (cmd_rec *) pcalloc(newpool,sizeof(cmd_rec));
     newcmd->pool = newpool;
-    newcmd->symtable_index = -1;
+    newcmd->stash_index = -1;
 
     tarr = make_array(newcmd->pool, 2, sizeof(char *));
-    *((char **) push_array(tarr)) = pstrdup(newcmd->pool, wrd);
+    *((char **) push_array(tarr)) = pstrdup(newpool, wrd);
     newcmd->argc++;
-    newcmd->arg = pstrdup(newcmd->pool, cp);
+    newcmd->arg = pstrdup(newpool, cp);
 
     while((wrd = get_word(&cp)) != NULL) {
-      *((char **) push_array(tarr)) = pstrdup(newcmd->pool, wrd);
+      *((char **) push_array(tarr)) = pstrdup(newpool, wrd);
       newcmd->argc++;
     }
 
@@ -2107,13 +2107,8 @@ static int gss_dispatch(char *buf)
 
     newcmd->argv = (char **) tarr->elts;
 
-    if (!newcmd) {
-        destroy_pool(newcmd->pool);
-        return 1;
-    }
- 
     pr_cmd_dispatch(newcmd);
-    destroy_pool(newcmd->pool);
+    destroy_pool(newpool);
 
     return 0;   
 }
