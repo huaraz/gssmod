@@ -1608,6 +1608,7 @@ MODRET gss_pbsz(cmd_rec *cmd) {
 
  */
 MODRET gss_prot(cmd_rec *cmd) {
+    int i;
 
     if (!gss_engine)
 	return DECLINED(cmd);
