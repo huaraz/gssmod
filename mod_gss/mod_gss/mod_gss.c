@@ -563,7 +563,8 @@ static int gss_log(const char *fmt, ...) {
         vsnprintf(buf, sizeof(buf), fmt, msg);
         va_end(msg);
         buf[sizeof(buf)-1] = '\0';
-        log_pri(PR_LOG_NOTICE,buf);	return 0;
+        log_pri(PR_LOG_NOTICE,buf);
+	return 0;
     }
 	  
 
@@ -1825,8 +1826,8 @@ static void gss_sess_exit(void) {
 static int gss_init(void) {
 
     /* Make sure the version of proftpd is as necessary. */
-    if (PROFTPD_VERSION_NUMBER < 0x0001020800) {
-	log_pri(LOG_ERR, MOD_GSS_VERSION " requires proftpd 1.2.8 and later");
+    if (PROFTPD_VERSION_NUMBER < 0x0001020802) {
+	log_pri(LOG_ERR, MOD_GSS_VERSION " requires proftpd 1.2.8rc2 and later");
 	exit(1);
     }
     /* set command size buffer to maximum */
