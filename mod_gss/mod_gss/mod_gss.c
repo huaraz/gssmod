@@ -1834,14 +1834,14 @@ static int gss_init(void) {
 /* set in config file
    CmdBufSize=1023;
 */
-    pr_add_feat("AUTH GSSAPI");
-    pr_add_feat("ADAT");
-    pr_add_feat("PBSZ");
-    pr_add_feat("PROT");
-    pr_add_feat("ENC");
-    pr_add_feat("MIC");
-    pr_add_feat("CONF");
-    pr_add_feat("CCC");
+    pr_feat_add("AUTH GSSAPI");
+    pr_feat_add("ADAT");
+    pr_feat_add("PBSZ");
+    pr_feat_add("PROT");
+    pr_feat_add("ENC");
+    pr_feat_add("MIC");
+    pr_feat_add("CONF");
+    pr_feat_add("CCC");
 
     return 0;
 }
@@ -2085,7 +2085,7 @@ static int gss_dispatch(char *buf)
 
     /* Nothing there...bail out.
      */
-    if((wrd = get_word(&cp)) == NULL) 
+    if((wrd = get_word(&cp,TRUE)) == NULL) 
        return 1;
 
     newpool = make_sub_pool(session.pool ? session.pool : permanent_pool);
@@ -2098,7 +2098,7 @@ static int gss_dispatch(char *buf)
     newcmd->argc++;
     newcmd->arg = pstrdup(newpool, cp);
 
-    while((wrd = get_word(&cp)) != NULL) {
+    while((wrd = get_word(&cp,TRUE)) != NULL) {
       *((char **) push_array(tarr)) = pstrdup(newpool, wrd);
       newcmd->argc++;
     }
