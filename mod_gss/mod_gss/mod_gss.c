@@ -23,6 +23,9 @@
  * the resulting executable, without including the source code for
  * for the Libraries in the source distribution.
  *
+ *  --- DO NOT DELETE BELOW THIS LINE ----
+ *  $Libraries: |GSS_LIBS|$
+ *
  * $Id$
  * $Source$
  * $Author$

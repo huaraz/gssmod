@@ -29,11 +29,20 @@ AC_ARG_ENABLE(heimdal,
 
 dnl Define SEAM libraries
 AC_ARG_ENABLE(seam,
-  [  --enable-seam		  enable use of SEAM package (default=no) ],
+  [  --enable-seam		  enable use of SEAM(Solaris) package (default=no) ],
   [
     if test "$enableeval" != "no" ; then
        AC_DEFINE(HAVE_SEAM_KERBEROS,1,[Define SEAM Kerberos])
        ac_gss_libs="-lgss -R\/usr\/lib\/gss \/usr\/lib\/gss\/mech_krb5.so";
+    fi ])
+
+dnl Define NAS libraries
+AC_ARG_ENABLE(nas,
+  [  --enable-nas 		  enable use of NAS(AIX) package (default=no) ],
+  [
+    if test "$enableeval" != "no" ; then
+       AC_DEFINE(HAVE_NAS_KERBEROS,1,[Define NAS Kerberos])
+       ac_gss_libs="-lgssapi_krb5 -lkrb5";
     fi ])
 
 AC_CHECK_FUNCS(unsetenv)
@@ -41,7 +50,7 @@ AC_CONFIG_HEADER(mod_gss.h)
 AH_TOP([/*
  * mod_gss - an RFC2228 GSSAPI module for ProFTPD
  *
- * Copyright (c) 2002-2004 M Moeller <|MAIL|>
+ * Copyright (c) 2002-2005 M Moeller <|MAIL|>
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -68,6 +77,8 @@ AH_TOP([/*
  *
  *  $HEIMDAL-Libraries: -lgssapi -lkrb5 -lcom_err -lasn1 -lroken$
  *  $MIT-Libraries: -lgssapi_krb5 -ldes425 -lkrb5 -lk5crypto -lcom_err$
+ *  $SEAM-Libraries: -lgss -R/usr/lib/gss /usr/lib/gss/mech_krb5.so$
+ *  $NAS-Libraries: -lgssapi_krb5 -lgssapi_krb5 -lkrb5$
  *
  */
 ])
@@ -239,6 +250,14 @@ extern krb5_error_code KRB5_CALLCONV krb5_get_init_creds_password(krb5_context c
 #include <gssapi/gssapi.h>
 #include <gssapi/gssapi_generic.h>
 #include <gssapi/gssapi_krb5.h>
+#ifdef HAVE_NAS_KERBEROS
+const char *KRB5_CALLCONV error_message(long code) {
+ char *msg;
+ msg=(char *)malloc(strlen("Unknown error code: ")+33);
+ snprintf(msg,strlen("Unknown error code: ")+32,"Unknown error code: %lu",code);
+ return msg;
+}
+#endif
 #endif
 #endif
 
@@ -262,8 +281,17 @@ void unsetenv(char *env_name) {
 ])
 AC_OUTPUT()
 
+echo "configure: updating \$Libraries in mod_gss.h"
 sed -e "s/|MAIL|/"$PACKAGE_BUGREPORT"/" mod_gss.h > .mod_gss.h.tmp
 mv .mod_gss.h.tmp mod_gss.h
 sed -e "s/|GSS_LIBS|/$ac_gss_libs/" mod_gss.h > .mod_gss.h.tmp
 mv .mod_gss.h.tmp mod_gss.h
+
+echo "configure: updating \$Libraries in mod_gss.c"
+if test -e mod_gss.c ; then
+  sed -e "s/\$Libraries:.*/\$Libraries: |GSS_LIBS|\$/" mod_gss.c > mod_gss.c.in
+  rm mod_gss.c
+fi 
+sed -e "s/|GSS_LIBS|/$ac_gss_libs/" mod_gss.c.in > .mod_gss.c.tmp
+mv .mod_gss.c.tmp mod_gss.c
 

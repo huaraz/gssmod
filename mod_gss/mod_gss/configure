@@ -785,7 +785,8 @@ Optional Features:
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
   --enable-heimdal	  enable use of Heimdal package (default=no)
-  --enable-seam		  enable use of SEAM package (default=no)
+  --enable-seam		  enable use of SEAM(Solaris) package (default=no)
+  --enable-nas 		  enable use of NAS(AIX) package (default=no)
 
 Some influential environment variables:
   CC          C compiler command
@@ -1182,6 +1183,20 @@ cat >>confdefs.h <<\_ACEOF
 _ACEOF
 
        ac_gss_libs="-lgss -R\/usr\/lib\/gss \/usr\/lib\/gss\/mech_krb5.so";
+    fi
+fi;
+
+# Check whether --enable-nas or --disable-nas was given.
+if test "${enable_nas+set}" = set; then
+  enableval="$enable_nas"
+
+    if test "$enableeval" != "no" ; then
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_NAS_KERBEROS 1
+_ACEOF
+
+       ac_gss_libs="-lgssapi_krb5 -lkrb5";
     fi
 fi;
 
@@ -2775,8 +2790,17 @@ if test "$no_create" != yes; then
 fi
 
 
+echo "configure: updating \$Libraries in mod_gss.h"
 sed -e "s/|MAIL|/"$PACKAGE_BUGREPORT"/" mod_gss.h > .mod_gss.h.tmp
 mv .mod_gss.h.tmp mod_gss.h
 sed -e "s/|GSS_LIBS|/$ac_gss_libs/" mod_gss.h > .mod_gss.h.tmp
 mv .mod_gss.h.tmp mod_gss.h
+
+echo "configure: updating \$Libraries in mod_gss.c"
+if test -e mod_gss.c ; then
+  sed -e "s/\$Libraries:.*/\$Libraries: |GSS_LIBS|\$/" mod_gss.c > mod_gss.c.in
+  rm mod_gss.c
+fi
+sed -e "s/|GSS_LIBS|/$ac_gss_libs/" mod_gss.c.in > .mod_gss.c.tmp
+mv .mod_gss.c.tmp mod_gss.c
 

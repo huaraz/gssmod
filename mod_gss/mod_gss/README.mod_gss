@@ -1,12 +1,16 @@
 
 cd mod_gss
-call autoreconf to creat mod_gss.h.in
+call autoreconf to creat mod_gss.h.in and configure
 
 ./configure
+or
+./configure --enable-mit
 or
 ./configure --enable-heimdal
 or
 ./configure --enable-seam
+or
+./configure --enable-nas
 
 cd proftpd 
 
