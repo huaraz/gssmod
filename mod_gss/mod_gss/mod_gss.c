@@ -963,16 +963,11 @@ MODRET gss_any(cmd_rec *cmd) {
      */
 
     /* Some commands need not be ignored. */
-    if (!strcmp(cmd->argv[0], C_SYST) ||
-	!strcmp(cmd->argv[0], C_AUTH) ||
+    if (!strcmp(cmd->argv[0], C_AUTH) ||
 	!strcmp(cmd->argv[0], C_ADAT) ||
-	!strcmp(cmd->argv[0], C_PROT) ||
-	!strcmp(cmd->argv[0], C_PBSZ) ||
 	!strcmp(cmd->argv[0], C_ENC) ||
 	!strcmp(cmd->argv[0], C_MIC) ||
-	!strcmp(cmd->argv[0], C_CCC) ||
 	!strcmp(cmd->argv[0], C_CONF) ||
-	!strcmp(cmd->argv[0], C_QUIT) ||
         ((gss_opts & GSS_OPT_ALLOW_FW_CCC ) && !strcmp(cmd->argv[0], C_PORT) ) ||
         ((gss_opts & GSS_OPT_ALLOW_FW_CCC ) && !strcmp(cmd->argv[0], C_PASV) ))
         return DECLINED(cmd);
@@ -984,7 +979,7 @@ MODRET gss_any(cmd_rec *cmd) {
 	return ERROR(cmd);
     }
 
-    /* Ignore commands from dispatched bu gss_dec and if CCC is allowed*/
+    /* Ignore commands from dispatched gss_dec and if CCC is allowed*/
     if ( (gss_flags & GSS_SESS_DISPATCH) || ((session.sp_flags & SP_CCC) && (gss_opts & GSS_OPT_ALLOW_CCC))) {
         return DECLINED(cmd);
     }
