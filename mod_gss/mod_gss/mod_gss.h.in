@@ -57,7 +57,7 @@
 #include <gssapi/gssapi_krb5.h>
 #endif
 
-#define MOD_GSS_VERSION		"mod_gss/1.1.1"
+#define MOD_GSS_VERSION		"mod_gss/1.1.2"
 
 extern session_t session;
 
