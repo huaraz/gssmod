@@ -1,4 +1,4 @@
-/*
+/ftpd-server-rsa.peo*
  * mod_gss - an RFC2228 GSSAPI module for ProFTPD
  *
  * Copyright (c) 2002-2003 M Moeller <markus_moeller@compuserve.com>
@@ -2354,7 +2354,7 @@ static int kpass(char *name, char *passwd)
 	creds.times.renew_till = 0;
 
         kerr = krb5_get_init_creds_password(kc, &creds, p, passwd,
-                                            krb5_prompter_posix, NULL,
+                                            NULL, NULL,
                                             0, NULL, NULL);
         if (kerr) { 
             gss_log("GSSAPI Could not get krb5 ticket (%s).",error_message(kerr));

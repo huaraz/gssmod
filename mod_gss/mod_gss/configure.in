@@ -235,13 +235,6 @@ extern krb5_error_code KRB5_CALLCONV krb5_get_init_creds_password(krb5_context c
                 char *in_tkt_service,
                 krb5_get_init_creds_opt *k5_gic_options);
 
-extern krb5_error_code KRB5_CALLCONV krb5_prompter_posix (krb5_context context,
-                void *data,
-                const char *name,
-                const char *banner,
-                int num_prompts,
-                krb5_prompt prompts[]);
-
 #else /*MIT*/
 #include <gssapi/gssapi.h>
 #include <gssapi/gssapi_generic.h>
