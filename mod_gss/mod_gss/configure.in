@@ -16,7 +16,17 @@ dnl Process this file with autoconf to produce a configure script.
 
 AC_INIT([mod_gss],[1.2.4],[markus_moeller@compuserve.com])
 
-ac_gss_libs="-lgssapi_krb5 -ldes425 -lkrb5 -lk5crypto -lcom_err"
+enable_arg="no"
+
+dnl Define MIT libraries
+AC_ARG_ENABLE(mit,
+  [  --enable-mit		  enable use of MIT package (default=yes) ],
+  [
+    if test "$enableeval" != "no" ; then
+       AC_DEFINE(HAVE_INIT_CREDS_PASSWORD,1,[Define krb5_get_init_creds_password])
+       ac_gss_libs="-lgssapi_krb5 -ldes425 -lkrb5 -lk5crypto -lcom_err"
+       enable_arg="mit"
+    fi ])
 
 dnl Define Heimdal libraries
 AC_ARG_ENABLE(heimdal,
@@ -24,7 +34,9 @@ AC_ARG_ENABLE(heimdal,
   [
     if test "$enableeval" != "no" ; then
        AC_DEFINE(HAVE_HEIMDAL_KERBEROS,1,[Define Heimdal Kerberos])
+       AC_DEFINE(HAVE_INIT_CREDS_PASSWORD,1,[Define krb5_get_init_creds_password])
        ac_gss_libs="-lgssapi -lkrb5 -lcom_err -lasn1 -lroken";
+       enable_arg="heimdal"
     fi ])
 
 dnl Define SEAM libraries
@@ -39,7 +51,7 @@ AC_ARG_ENABLE(seam,
           ln -s /usr/lib/gss/do/mech_krb5.so /tmp/libmech_krb5.so;
           LDFLAGS_sav=$LDFLAGS;
           LDFLAGS="-L/tmp"; 
-          AC_CHECK_LIB(mech_krb5,krb5_get_init_creds_password,AC_DEFINE(HAVE_INIT_CREDS_PASSWORD,1,[Define krb5_get_init_creds_password]))
+          AC_CHECK_LIB(mech_krb5,krb5_get_init_creds_password,AC_DEFINE(HAVE_INIT_CREDS_PASSWORD,1,[Define krb5_get_init_creds_password]),AC_DEFINE(HAVE_INIT_CREDS_PASSWORD,0,[UnDefine krb5_get_init_creds_password]))
           LDFLAGS=$LDFLAGS_sav
           rm /tmp/libmech_krb5.so
        elif test -e /usr/lib/gss/gl/mech_krb5.so ; then
@@ -47,7 +59,7 @@ AC_ARG_ENABLE(seam,
           ln -s /usr/lib/gss/gl/mech_krb5.so /tmp/libmech_krb5.so;
           LDFLAGS_sav=$LDFLAGS;
           LDFLAGS="-L/tmp"; 
-          AC_CHECK_LIB(mech_krb5,krb5_get_init_creds_password,AC_DEFINE(HAVE_INIT_CREDS_PASSWORD,1,[Define krb5_get_init_creds_password]))
+          AC_CHECK_LIB(mech_krb5,krb5_get_init_creds_password,AC_DEFINE(HAVE_INIT_CREDS_PASSWORD,1,[Define krb5_get_init_creds_password]),AC_DEFINE(HAVE_INIT_CREDS_PASSWORD,0,[UnDefine krb5_get_init_creds_password]))
           LDFLAGS=$LDFLAGS_sav
           rm /tmp/libmech_krb5.so
        else
@@ -55,10 +67,11 @@ AC_ARG_ENABLE(seam,
           ln -s /usr/lib/gss/mech_krb5.so /tmp/libmech_krb5.so;
           LDFLAGS_sav=$LDFLAGS;
           LDFLAGS="-L/tmp"; 
-          AC_CHECK_LIB(mech_krb5,krb5_get_init_creds_password,AC_DEFINE(HAVE_INIT_CREDS_PASSWORD,1,[Define krb5_get_init_creds_password]))
+          AC_CHECK_LIB(mech_krb5,krb5_get_init_creds_password,AC_DEFINE(HAVE_INIT_CREDS_PASSWORD,1,[Define krb5_get_init_creds_password]),AC_DEFINE(HAVE_INIT_CREDS_PASSWORD,0,[UnDefine krb5_get_init_creds_password]))
           LDFLAGS=$LDFLAGS_sav
           rm /tmp/libmech_krb5.so
        fi
+       enable_arg="seam"
     fi ])
 
 dnl Define NAS libraries
@@ -67,8 +80,16 @@ AC_ARG_ENABLE(nas,
   [
     if test "$enableeval" != "no" ; then
        AC_DEFINE(HAVE_NAS_KERBEROS,1,[Define NAS Kerberos])
+       AC_DEFINE(HAVE_INIT_CREDS_PASSWORD,1,[Define krb5_get_init_creds_password])
        ac_gss_libs="-L\/usr\/lib -lgssapi_krb5 -lkrb5";
+       enable_arg="nas"
     fi ])
+
+dnl Define MIT as default 
+if test "$enable_arg" == "no"; then
+   AC_DEFINE(HAVE_INIT_CREDS_PASSWORD,1,[Define krb5_get_init_creds_password])
+   ac_gss_libs="-lgssapi_krb5 -ldes425 -lkrb5 -lk5crypto -lcom_err"
+fi
 
 AC_CHECK_FUNCS(unsetenv)
 AC_CONFIG_HEADER(mod_gss.h)

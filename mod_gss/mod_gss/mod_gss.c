@@ -24,7 +24,7 @@
  * for the Libraries in the source distribution.
  *
  *  --- DO NOT DELETE BELOW THIS LINE ----
- *  $Libraries: |GSS_LIBS|$
+ *  $Libraries: -lgss -R/usr/lib/gss /usr/lib/gss/mech_krb5.so$
  *
  *  $MIT-Libraries: -lgssapi_krb5 -ldes425 -lkrb5 -lkcrypto -lcom_err$
  *  $HEIMDAL-Libraries: -lgssapi -lkrb5 -lcom_err -lasn1 -lroken$
@@ -754,16 +754,17 @@ MODRET gss_authenticate(cmd_rec *cmd) {
     if (k5ret == TRUE) {
        gss_log("GSSAPI User %s is authorized as %s.", (char *) client_name.value,cmd->argv[0]);
        return mod_create_data(cmd, (void *) PR_AUTH_RFC2228_OK);
-    } else {
+    } else if (cmd->argv[1]) {
 
 	/* check password against kdc */
 	if (kpass(cmd->argv[0],cmd->argv[1])) {
             gss_log("GSSAPI User %s is not authorized as %s. Use other methods to authenticate.", (char *) client_name.value,cmd->argv[0]);
             return DECLINED(cmd);
         } else {
-           gss_log("GSSAPI User %s/%s authorized by kdc.",cmd->argv[0],client_name.value? (char *) client_name.value:"-"); 
-           return mod_create_data(cmd, (void *) PR_AUTH_RFC2228_OK);
         }
+    } else {
+        gss_log("GSSAPI User %s is not authorized. Use other methods to authenticate.", (char *) client_name.value,cmd->argv[0]);
+        return DECLINED(cmd);
     }
 }
 /* This function does the main authentication work, and is called in the
