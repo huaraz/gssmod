@@ -91,7 +91,7 @@ static pr_netio_stream_t *gss_data_rd_nstrm = NULL;
 static pr_netio_stream_t *gss_data_wr_nstrm = NULL;
 
 /* GSSAPI support functions */
-static char *gss_format_cb(const char *fmt, ...);
+static char *gss_format_cb(pool *,const char *fmt, ...);
 static void gss_closelog(void);
 static char *radix_error(int e);
 static int  radix_encode(unsigned char inbuf[], unsigned char outbuf[], int *len, int decode);
@@ -602,11 +602,11 @@ static int gss_openlog(void) {
 	return 0;
     }
 
-    block_signals();
+    pr_alarms_block();
     PRIVS_ROOT
 	res = log_openfile(gss_logname, &gss_logfd, 0600);
     PRIVS_RELINQUISH
-	unblock_signals();
+	pr_alarms_unblock();
 
     return res;
 }
@@ -785,6 +785,10 @@ MODRET gss_ccc(cmd_rec *cmd) {
 
     CHECK_CMD_ARGS(cmd, 1);
 
+    if (strcmp(session.rfc2228_mech, "GSSAPI") != 0 ) {
+        return DECLINED(cmd);
+    } 
+
     pr_response_add_err(R_534, mesg);
     gss_log("GSSAPI %s", mesg);
     return ERROR(cmd);
@@ -824,6 +828,10 @@ MODRET gss_dec(cmd_rec *cmd) {
 	return DECLINED(cmd);
 
     CHECK_CMD_ARGS(cmd, 2);
+
+    if (strcmp(session.rfc2228_mech, "GSSAPI") != 0 ) {
+        return DECLINED(cmd);
+    } 
 
     if ( ! strcmp(cmd->argv[0], "CONF") ) {
         pr_response_add_err(R_537,"CONF protection level not supported.");
@@ -887,8 +895,8 @@ MODRET gss_dec(cmd_rec *cmd) {
     dec_buf[msg_buf.length]='\0';
     /* remove trailing \r \n */
     for ( i=strlen(dec_buf) ; i>=0 ; i-- ) {
-	if ( dec_buf[i] == '\r' || dec_buf[i] == '\n' ) dec_buf[i] = '\0';
-    } 
+        if ( dec_buf[i] == '\r' || dec_buf[i] == '\n' ) dec_buf[i] = '\0';
+    }
 
     log_debug(DEBUG9,"unwrapped command '%s'",dec_buf);
     gss_release_buffer(&min_stat,&msg_buf);
@@ -903,6 +911,7 @@ MODRET gss_dec(cmd_rec *cmd) {
 }
 
 MODRET gss_any(cmd_rec *cmd) {
+
     if (!gss_engine)
 	return DECLINED(cmd);
 
@@ -1041,6 +1050,7 @@ MODRET gss_auth(cmd_rec *cmd) {
         return DECLINED(cmd);
     }
 
+    session.rfc2228_mech = "GSSAPI";
     return HANDLED(cmd);
 }
 
@@ -1176,13 +1186,12 @@ MODRET gss_adat(cmd_rec *cmd) {
 
     CHECK_CMD_ARGS(cmd, 2);
 
-    if (!(gss_flags & GSS_SESS_AUTH_OK)) {
-/*
+    if (strcmp(session.rfc2228_mech, "GSSAPI") != 0 ) {
+        return DECLINED(cmd);
+    } else if (!(gss_flags & GSS_SESS_AUTH_OK)) {
 	pr_response_add_err(R_503, "You must issue the AUTH command prior to ADAT");
         gss_log("GSSAPI You must issue the AUTH command prior to ADAT");
         return ERROR(cmd); 
-*/
-        return DECLINED(cmd);
     }
   
     /* Use cmd->arg instead of cmd->argv[1]
@@ -1405,13 +1414,12 @@ MODRET gss_pbsz(cmd_rec *cmd) {
 
     CHECK_CMD_ARGS(cmd, 2);
 
-    if (!(gss_flags & GSS_SESS_ADAT_OK)) {
-	if ( gss_flags & GSS_SESS_AUTH_OK ) { 
-	    pr_response_add_err(R_503, "PBSZ not allowed on insecure control connection");
-            gss_log("GSSAPI PBSZ not allowed on insecure control connection");
-	    return ERROR(cmd);
-        } else
-            return DECLINED(cmd);
+    if (strcmp(session.rfc2228_mech, "GSSAPI") != 0 ) {
+        return DECLINED(cmd);
+    } else if (!(gss_flags & GSS_SESS_ADAT_OK)) {
+	pr_response_add_err(R_503, "PBSZ not allowed on insecure control connection");
+        gss_log("GSSAPI PBSZ not allowed on insecure control connection");
+	return ERROR(cmd);
     }
 
 
@@ -1603,13 +1611,12 @@ MODRET gss_prot(cmd_rec *cmd) {
 
     CHECK_CMD_ARGS(cmd, 2);
 
-    if (!(gss_flags & GSS_SESS_PBSZ_OK)) {
-        if ( gss_flags & GSS_SESS_AUTH_OK ) { 
-   	    pr_response_add_err(R_503, "You must issue the PBSZ command prior to PROT");
-            gss_log("GSSAPI You must issue the PBSZ command prior to PROT");
-	    return ERROR(cmd);
-        } else 
-            return DECLINED(cmd);   
+    if (strcmp(session.rfc2228_mech, "GSSAPI") != 0 ) {
+        return DECLINED(cmd);
+    } else if (!(gss_flags & GSS_SESS_PBSZ_OK)) {
+   	pr_response_add_err(R_503, "You must issue the PBSZ command prior to PROT");
+        gss_log("GSSAPI You must issue the PBSZ command prior to PROT");
+	return ERROR(cmd);
     }
 
     /* Only PROT S , PROT C or PROT P is valid with respect to GSS. */
@@ -1879,7 +1886,7 @@ static int gss_sess_init(void) {
 	gss_log("GSSAPI Use default KRB5 keytab");
     }
 
-    add_exit_handler(gss_sess_exit);
+    pr_exit_register_handler(gss_sess_exit);
 
     return 0;
 }
@@ -1974,7 +1981,7 @@ static int gss_sess_init(void) {
    determine whether the peer supports confidentiality services.
 
  */
-static char *gss_format_cb(const char *fmt, ...)
+static char *gss_format_cb(pool *pool, const char *fmt, ...)
 {
     va_list msg;
     char buf[PR_TUNABLE_BUFFER_SIZE] = {'\0'};
@@ -1993,9 +2000,9 @@ static char *gss_format_cb(const char *fmt, ...)
     log_debug(DEBUG9,"unwrapped response '%s'",buf);
     /* return buffer if no protection is set */
     if ( !session.sp_flags || session.sp_flags & SP_CCC )
-          return pstrdup(session.pool ? session.pool : permanent_pool,buf);
+          return pstrdup(pool ,buf);
 
-    gss_in_buf.value = pstrdup(session.pool ? session.pool : permanent_pool,buf);
+    gss_in_buf.value = pstrdup(pool, buf);
     gss_in_buf.length = strlen(buf);
 
     /* protect response message */    
@@ -2034,7 +2041,7 @@ static char *gss_format_cb(const char *fmt, ...)
 	return NULL;
     } 
     /* protected reply <= 4*unprotected reply */
-    reply=pcalloc(session.pool ? session.pool : permanent_pool,gss_out_buf.length*4);
+    reply=pcalloc(pool, gss_out_buf.length*4);
     if ((error = radix_encode(gss_out_buf.value, reply, &gss_out_buf.length, 0)) != 0 ) {
 	gss_log("Couldn't encode reply (%s)", radix_error(error));
 	gss_release_buffer(&min_stat, &gss_out_buf);
@@ -2043,7 +2050,7 @@ static char *gss_format_cb(const char *fmt, ...)
     gss_release_buffer(&min_stat, &gss_out_buf);
 
     /* add response code */
-    reply=pstrcat(session.pool ? session.pool : permanent_pool,
+    reply=pstrcat(pool ,
                   session.sp_flags & SP_ENC ?  R_631 : 
                   session.sp_flags & SP_MIC ?  R_632 : 
   		  session.sp_flags & SP_CONF ?  R_633 : NULL,
