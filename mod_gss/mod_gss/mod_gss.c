@@ -754,7 +754,7 @@ MODRET gss_authenticate(cmd_rec *cmd) {
     if (k5ret == TRUE) {
        gss_log("GSSAPI User %s is authorized as %s.", (char *) client_name.value,cmd->argv[0]);
        return mod_create_data(cmd, (void *) PR_AUTH_RFC2228_OK);
-    } else if (cmd->argv[1]) {
+    } else if (cmd->argv[1] != NULL) {
 
 	/* check password against kdc */
 	if (kpass(cmd->argv[0],cmd->argv[1])) {
@@ -819,7 +819,7 @@ MODRET gss_auth_check(cmd_rec *cmd) {
     if (k5ret == TRUE) {
        gss_log("GSSAPI User %s is authorized as %s.", (char *) client_name.value,cmd->argv[1]);
        return mod_create_data(cmd, (void *) PR_AUTH_RFC2228_OK);
-    } else {
+    } else if (cmd->argv[2] != NULL) {
 	/* check password against kdc */
 	if (kpass(cmd->argv[1],cmd->argv[2])) {
             gss_log("GSSAPI User %s is not authorized as %s. Use other methods to authenticate.", (char *) client_name.value,cmd->argv[1]);
@@ -828,6 +828,9 @@ MODRET gss_auth_check(cmd_rec *cmd) {
            gss_log("GSSAPI User %s/%s authorized by kdc.",cmd->argv[1],client_name.value? (char *) client_name.value:"-");            
            return mod_create_data(cmd, (void *) PR_AUTH_RFC2228_OK);
         }
+    } else {
+        gss_log("GSSAPI User %s is not authorized. Use other methods to authenticate.", (char *) client_name.value,cmd->argv[0]);
+        return DECLINED(cmd);
     }
 }
 
