@@ -2443,10 +2443,15 @@ static int kpass(char *name, char *passwd)
             krb5_free_context(kc);
             return 1;
         }	      
-#endif
 
         krb5_free_context(kc);
 	return 0;
+#else
+
+        krb5_free_context(kc);
+        return 1;
+#endif
+
 }
 
 /* write data to stream 
