@@ -2209,8 +2209,8 @@ static char *gss_format_cb(pool *pool, const char *fmt, ...)
 
     /* add response code */
     reply=pstrcat(pool ,
-                  session.sp_flags & SP_ENC ?  R_631 : 
-                  session.sp_flags & SP_MIC ?  R_632 : 
+                  session.sp_flags & SP_MIC ?  R_631 : 
+                  session.sp_flags & SP_ENC ?  R_632 : 
   		  session.sp_flags & SP_CONF ?  R_633 : NULL,
                   " ",reply,"\r\n",NULL);
     pr_log_debug(DEBUG9,"GSSAPI wrapped response '%s'",reply);
