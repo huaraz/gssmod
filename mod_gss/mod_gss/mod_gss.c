@@ -1,7 +1,7 @@
 /*
  * mod_gss - an RFC2228 GSSAPI module for ProFTPD
  *
- * Copyright (c) 2002-2003 M Moeller <markus_moeller@compuserve.com>
+ * Copyright (c) 2002-2005 M Moeller <markus_moeller@compuserve.com>
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -24,7 +24,7 @@
  * for the Libraries in the source distribution.
  *
  *  --- DO NOT DELETE BELOW THIS LINE ----
- *  $Libraries: |GSS_LIBS|$
+ *  $Libraries: -lgssapi_krb5 -ldes425 -lkrb5 -lk5crypto -lcom_err$
  *
  * $Id$
  * $Source$
@@ -109,7 +109,7 @@ static ssize_t looping_write(int fd, register const char *buf, int len);
 static int gss_dispatch(char *buf);
 static int kpass(char *name, char *pass);
 
-static int gss_openlog(void);
+static int gss_openlog(server_rec *s);
 
 static int gss_log(const char *, ...)
 #ifdef __GNUC__
@@ -624,13 +624,19 @@ static int gss_log(const char *fmt, ...) {
     return 0;
 }
 
-static int gss_openlog(void) {
+static int gss_openlog(server_rec *s) {
     int res = 0;
 
     /* Sanity checks */
-    if ((gss_logname = get_param_ptr(main_server->conf, "GSSLog",
+    if ( ! s ) {
+        if ((gss_logname = get_param_ptr(main_server->conf, "GSSLog",
 				     FALSE)) == NULL)
-	return 0;
+	    return 0;
+    } else {
+        if ((gss_logname = get_param_ptr(s->conf, "GSSLog",
+				     FALSE)) == NULL)
+	    return 0;
+    }
 
     if (!strcasecmp(gss_logname, "none")) {
 	gss_logname = NULL;
@@ -643,7 +649,7 @@ static int gss_openlog(void) {
 
     pr_alarms_block();
     PRIVS_ROOT
-	res = log_openfile(gss_logname, &gss_logfd, 0600);
+	res = pr_log_openfile(gss_logname, &gss_logfd, 0600);
     PRIVS_RELINQUISH
 	pr_alarms_unblock();
 
@@ -1983,10 +1989,67 @@ MODRET set_gssrequired(cmd_rec *cmd) {
     return HANDLED(cmd);
 }
 
-/* Initialization routines
+/* Event handlers
  */
 
-static void gss_sess_exit(void) {
+static void gss_postparse_ev(const void *event_data, void *user_data) {
+    server_rec *s = NULL;
+    int           res = 0;
+    unsigned char *tmp = NULL;
+    unsigned long *opts = NULL;
+    config_rec    *c = NULL;
+
+    for (s = (server_rec *) server_list->xas_list; s; s = s->next) {
+       /* First, check to see whether mod_gss is even enabled. */
+       if ((tmp = get_param_ptr(s->conf, "GSSEngine",
+                                FALSE)) != NULL && *tmp == TRUE)
+           gss_engine = TRUE;
+       else {
+           return;
+       }
+
+       /* Open the GSSLog, if configured */
+       if ((res = gss_openlog(s)) < 0) {
+           if (res == -1)
+               pr_log_pri(LOG_NOTICE, MOD_GSS_VERSION ": notice: unable to open GSSLog: %s",
+                       strerror(errno));
+
+           else if (res == LOG_WRITEABLE_DIR)
+               pr_log_pri(LOG_NOTICE, "notice: unable to open GSSLog: "
+                       "parent directory is world writeable");
+
+           else if (res == LOG_SYMLINK)
+               pr_log_pri(LOG_NOTICE, "notice: unable to open GSSLog: "
+                       "cannot log to a symbolic link");
+       }
+
+       /* Read GSSOptions */
+       if ((opts = get_param_ptr(s->conf, "GSSOptions", FALSE)) != NULL)
+           gss_opts = *opts;
+
+       /* Read GSSRequired */
+       if ((c = find_config(s->conf, CONF_PARAM, "GSSRequired",
+                            FALSE))) {
+           gss_required_on_ctrl = *((unsigned char *) c->argv[0]);
+           gss_required_on_data = *((unsigned char *) c->argv[1]);
+       }
+
+       /* Get GSSkeytab file */
+       gss_keytab_file = get_param_ptr(s->conf, "GSSKeytab", FALSE);
+    }
+    return;
+}
+static void gss_restart_ev(const void *event_data, void *user_data) {
+
+  /* Re-register the postparse callback, to handle the (possibly changed)
+   * configuration.
+   */
+  pr_event_register(&gss_module, "core.postparse", gss_postparse_ev, NULL);
+
+  gss_closelog();
+}
+
+static void gss_sess_exit_ev(const void *event_data, void *user_data) {
 
     OM_uint32       maj_stat, min_stat;
 
@@ -2013,6 +2076,9 @@ static void gss_sess_exit(void) {
     return;
 }
 
+/* Initialization routines
+ */
+
 static int gss_init(void) {
 
     /* Make sure the version of proftpd is as necessary. */
@@ -2033,6 +2099,9 @@ static int gss_init(void) {
     pr_feat_add("CONF");
     pr_feat_add("CCC");
 
+    pr_event_register(&gss_module, "core.postparse", gss_postparse_ev, NULL);
+    pr_event_register(&gss_module, "core.restart", gss_restart_ev, NULL);
+
     return 0;
 }
 
@@ -2047,12 +2116,11 @@ static int gss_sess_init(void) {
 			     FALSE)) != NULL && *tmp == TRUE)
 	gss_engine = TRUE;
     else {
-
 	return 0;
     }
 
     /* Open the GSSLog, if configured */
-    if ((res = gss_openlog()) < 0) {
+    if ((res = gss_openlog(NULL)) < 0) {
 	if (res == -1)
 	    pr_log_pri(LOG_NOTICE, MOD_GSS_VERSION ": notice: unable to open GSSLog: %s",
 		    strerror(errno));
@@ -2080,14 +2148,7 @@ static int gss_sess_init(void) {
     /* Get GSSkeytab file */
     gss_keytab_file = get_param_ptr(main_server->conf, "GSSKeytab", FALSE);
 
- /* if (gss_keytab_file) {
-	gss_log("GSSAPI Set KRB5_KTNAME=FILE:%s",gss_keytab_file);
-	putenv(pstrcat(main_server->pool, "KRB5_KTNAME=FILE:", gss_keytab_file, NULL));
-    } else {
-	gss_log("GSSAPI Use default KRB5 keytab");
-    }
-*/
-    pr_exit_register_handler(gss_sess_exit);
+    pr_event_register(&gss_module, "core.exit", gss_sess_exit_ev, NULL);
 
     return 0;
 }
