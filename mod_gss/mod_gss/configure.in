@@ -86,7 +86,7 @@ AC_ARG_ENABLE(nas,
     fi ])
 
 dnl Define MIT as default 
-if test "$enable_arg" == "no"; then
+if test "$enable_arg" = "no"; then
    AC_DEFINE(HAVE_INIT_CREDS_PASSWORD,1,[Define krb5_get_init_creds_password])
    ac_gss_libs="-lgssapi_krb5 -ldes425 -lkrb5 -lk5crypto -lcom_err"
 fi
