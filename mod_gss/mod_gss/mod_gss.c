@@ -188,6 +188,7 @@ static ssize_t gss_write(pr_netio_stream_t *nstrm, char *buf,int buflen) {
     ssize_t count;
     int  conf_state;
     char *enc_buf;
+    pool *pool;
     gss_int32 length;
     gss_uint32 net_len;
 
@@ -213,7 +214,8 @@ static ssize_t gss_write(pr_netio_stream_t *nstrm, char *buf,int buflen) {
 	return -1;
     } 
 
-    enc_buf=pcalloc(session.pool ? session.pool : permanent_pool,gss_out_buf.length); 
+    pool = make_sub_pool(session.pool ? session.pool : permanent_pool);
+    enc_buf=pcalloc(pool, gss_out_buf.length);
  
     memcpy(enc_buf, gss_out_buf.value, length=gss_out_buf.length);
     gss_release_buffer(&min_stat, &gss_out_buf);
@@ -224,6 +226,7 @@ static ssize_t gss_write(pr_netio_stream_t *nstrm, char *buf,int buflen) {
 			 count, count == -1 ? strerror(errno):"premature EOF");
         gss_log("GSSAPI Could not write PROT buffer length %d/%s",
                 count, count == -1 ? strerror(errno):"premature EOF");
+        destroy_pool(pool);
         return -1;
     }
     if ( (count=looping_write(nstrm->strm_fd, enc_buf,length)) != length) {
@@ -231,9 +234,11 @@ static ssize_t gss_write(pr_netio_stream_t *nstrm, char *buf,int buflen) {
 			 length, count == -1 ? strerror(errno) : "premature EOF");
 	gss_log("GSSAPI Could not write %u byte PROT buffer: %s",
 		length, count == -1 ? strerror(errno) : "premature EOF");
+        destroy_pool(pool);
         return -1;  
     }
     
+    destroy_pool(pool);
     return buflen;
 }
 
@@ -302,6 +307,7 @@ static int gss_netio_read_cb(pr_netio_stream_t *nstrm, char *buf,
     static int msg_length=0;
     static char *msg_p;
     static char *dec_buf;
+    static pool *pool=NULL;
      
     gss_uint32      length;
     gss_buffer_desc xmit_buf, msg_buf;
@@ -333,6 +339,7 @@ static int gss_netio_read_cb(pr_netio_stream_t *nstrm, char *buf,
 
         msg_count = 0;
         msg_p = NULL;
+        destroy_pool(pool);
         dec_buf = NULL;
         /* read length of encoded block */
 	count = read(nstrm->strm_fd, &length, sizeof(length));    
@@ -384,7 +391,9 @@ static int gss_netio_read_cb(pr_netio_stream_t *nstrm, char *buf,
 	    return 0;
         }
         /* copy decrypted message to dec_buf */
-        dec_buf=pcalloc(session.pool ? session.pool : permanent_pool,msg_buf.length);
+        pool = make_sub_pool(session.pool ? session.pool : permanent_pool);
+        dec_buf=pcalloc(pool, msg_buf.length);
+
 	memcpy(dec_buf,msg_buf.value,msg_buf.length); 
 	msg_length = msg_buf.length;
 	msg_p = dec_buf;
@@ -2177,7 +2186,7 @@ static ssize_t looping_write(int fd, register const char *buf, int len)
     do {
         cc = write(fd, buf, wrlen);
         if (cc < 0) {
-            if (errno == EINTR)
+            if (errno == EINTR || errno == EAGAIN)
                 continue;
             return(cc);
         }
@@ -2197,7 +2206,7 @@ static ssize_t looping_read(int fd, register char *buf, int len)
     do {
         cc = read(fd, buf, len);
 	if (cc < 0) {
-            if (errno == EINTR)
+            if (errno == EINTR || errno == EAGAIN)
                 continue;
             return(cc);          /* errno is already set */
         }
