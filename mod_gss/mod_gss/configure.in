@@ -14,7 +14,7 @@ dnl Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307, USA.
 dnl
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([mod_gss],[1.2.5],[markus_moeller@compuserve.com])
+AC_INIT([mod_gss],[1.2.4],[markus_moeller@compuserve.com])
 
 ac_gss_libs="-lgssapi_krb5 -ldes425 -lkrb5 -lk5crypto -lcom_err"
 
