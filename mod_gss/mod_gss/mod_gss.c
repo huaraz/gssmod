@@ -342,8 +342,10 @@ static int gss_netio_read_cb(pr_netio_stream_t *nstrm, char *buf,
 
         msg_count = 0;
         msg_p = NULL;
-        if (pool)
+        if (pool) {
             destroy_pool(pool);
+            pool=NULL;
+        }
         dec_buf = NULL;
         /* read length of encoded block */
 	count = read(nstrm->strm_fd, &length, sizeof(length));    
@@ -1034,7 +1036,8 @@ MODRET gss_auth(cmd_rec *cmd) {
             if (maj_stat != GSS_S_COMPLETE) {
 	       log_gss_error( maj_stat, min_stat,"could not delete credential");
                gss_release_buffer(&min_stat,GSS_C_NO_BUFFER);
-            }         
+            }
+            gcontext = GSS_C_NO_CONTEXT;
         }
     }
     /* If session.user is set, we had a valid login reinforce USER,PASS,ACCT*/
@@ -1802,8 +1805,10 @@ static void gss_sess_exit(void) {
 
     OM_uint32       maj_stat, min_stat;
 
-    if (gss_data_netio)
+    if (gss_data_netio) {
 	destroy_pool(gss_data_netio->pool);
+        gss_data_netio = NULL;
+    }
 
     /* Unregister Netio functions for data channel */
     pr_unregister_netio(PR_NETIO_STRM_DATA);
@@ -1816,7 +1821,7 @@ static void gss_sess_exit(void) {
 	    log_gss_error( maj_stat, min_stat,"could not delete credential");
             gss_release_buffer(&min_stat,GSS_C_NO_BUFFER);
         }
-
+        gcontext = GSS_C_NO_CONTEXT;
     }
 
     gss_closelog();
