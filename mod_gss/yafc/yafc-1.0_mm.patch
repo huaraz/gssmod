@@ -1,6 +1,6 @@
-diff -cr yafc-1.0/src/ftp/ftpsend.c yafc-1.0-mm/src/ftp/ftpsend.c
-*** yafc-1.0/src/ftp/ftpsend.c	2002-11-05 22:51:58.000000000 +0000
---- yafc-1.0-mm/src/ftp/ftpsend.c	2003-04-02 12:49:11.000000000 +0100
+diff -rc yafc-1.0/src/ftp/ftpsend.c yafc-1.0-mm/src/ftp/ftpsend.c
+*** yafc-1.0/src/ftp/ftpsend.c	2003-04-17 12:52:13.000000000 +0100
+--- yafc-1.0-mm/src/ftp/ftpsend.c	2003-06-03 11:50:29.000000000 +0100
 ***************
 *** 27,32 ****
 --- 27,36 ----
@@ -16,13 +16,12 @@ diff -cr yafc-1.0/src/ftp/ftpsend.c yafc-1.0-mm/src/ftp/ftpsend.c
   		return -1;
 ***************
 *** 34,40 ****
---- 38,57 ----
+--- 38,56 ----
   	ftp_set_tmp_verbosity(vbNone);
   
   	/* request passive mode */
 + #if defined(HAVE_KRB4) || defined(HAVE_KRB5)
 +         if (gvFirewallClearCommandChannel) {
-+            ftp_cmd("CCC");
 +            sc=ftp->sec_complete;
 +            ftp->sec_complete = 0;
 +         }
@@ -39,7 +38,7 @@ diff -cr yafc-1.0/src/ftp/ftpsend.c yafc-1.0-mm/src/ftp/ftpsend.c
   		return -1;
 ***************
 *** 74,79 ****
---- 91,99 ----
+--- 90,98 ----
   	struct sockaddr_in sa;
   	unsigned char *a, *p;
   	unsigned char pac[6];
@@ -51,13 +50,12 @@ diff -cr yafc-1.0/src/ftp/ftpsend.c yafc-1.0-mm/src/ftp/ftpsend.c
   		return -1;
 ***************
 *** 97,104 ****
---- 117,137 ----
+--- 116,135 ----
   		p = (unsigned char *)&ftp->data->local_addr.sin_port;
   
   		ftp_set_tmp_verbosity(vbError);
 + #if defined(HAVE_KRB4) || defined(HAVE_KRB5)
 +                 if (gvFirewallClearCommandChannel) {
-+ 		   ftp_cmd("CCC");
 +                    sc=ftp->sec_complete;
 +                    ftp->sec_complete = 0;
 +                 }
@@ -75,7 +73,7 @@ diff -cr yafc-1.0/src/ftp/ftpsend.c yafc-1.0-mm/src/ftp/ftpsend.c
   	}
 ***************
 *** 778,783 ****
---- 811,819 ----
+--- 809,817 ----
   	unsigned int old_reply_timeout;
   	Ftp *thisftp;
   	unsigned char addr[6];
@@ -87,13 +85,12 @@ diff -cr yafc-1.0/src/ftp/ftpsend.c yafc-1.0-mm/src/ftp/ftpsend.c
   
 ***************
 *** 805,812 ****
---- 841,861 ----
+--- 839,858 ----
   	/* setup destination side */
   	ftp_use(destftp);
   	ftp_type(mode);
 + #if defined(HAVE_KRB4) || defined(HAVE_KRB5)
 +         if (gvFirewallClearCommandChannel) {
-+ 	   ftp_cmd("CCC");
 +            sc=ftp->sec_complete;
 +            ftp->sec_complete = 0;
 +         }
@@ -109,9 +106,9 @@ diff -cr yafc-1.0/src/ftp/ftpsend.c yafc-1.0-mm/src/ftp/ftpsend.c
   	if(ftp->code != ctComplete) {
   		ftp_use(thisftp);
   		return -1;
-diff -cr yafc-1.0/src/gvars.c yafc-1.0-mm/src/gvars.c
-*** yafc-1.0/src/gvars.c	2002-12-02 12:38:48.000000000 +0000
---- yafc-1.0-mm/src/gvars.c	2003-04-02 12:48:53.000000000 +0100
+diff -rc yafc-1.0/src/gvars.c yafc-1.0-mm/src/gvars.c
+*** yafc-1.0/src/gvars.c	2003-04-17 12:52:14.000000000 +0100
+--- yafc-1.0-mm/src/gvars.c	2003-04-17 12:52:01.000000000 +0100
 ***************
 *** 169,174 ****
 --- 169,178 ----
@@ -125,9 +122,9 @@ diff -cr yafc-1.0/src/gvars.c yafc-1.0-mm/src/gvars.c
   void gvars_destroy(void)
   {
   	xfree(gvEditor);
-diff -cr yafc-1.0/src/gvars.h yafc-1.0-mm/src/gvars.h
-*** yafc-1.0/src/gvars.h	2002-12-02 12:38:48.000000000 +0000
---- yafc-1.0-mm/src/gvars.h	2003-04-02 12:48:50.000000000 +0100
+diff -rc yafc-1.0/src/gvars.h yafc-1.0-mm/src/gvars.h
+*** yafc-1.0/src/gvars.h	2003-04-17 12:52:14.000000000 +0100
+--- yafc-1.0-mm/src/gvars.h	2003-04-17 12:52:01.000000000 +0100
 ***************
 *** 165,170 ****
   #endif
@@ -146,9 +143,9 @@ diff -cr yafc-1.0/src/gvars.h yafc-1.0-mm/src/gvars.h
   
 + void gvars_destroy(void);
   #endif
-diff -cr yafc-1.0/src/rc.c yafc-1.0-mm/src/rc.c
-*** yafc-1.0/src/rc.c	2002-12-02 12:22:26.000000000 +0000
---- yafc-1.0-mm/src/rc.c	2003-04-02 12:48:59.000000000 +0100
+diff -rc yafc-1.0/src/rc.c yafc-1.0-mm/src/rc.c
+*** yafc-1.0/src/rc.c	2003-04-17 12:52:15.000000000 +0100
+--- yafc-1.0-mm/src/rc.c	2003-04-17 12:52:03.000000000 +0100
 ***************
 *** 530,535 ****
 --- 530,539 ----

@@ -932,7 +932,10 @@ MODRET gss_dec(cmd_rec *cmd) {
         if ( dec_buf[i] == '\r' || dec_buf[i] == '\n' ) dec_buf[i] = '\0';
     }
 
-    log_debug(DEBUG9,"unwrapped command '%s'",dec_buf);
+    if (strncmp("PASS ", dec_buf, 5) == 0)
+        log_debug(DEBUG9,"unwrapped command 'PASS (hidden)'");
+    else
+        log_debug(DEBUG9,"unwrapped command '%s'",dec_buf);
     gss_release_buffer(&min_stat,&msg_buf);
 
     gss_flags |= GSS_SESS_DISPATCH;
@@ -2227,11 +2230,9 @@ static int kpass(char *name, char *passwd)
 	creds.times.endtime = now + 60 * 60 * 10;
 	creds.times.renew_till = 0;
 
-	kerr = krb5_get_in_tkt_with_password(kc, 0,
-					  0, NULL, 0 /*preauth*/,
-					  passwd,
-					  NULL,
-					  &creds, 0);
+        kerr = krb5_get_init_creds_password(kc, &creds, p, passwd,
+                                            krb5_prompter_posix, NULL,
+                                            0, NULL, NULL);
         if (kerr) { 
             gss_log("GSSAPI Could not get krb5 ticket (%s).",error_message(kerr));
             krb5_free_context(kc);

@@ -1,13 +1,9 @@
 This patch adds an option/flag FirewallClearCommandChannel to yafc for Kerberos 4/5
  connections to e.g. proftpd. Stateful firewalls need to intercept the PORT or 
-PASV command to be able to setup their session tables. The flag sends a CCC command 
-to the server before sending the PORT or PASV command. With the CCC command the server
-will switch to clear text replies until the next MIC/ENC or CONF command is send.
-
+PASV command to be able to setup their session tables. 
 The flag has to be set in the yafcrc file.
+The result of the flag is that the client sends the PORT/PASV command unprotected and the server replies with an unprotected message.
 
-The final result is that the client sends the PORT/PASV command unprotected and the
- server replies with an unprotected message.
 
 Overall this solutions is more secure then opening on the firewall a port range.
 
