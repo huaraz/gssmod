@@ -21,7 +21,7 @@
  * As a special exemption, M Moeller gives permission to link this program
  * with MIT, Heimdal or other GSS/Kerberos libraries, and distribute
  * the resulting executable, without including the source code for
- * for the Libraries in the source distribution.
+ * the Libraries in the source distribution.
  *
  *  --- DO NOT DELETE BELOW THIS LINE ----
  *  $Libraries: @GSS_LIBS@$
