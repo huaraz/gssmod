@@ -274,7 +274,7 @@ static ssize_t gss_netio_write_cb(pr_netio_stream_t *nstrm, char *buf,size_t buf
     }
 
     if ( ! gss_prot_flags ) {
-	return write(nstrm->strm_fd,buf,buflen);
+	return looping_write(nstrm->strm_fd,buf,buflen);
     }
     /*
     Check if protected buffer length will be less then maxbuf !!
@@ -337,7 +337,7 @@ static int gss_netio_read_cb(pr_netio_stream_t *nstrm, char *buf,
     }
 
     if ( ! gss_prot_flags ) {
-        return read(nstrm->strm_fd, buf, buflen);
+        return looping_read(nstrm->strm_fd, buf, buflen);
     }
 
     /* after successful ADAT and PBSZ/PROT commands we read protected data channel 
@@ -355,7 +355,7 @@ static int gss_netio_read_cb(pr_netio_stream_t *nstrm, char *buf,
         }
         dec_buf = NULL;
         /* read length of encoded block */
-	count = read(nstrm->strm_fd, &length, sizeof(length));    
+	count = looping_read(nstrm->strm_fd, (char *)&length, sizeof(length));    
 	if ( count != sizeof(length) ){
 	    gss_log("GSSAPI Could not read PROT buffer length %d/%s",
 		    count, count == -1 ? strerror(errno):"premature EOF");
