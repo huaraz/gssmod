@@ -74,11 +74,16 @@ static gss_buffer_desc client_name,server_name;
 #define GSS_SESS_PBSZ_OK		0x0004
 #define GSS_SESS_DATA_OPEN		0x0010
 #define GSS_SESS_DATA_ERROR		0x0020
+#define GSS_SESS_DISPATCH		0x0040
 
 #define GSS_SESS_PROT_C                 0x0000
 #define GSS_SESS_PROT_S                 0x0001
 #define GSS_SESS_PROT_P                 0x0002
 #define GSS_SESS_PROT_E                 0x0004
+
+/* mod_gss option flags*/
+#define GSS_OPT_ALLOW_CCC               0x0001
+#define GSS_OPT_ALLOW_FW_CCC            0x0002
 
 static pr_netio_t *gss_data_netio = NULL;
 static pr_netio_stream_t *gss_data_rd_nstrm = NULL;
@@ -795,9 +800,25 @@ MODRET gss_ccc(cmd_rec *cmd) {
 
     CHECK_CMD_ARGS(cmd, 1);
 
-    if (strcmp(session.rfc2228_mech, "GSSAPI") != 0 ) {
+    if ( session.rfc2228_mech && strcmp(session.rfc2228_mech, "GSSAPI") != 0 ) {
         return DECLINED(cmd);
-    } 
+    } else if (!(gss_flags & GSS_SESS_ADAT_OK)) {
+        pr_response_add_err(R_503, "Security data exchange not completed");
+        gss_log("GSSAPI security data exchange not completed before %s command",cmd->argv[0]);
+        return ERROR(cmd);
+    }
+ 
+    if (gss_opts & GSS_OPT_ALLOW_CCC){
+        session.sp_flags = SP_CCC;
+        pr_response_add(R_200, "CCC command successful");
+        return HANDLED(cmd);
+    }
+    if (gss_opts & GSS_OPT_ALLOW_FW_CCC) {
+        session.sp_flags = SP_CCC;
+        pr_response_add(R_200, "CCC command successful");
+        return HANDLED(cmd);
+    }
+
 
     pr_response_add_err(R_534, mesg);
     gss_log("GSSAPI %s", mesg);
@@ -839,9 +860,13 @@ MODRET gss_dec(cmd_rec *cmd) {
 
     CHECK_CMD_ARGS(cmd, 2);
 
-    if (strcmp(session.rfc2228_mech, "GSSAPI") != 0 ) {
+    if ( session.rfc2228_mech && strcmp(session.rfc2228_mech, "GSSAPI") != 0 ) {
         return DECLINED(cmd);
-    } 
+    } else if (!(gss_flags & GSS_SESS_ADAT_OK)) {
+        pr_response_add_err(R_503, "Security data exchange not completed");
+        gss_log("GSSAPI security data exchange not completed before %s command",cmd->argv[0]);
+        return ERROR(cmd);
+    }
 
     if ( ! strcmp(cmd->argv[0], "CONF") ) {
         pr_response_add_err(R_537,"CONF protection level not supported.");
@@ -911,11 +936,14 @@ MODRET gss_dec(cmd_rec *cmd) {
     log_debug(DEBUG9,"unwrapped command '%s'",dec_buf);
     gss_release_buffer(&min_stat,&msg_buf);
 
+    gss_flags |= GSS_SESS_DISPATCH;
     if ( gss_dispatch(dec_buf) ) {
+        gss_flags &= ~GSS_SESS_DISPATCH;
       	pr_response_add_err(R_535,"command %s rejected",dec_buf);
         gss_log("GSSAPI Failed dispatching command %s",dec_buf);
         return ERROR(cmd);
     }
+    gss_flags &= ~GSS_SESS_DISPATCH;
 
     return HANDLED(cmd);
 }
@@ -934,7 +962,7 @@ MODRET gss_any(cmd_rec *cmd) {
      * the value of gss_required_on_data.
      */
 
-    /* Some commands need not be hindered. */
+    /* Some commands need not be ignored. */
     if (!strcmp(cmd->argv[0], C_SYST) ||
 	!strcmp(cmd->argv[0], C_AUTH) ||
 	!strcmp(cmd->argv[0], C_ADAT) ||
@@ -944,18 +972,25 @@ MODRET gss_any(cmd_rec *cmd) {
 	!strcmp(cmd->argv[0], C_MIC) ||
 	!strcmp(cmd->argv[0], C_CCC) ||
 	!strcmp(cmd->argv[0], C_CONF) ||
-	!strcmp(cmd->argv[0], C_QUIT)) 
+	!strcmp(cmd->argv[0], C_QUIT) ||
+        ((gss_opts & GSS_OPT_ALLOW_FW_CCC ) && !strcmp(cmd->argv[0], C_PORT) ) ||
+        ((gss_opts & GSS_OPT_ALLOW_FW_CCC ) && !strcmp(cmd->argv[0], C_PASV) ))
         return DECLINED(cmd);
-    
-    /* protection on control channel is required */ 
-    if (gss_required_on_ctrl && ! session.sp_flags && ! session.sp_flags & SP_CCC ) {
+
+    /* protection on control channel is required (except for commands dispatched by gss_dec) */
+    if ( gss_required_on_ctrl && ! (gss_flags & GSS_SESS_DISPATCH)) {
 	pr_response_add_err(R_550, "GSS protection required on control channel");
 	gss_log("GSSAPI GSS protection required on control channel");
 	return ERROR(cmd);
     }
 
-    /* After ADAT all commands have to be protected by ENC/MIC */
-    if ( gss_flags & GSS_SESS_ADAT_OK && ! session.sp_flags && ! session.sp_flags & SP_CCC ) {
+    /* Ignore commands from dispatched bu gss_dec and if CCC is allowed*/
+    if ( (gss_flags & GSS_SESS_DISPATCH) || ((session.sp_flags & SP_CCC) && (gss_opts & GSS_OPT_ALLOW_CCC))) {
+        return DECLINED(cmd);
+    }
+
+    /* After ADAT all commands have to be protected by ENC/MIC*/
+    if ( (gss_flags & GSS_SESS_ADAT_OK) && ! session.sp_flags ) {
 	pr_response_add_err(R_533, "All commands must be protected.");
 	gss_log("GSSAPI Unprotected command received");
 	return ERROR(cmd);
@@ -1058,6 +1093,7 @@ MODRET gss_auth(cmd_rec *cmd) {
   pr_response_add_err(R_504, "AUTH %s unsupported", cmd->argv[1]);
   return ERROR(cmd);
 */
+        gss_flags &= ~GSS_SESS_AUTH_OK;
         return DECLINED(cmd);
     }
 
@@ -1197,7 +1233,7 @@ MODRET gss_adat(cmd_rec *cmd) {
 
     CHECK_CMD_ARGS(cmd, 2);
 
-    if (strcmp(session.rfc2228_mech, "GSSAPI") != 0 ) {
+    if ( session.rfc2228_mech && strcmp(session.rfc2228_mech, "GSSAPI") != 0 ) {
         return DECLINED(cmd);
     } else if (!(gss_flags & GSS_SESS_AUTH_OK)) {
 	pr_response_add_err(R_503, "You must issue the AUTH command prior to ADAT");
@@ -1425,7 +1461,7 @@ MODRET gss_pbsz(cmd_rec *cmd) {
 
     CHECK_CMD_ARGS(cmd, 2);
 
-    if (strcmp(session.rfc2228_mech, "GSSAPI") != 0 ) {
+    if ( session.rfc2228_mech && strcmp(session.rfc2228_mech, "GSSAPI") != 0 ) {
         return DECLINED(cmd);
     } else if (!(gss_flags & GSS_SESS_ADAT_OK)) {
 	pr_response_add_err(R_503, "PBSZ not allowed on insecure control connection");
@@ -1623,7 +1659,7 @@ MODRET gss_prot(cmd_rec *cmd) {
 
     CHECK_CMD_ARGS(cmd, 2);
 
-    if (strcmp(session.rfc2228_mech, "GSSAPI") != 0 ) {
+    if ( session.rfc2228_mech && strcmp(session.rfc2228_mech, "GSSAPI") != 0 ) {
         return DECLINED(cmd);
     } else if (!(gss_flags & GSS_SESS_PBSZ_OK)) {
    	pr_response_add_err(R_503, "You must issue the PBSZ command prior to PROT");
@@ -1748,8 +1784,13 @@ MODRET set_gssoptions(cmd_rec *cmd) {
     c = add_config_param(cmd->argv[0], 1, NULL);
 
     for (i = 1; i < cmd->argc; i++) {
-	CONF_ERROR(cmd, pstrcat(cmd->tmp_pool, ": unknown GSSOption: '",
-				cmd->argv[i], "'", NULL));
+       if (!strcmp(cmd->argv[i], "AllowCCC"))
+            opts |= GSS_OPT_ALLOW_CCC;
+        else if (!strcmp(cmd->argv[i], "AllowFWCCC"))
+            opts |= GSS_OPT_ALLOW_FW_CCC;
+        else
+            CONF_ERROR(cmd, pstrcat(cmd->tmp_pool, ": unknown GSSOption: '",
+                                cmd->argv[i], "'", NULL));
     }
 
     c->argv[0] = pcalloc(c->pool, sizeof(unsigned long));
@@ -2017,7 +2058,7 @@ static char *gss_format_cb(pool *pool, const char *fmt, ...)
 
     log_debug(DEBUG9,"unwrapped response '%s'",buf);
     /* return buffer if no protection is set */
-    if ( !session.sp_flags || session.sp_flags & SP_CCC )
+    if ( !session.sp_flags || (session.sp_flags & SP_CCC) )
           return pstrdup(pool ,buf);
 
     gss_in_buf.value = pstrdup(pool, buf);

@@ -19,16 +19,21 @@ and is not compiled by default.  Installation instructions
 are discussed <a href="#Installation">here</a>.
 
 <p>
-The most current version of <code>mod_gss</code> can be found at:
+The project is hosted at <a href="http://sourceforge.net/projects/gssmod/"> Sourceforge.net </a> and the most current version of <code>mod_gss</code> can be found at:
 <pre>
   <a href="http://prdownloads.sourceforge.net/gssmod/">http://prdownloads.sourceforge.net/gssmod/</a>
 </pre>
+<p>
+<p>
+Please report bugs to <a href="http://sourceforge.net/tracker/?atid=529593&group_id=70951&func=browse"> GSS module for proftpd: Bugs </a> <br>
+Please report feature requests to <a href="http://sourceforge.net/tracker/?atid=529596&group_id=70951&func=browse"> GSS module for proftpd: Feature Requests</a> <br>
+Please send patches to <a href="http://sourceforge.net/tracker/?atid=529595&group_id=70951&func=browse"> GSS module for proftpd: Patches</a> <br>
 
 <h2>Author</h2>
 <p>
-Please contact M M&ouml;ller &lt;markus_moeller <i>at</i> compuserve.com&gt; with any
+Contact M M&ouml;ller &lt;markus_moeller <i>at</i> compuserve.com&gt; with any
 questions, concerns, or suggestions regarding this module.
-
+<p>
 
 <h2>Directives</h2>
 <ul>
@@ -87,7 +92,9 @@ behavior of <code>mod_gss</code>.
 <p>
 Example:
 <pre>
-  None yet
+  AllowCCC - Allows CCC commands. 
+
+  AllowFWCCC - Allows PORT and PASV only as clear commands after CCC for stateful firewalls. Needs special client patch.
 </pre>
 
 <p>
@@ -227,6 +234,26 @@ Last Updated: <i>$Date$</i><br>
 </i></b></font>
 
 <hr><br>
+<center>
+<A href="http://sourceforge.net"> <IMG src="http://sourceforge.net/sflogo.php?group_id=70951&amp;type=5" width="210" height="62" border="0" alt="SourceForge.net Logo"></A> 
+<!-- Begin Nedstat Basic code -->
+<!-- Title: ProFTPD module mod_gss -->
+<!-- URL: http://gssmod.sourceforge.net -->
+<script language="JavaScript" src="http://m1.nedstatbasic.net/basic.js">
+</script>
+<script language="JavaScript">
+<!--
+  nedstatbasic("ACDUGwzeL2vzniAMJdUmtnbmaNlw", 0);
+// -->
+</script>
+<noscript>
+<a target="_blank" href="http://v1.nedstatbasic.net/stats?ACDUGwzeL2vzniAMJdUmtnbmaNlw"><img
+src="http://m1.nedstatbasic.net/n?id=ACDUGwzeL2vzniAMJdUmtnbmaNlw"
+border="0" nosave width="18" height="18"></a>
+</noscript>
+<!-- End Nedstat Basic code -->
+</center>
+
 
 </body>
 </html>
