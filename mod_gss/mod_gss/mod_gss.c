@@ -829,7 +829,7 @@ MODRET gss_auth_check(cmd_rec *cmd) {
            return mod_create_data(cmd, (void *) PR_AUTH_RFC2228_OK);
         }
     } else {
-        gss_log("GSSAPI User %s is not authorized. Use other methods to authenticate.", (char *) client_name.value,cmd->argv[0]);
+        gss_log("GSSAPI User %s is not authorized. Use other methods to authenticate.", cmd->argv[0]);
         return DECLINED(cmd);
     }
 }
