@@ -57,7 +57,8 @@
 #include <gssapi/gssapi_krb5.h>
 #endif
 
-#define MOD_GSS_VERSION		"mod_gss/1.1.6"
+#define MOD_GSS_VERSION		"mod_gss/1.2.0"
+#define C_FWCCC   "FWCCC"       /* FW support PORT/EPORT/PASV/EPASV in clear */
 
 extern session_t session;
 

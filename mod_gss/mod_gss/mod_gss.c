@@ -76,6 +76,7 @@ static gss_buffer_desc client_name,server_name;
 #define GSS_SESS_DATA_ERROR		0x0020
 #define GSS_SESS_DISPATCH		0x0040
 #define GSS_SESS_CCC			0x0100
+#define GSS_SESS_FWCCC			0x0200
 
 #define GSS_SESS_PROT_C                 0x0000
 #define GSS_SESS_PROT_S                 0x0001
@@ -827,6 +828,38 @@ MODRET gss_ccc(cmd_rec *cmd) {
 
 }
 
+MODRET gss_fwccc(cmd_rec *cmd) {
+    char *mesg = "FWCCC (clear PORT/EPORT/PASV/EPASV command) not supported.";
+
+    if (!gss_engine)
+        return DECLINED(cmd);
+
+    CHECK_CMD_ARGS(cmd, 1);
+
+    if ( session.rfc2228_mech && strcmp(session.rfc2228_mech, "GSSAPI") != 0 ) {
+        return DECLINED(cmd);
+    } else if (!(gss_flags & GSS_SESS_ADAT_OK)) {
+        pr_response_add_err(R_503, "Security data exchange not completed");
+        gss_log("GSSAPI security data exchange not completed before %s command",cmd->argv[0]);
+        return ERROR(cmd);
+    }
+
+    pr_log_debug(DEBUG9, "GSSAPI GSSOption %x ",gss_opts);
+    if (gss_opts & GSS_OPT_ALLOW_FW_CCC){
+        if ( gss_flags & GSS_SESS_FWCCC )
+           gss_flags &= ~GSS_SESS_FWCCC;
+        else
+           gss_flags |= GSS_SESS_FWCCC;
+        pr_response_add(R_200, "FWCCC command successfully switched %s",gss_flags & GSS_SESS_FWCCC ? "On":"Off");
+        return HANDLED(cmd);
+    }
+
+    pr_response_add_err(R_534, mesg);
+    gss_log("GSSAPI %s", mesg);
+    return ERROR(cmd);
+
+}
+
 /* Appendix I
 
    The procedure associated with MIC commands, 631 replies, and Safe
@@ -979,12 +1012,12 @@ MODRET gss_any(cmd_rec *cmd) {
         return DECLINED(cmd);
     }
 
-    /* Ignore clear PORT/PASV commands if FW_CCC is allowed*/
+    /* Ignore clear PORT/PASV commands if FWCCC is allowed*/
     pr_log_debug(DEBUG9, "GSSAPI GSSOption %x ",gss_opts);
-    if (( (gss_opts & GSS_OPT_ALLOW_FW_CCC) && !strcmp(cmd->argv[0], C_PORT) ) ||
-        ( (gss_opts & GSS_OPT_ALLOW_FW_CCC) && !strcmp(cmd->argv[0], C_PASV) ) ||
-        ( (gss_opts & GSS_OPT_ALLOW_FW_CCC) && !strcmp(cmd->argv[0], C_EPRT) ) ||
-        ( (gss_opts & GSS_OPT_ALLOW_FW_CCC) && !strcmp(cmd->argv[0], C_EPSV) )) {
+    if (( (gss_flags & GSS_SESS_FWCCC) && !strcmp(cmd->argv[0], C_PORT) ) ||
+        ( (gss_flags & GSS_SESS_FWCCC) && !strcmp(cmd->argv[0], C_PASV) ) ||
+        ( (gss_flags & GSS_SESS_FWCCC) && !strcmp(cmd->argv[0], C_EPRT) ) ||
+        ( (gss_flags & GSS_SESS_FWCCC) && !strcmp(cmd->argv[0], C_EPSV) )) {
         session.sp_flags = SP_CCC; 
         return DECLINED(cmd);
     }
@@ -1234,7 +1267,7 @@ MODRET gss_adat(cmd_rec *cmd) {
     if (!gss_engine)
         return DECLINED(cmd);
 
-    pr_log_debug(DEBUG9, "GSSAPI GSSOption %x ",gss_opts);
+    pr_log_debug(DEBUG9, "GSSAPI GSSOption %x",gss_opts);
     if (!(gss_opts & GSS_OPT_ALLOW_FW_NAT)) { 
         chan = pcalloc(cmd->tmp_pool,sizeof(*chan));
         switch (pr_netaddr_get_family(session.c->remote_addr)) {
@@ -1270,6 +1303,7 @@ MODRET gss_adat(cmd_rec *cmd) {
         chan->application_data.length = 0;
         chan->application_data.value = 0;
     } else {
+        pr_log_debug(DEBUG9, "GSSAPI Ignore Channel Binding");
 	gss_log("GSSAPI Ignore Channel Binding");
     }
 
@@ -1825,16 +1859,20 @@ MODRET set_gssoptions(cmd_rec *cmd) {
     c = add_config_param(cmd->argv[0], 1, NULL);
 
     for (i = 1; i < cmd->argc; i++) {
-       if (!strcmp(cmd->argv[i], "AllowCCC")) {
+       if (!strcasecmp(cmd->argv[i], "AllowCCC")) {
             opts |= GSS_OPT_ALLOW_CCC;
             pr_log_debug(DEBUG3, "GSSAPI GSSOption AllowCCC set");
-       } else if (!strcmp(cmd->argv[i], "AllowFWCCC")) {
+       } else if (!strcasecmp(cmd->argv[i], "AllowFWCCC")) {
             opts |= GSS_OPT_ALLOW_FW_CCC;
+    	    pr_feat_add("FWCCC");
             pr_log_debug(DEBUG3, "GSSAPI GSSOption AllowFWCCC set");
-       } else if (!strcmp(cmd->argv[i], "AllowFWNAT")) {
+       } else if (!strcasecmp(cmd->argv[i], "AllowFWCCCOld")) {
+            gss_flags |= GSS_SESS_FWCCC;
+            pr_log_debug(DEBUG3, "GSSAPI GSSOption AllowFWCCCOld set");
+       } else if (!strcasecmp(cmd->argv[i], "AllowFWNAT")) {
             opts |= GSS_OPT_ALLOW_FW_NAT;
             pr_log_debug(DEBUG3, "GSSAPI GSSOption AllowFWNAT set");
-       } else if (!strcmp(cmd->argv[i], "NoChannelBinding")) {
+       } else if (!strcasecmp(cmd->argv[i], "NoChannelBinding")) {
             opts |= GSS_OPT_ALLOW_FW_NAT;
             pr_log_debug(DEBUG3, "GSSAPI GSSOption NoChannelBinding set");
        } else
@@ -2561,6 +2599,7 @@ static cmdtable gss_cmdtab[] = {
     { CMD,      C_MIC,  G_NONE, gss_dec,        FALSE,   FALSE },
     { CMD,      C_CONF, G_NONE, gss_dec,        FALSE,   FALSE },
     { CMD,	C_CCC,	G_NONE,	gss_ccc,	FALSE,	FALSE },
+    { CMD,	C_FWCCC, G_NONE, gss_fwccc,	FALSE,	FALSE },
     { 0,	NULL }
 };
 
