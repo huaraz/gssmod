@@ -534,7 +534,7 @@ static void gss_netio_install_data(void) {
     pr_unregister_netio(PR_NETIO_STRM_DATA);
 
     if (pr_register_netio(netio, PR_NETIO_STRM_DATA) < 0)
-	log_pri(LOG_INFO, MOD_GSS_VERSION ": error registering netio: %s",
+	pr_log_pri(LOG_INFO, MOD_GSS_VERSION ": error registering netio: %s",
 		strerror(errno));
 
     pr_response_register_handler(gss_format_cb);
@@ -572,7 +572,7 @@ static int gss_log(const char *fmt, ...) {
         vsnprintf(buf, sizeof(buf), fmt, msg);
         va_end(msg);
         buf[sizeof(buf)-1] = '\0';
-        log_pri(PR_LOG_NOTICE,buf);
+        pr_log_pri(PR_LOG_NOTICE,buf);
 	return 0;
     }
 	  
@@ -934,9 +934,9 @@ MODRET gss_dec(cmd_rec *cmd) {
     }
 
     if (strncmp("PASS ", dec_buf, 5) == 0)
-        log_debug(DEBUG9,"GSSAPI unwrapped command 'PASS (hidden)'");
+        pr_log_debug(DEBUG9,"GSSAPI unwrapped command 'PASS (hidden)'");
     else
-        log_debug(DEBUG9,"GSSAPI unwrapped command '%s'",dec_buf);
+        pr_log_debug(DEBUG9,"GSSAPI unwrapped command '%s'",dec_buf);
     gss_release_buffer(&min_stat,&msg_buf);
 
     gss_flags |= GSS_SESS_DISPATCH;
@@ -1307,7 +1307,7 @@ MODRET gss_adat(cmd_rec *cmd) {
 	name_buf.value = service_name;
 	name_buf.length = strlen(name_buf.value) + 1;
         gss_log("GSSAPI Importing service <%s>", service_name);
-	log_debug(DEBUG1, "GSSAPI Importing <%s>", service_name);
+	pr_log_debug(DEBUG1, "GSSAPI Importing <%s>", service_name);
 	maj_stat = gss_import_name(&min_stat, &name_buf,
 				   gss_nt_service_name,
 				   &server);
@@ -1822,16 +1822,16 @@ MODRET set_gssoptions(cmd_rec *cmd) {
     for (i = 1; i < cmd->argc; i++) {
        if (!strcmp(cmd->argv[i], "AllowCCC")) {
             opts |= GSS_OPT_ALLOW_CCC;
-            log_debug(DEBUG3, "GSSAPI GSSOption AllowCCC set");
+            pr_log_debug(DEBUG3, "GSSAPI GSSOption AllowCCC set");
        } else if (!strcmp(cmd->argv[i], "AllowFWCCC")) {
             opts |= GSS_OPT_ALLOW_FW_CCC;
-            log_debug(DEBUG3, "GSSAPI GSSOption AllowFWCCC set");
+            pr_log_debug(DEBUG3, "GSSAPI GSSOption AllowFWCCC set");
        } else if (!strcmp(cmd->argv[i], "AllowFWNAT")) {
             opts |= GSS_OPT_ALLOW_FW_NAT;
-            log_debug(DEBUG3, "GSSAPI GSSOption AllowFWNAT set");
+            pr_log_debug(DEBUG3, "GSSAPI GSSOption AllowFWNAT set");
        } else if (!strcmp(cmd->argv[i], "NoChannelBinding")) {
             opts |= GSS_OPT_ALLOW_FW_NAT;
-            log_debug(DEBUG3, "GSSAPI GSSOption NoChannelBinding set");
+            pr_log_debug(DEBUG3, "GSSAPI GSSOption NoChannelBinding set");
        } else
             CONF_ERROR(cmd, pstrcat(cmd->tmp_pool, ": unknown GSSOption: '",
                                 cmd->argv[i], "'", NULL));
@@ -1874,8 +1874,8 @@ MODRET set_gssrequired(cmd_rec *cmd) {
 	}
     }
 
-    if (on_ctrl) log_debug(DEBUG3, "GSSAPI GSSRequired on ctrl channel set");
-    if (on_data) log_debug(DEBUG3, "GSSAPI GSSRequired on data channel set");
+    if (on_ctrl) pr_log_debug(DEBUG3, "GSSAPI GSSRequired on ctrl channel set");
+    if (on_data) pr_log_debug(DEBUG3, "GSSAPI GSSRequired on data channel set");
     c = add_config_param(cmd->argv[0], 2, NULL, NULL);
     c->argv[0] = pcalloc(c->pool, sizeof(unsigned char));
     *((unsigned char *) c->argv[0]) = on_ctrl;
@@ -1918,8 +1918,8 @@ static void gss_sess_exit(void) {
 static int gss_init(void) {
 
     /* Make sure the version of proftpd is as necessary. */
-    if (PROFTPD_VERSION_NUMBER < 0x0001020902) {
-	log_pri(LOG_ERR, MOD_GSS_VERSION " requires proftpd 1.2.9rc2 and later");
+    if (PROFTPD_VERSION_NUMBER < 0x0001021001) {
+	pr_log_pri(LOG_ERR, MOD_GSS_VERSION " requires proftpd 1.2.10rc1 and later");
 	exit(1);
     }
     /* set command size buffer to maximum */
@@ -1956,15 +1956,15 @@ static int gss_sess_init(void) {
     /* Open the GSSLog, if configured */
     if ((res = gss_openlog()) < 0) {
 	if (res == -1)
-	    log_pri(LOG_NOTICE, MOD_GSS_VERSION ": notice: unable to open GSSLog: %s",
+	    pr_log_pri(LOG_NOTICE, MOD_GSS_VERSION ": notice: unable to open GSSLog: %s",
 		    strerror(errno));
 
 	else if (res == LOG_WRITEABLE_DIR)
-	    log_pri(LOG_NOTICE, "notice: unable to open GSSLog: "
+	    pr_log_pri(LOG_NOTICE, "notice: unable to open GSSLog: "
 		    "parent directory is world writeable");
 
 	else if (res == LOG_SYMLINK)
-	    log_pri(LOG_NOTICE, "notice: unable to open GSSLog: "
+	    pr_log_pri(LOG_NOTICE, "notice: unable to open GSSLog: "
 		    "cannot log to a symbolic link");
     }
 
@@ -2100,7 +2100,7 @@ static char *gss_format_cb(pool *pool, const char *fmt, ...)
     va_end(msg);
     buf[sizeof(buf)-1] = '\0';
 
-    log_debug(DEBUG9,"GSSAPI unwrapped response '%s'",buf);
+    pr_log_debug(DEBUG9,"GSSAPI unwrapped response '%s'",buf);
     /* return buffer if no protection is set */
     if ( !session.sp_flags || (session.sp_flags & SP_CCC) )
           return pstrdup(pool ,buf);
@@ -2158,7 +2158,7 @@ static char *gss_format_cb(pool *pool, const char *fmt, ...)
                   session.sp_flags & SP_MIC ?  R_632 : 
   		  session.sp_flags & SP_CONF ?  R_633 : NULL,
                   " ",reply,"\r\n",NULL);
-    log_debug(DEBUG9,"GSSAPI wrapped response '%s'",reply);
+    pr_log_debug(DEBUG9,"GSSAPI wrapped response '%s'",reply);
     return reply;
 }
 
