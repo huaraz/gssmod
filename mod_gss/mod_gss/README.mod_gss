@@ -25,3 +25,7 @@ Make sure the Command Buffer Size is big enough. It has to be at least the same 
 CommandBufferSize       1023
 
 Use --enable-buffer-size to increase the BufferSize above 1023.
+
+Because of the internal handling of the user authentication in proftpd 1.2.8 the user will be asked for a dummy 
+password despite of a successful Kerberos authentication. This will probably be changed in proftpd 1.2.9.
+
