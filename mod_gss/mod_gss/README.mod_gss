@@ -1,4 +1,6 @@
+
 cd mod_gss
+call autoreconf to creat mod_gss.h.in
 
 ./configure
 or
