@@ -2,15 +2,15 @@
 cd mod_gss
 call autoreconf to creat mod_gss.h.in and configure
 
-./configure
+./configure			Uses MIT Kerberos as default
 or
-./configure --enable-mit
+./configure --enable-mit        Enables MIT Kerberos
 or
-./configure --enable-heimdal
+./configure --enable-heimdal    Enables Heimdal Kerberos
 or
-./configure --enable-seam
+./configure --enable-seam	Enables Sun Solaris SEAM Kerberos (not fully tested on 8/9, ok on 10)
 or
-./configure --enable-nas
+./configure --enable-nas	Enables IBM AIX NAS Kerberos (not fully tested on 5.2, ok on 5.1)
 
 cd proftpd 
 

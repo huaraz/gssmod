@@ -2294,7 +2294,7 @@ static char *gss_format_cb(pool *pool, const char *fmt, ...)
 */
 	log_gss_error(maj_stat, min_stat, "could not seal/wrap reply");
 	gss_release_buffer(&min_stat, &gss_out_buf);
-	return NULL;
+	return buf;
     } else if ((session.sp_flags & SP_ENC) && !conf_state) {
 /* ??? how can this work?
  *      At this point of the conversation the client accepts 
@@ -2303,16 +2303,16 @@ static char *gss_format_cb(pool *pool, const char *fmt, ...)
  *      the error response too.
         secure_error("GSSAPI didn't protect message");
 */
-	log_gss_error(maj_stat,min_stat,"did not protect message");
+	log_gss_error(maj_stat,min_stat,"could not protect message");
 	gss_release_buffer(&min_stat, &gss_out_buf);
-	return NULL;
+	return buf;
     } 
     /* protected reply <= 4*unprotected reply */
     reply=pcalloc(pool, gss_out_buf.length*4+1);
     if ((error = radix_encode(gss_out_buf.value, reply, (int *)&gss_out_buf.length, 0)) != 0 ) {
 	gss_log("Couldn't encode reply (%s)", radix_error(error));
 	gss_release_buffer(&min_stat, &gss_out_buf);
-	return NULL;      
+	return buf;      
     } 
     gss_release_buffer(&min_stat, &gss_out_buf);
 
