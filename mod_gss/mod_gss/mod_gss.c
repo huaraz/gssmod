@@ -1482,7 +1482,7 @@ MODRET gss_adat(cmd_rec *cmd) {
         /* Install our response protection handler */
         session.sp_flags = 0;
 
-        if ( !(ret_flags & GSS_C_REPLAY_FLAG) ){
+        if ( !(ret_flags & GSS_C_REPLAY_FLAG || ret_flags & GSS_C_SEQUENCE_FLAG) ){
             gss_log("GSSAPI Warning: no replay protection !");
         }
         if ( !(ret_flags & GSS_C_SEQUENCE_FLAG) ){
