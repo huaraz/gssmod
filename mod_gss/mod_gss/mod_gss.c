@@ -934,9 +934,9 @@ MODRET gss_dec(cmd_rec *cmd) {
     }
 
     if (strncmp("PASS ", dec_buf, 5) == 0)
-        log_debug(DEBUG9,"unwrapped command 'PASS (hidden)'");
+        log_debug(DEBUG9,"GSSAPI unwrapped command 'PASS (hidden)'");
     else
-        log_debug(DEBUG9,"unwrapped command '%s'",dec_buf);
+        log_debug(DEBUG9,"GSSAPI unwrapped command '%s'",dec_buf);
     gss_release_buffer(&min_stat,&msg_buf);
 
     gss_flags |= GSS_SESS_DISPATCH;
@@ -973,13 +973,6 @@ MODRET gss_any(cmd_rec *cmd) {
 	!strcmp(cmd->argv[0], C_CONF))
         return DECLINED(cmd);
 
-    /* protection on control channel is required (except for commands dispatched by gss_dec) */
-    if ( gss_required_on_ctrl && ! (gss_flags & GSS_SESS_DISPATCH)) {
-	pr_response_add_err(R_550, "GSS protection required on control channel");
-	gss_log("GSSAPI GSS protection required on control channel");
-	return ERROR(cmd);
-    }
-
     /* Ignore commands from dispatched gss_dec*/
     if (gss_flags & GSS_SESS_DISPATCH) {
         return DECLINED(cmd);
@@ -998,6 +991,13 @@ MODRET gss_any(cmd_rec *cmd) {
     if ((gss_opts & GSS_OPT_ALLOW_CCC) && (gss_flags & GSS_SESS_CCC)) {
         session.sp_flags = SP_CCC; 
         return DECLINED(cmd);
+    }
+
+    /* protection on control channel is required (except for commands dispatched by gss_dec) */
+    if ( gss_required_on_ctrl ) {
+	pr_response_add_err(R_550, "GSS protection required on control channel");
+	gss_log("GSSAPI GSS protection required on control channel");
+	return ERROR(cmd);
     }
 
     /* After ADAT all commands have to be protected by ENC/MIC/CONF */
@@ -1307,7 +1307,7 @@ MODRET gss_adat(cmd_rec *cmd) {
 	name_buf.value = service_name;
 	name_buf.length = strlen(name_buf.value) + 1;
         gss_log("GSSAPI Importing service <%s>", service_name);
-	log_debug(DEBUG1, "Importing <%s>", service_name);
+	log_debug(DEBUG1, "GSSAPI Importing <%s>", service_name);
 	maj_stat = gss_import_name(&min_stat, &name_buf,
 				   gss_nt_service_name,
 				   &server);
@@ -1820,15 +1820,19 @@ MODRET set_gssoptions(cmd_rec *cmd) {
     c = add_config_param(cmd->argv[0], 1, NULL);
 
     for (i = 1; i < cmd->argc; i++) {
-       if (!strcmp(cmd->argv[i], "AllowCCC"))
+       if (!strcmp(cmd->argv[i], "AllowCCC")) {
             opts |= GSS_OPT_ALLOW_CCC;
-        else if (!strcmp(cmd->argv[i], "AllowFWCCC"))
+            log_debug(DEBUG3, "GSSAPI GSSOption AllowCCC set");
+       } else if (!strcmp(cmd->argv[i], "AllowFWCCC")) {
             opts |= GSS_OPT_ALLOW_FW_CCC;
-        else if (!strcmp(cmd->argv[i], "AllowFWNAT"))
+            log_debug(DEBUG3, "GSSAPI GSSOption AllowFWCCC set");
+       } else if (!strcmp(cmd->argv[i], "AllowFWNAT")) {
             opts |= GSS_OPT_ALLOW_FW_NAT;
-        else if (!strcmp(cmd->argv[i], "NoChannelBinding"))
+            log_debug(DEBUG3, "GSSAPI GSSOption AllowFWNAT set");
+       } else if (!strcmp(cmd->argv[i], "NoChannelBinding")) {
             opts |= GSS_OPT_ALLOW_FW_NAT;
-        else
+            log_debug(DEBUG3, "GSSAPI GSSOption NoChannelBinding set");
+       } else
             CONF_ERROR(cmd, pstrcat(cmd->tmp_pool, ": unknown GSSOption: '",
                                 cmd->argv[i], "'", NULL));
     }
@@ -1870,6 +1874,8 @@ MODRET set_gssrequired(cmd_rec *cmd) {
 	}
     }
 
+    if (on_ctrl) log_debug(DEBUG3, "GSSAPI GSSRequired on ctrl channel set");
+    if (on_data) log_debug(DEBUG3, "GSSAPI GSSRequired on data channel set");
     c = add_config_param(cmd->argv[0], 2, NULL, NULL);
     c->argv[0] = pcalloc(c->pool, sizeof(unsigned char));
     *((unsigned char *) c->argv[0]) = on_ctrl;
@@ -1947,18 +1953,6 @@ static int gss_sess_init(void) {
 	return 0;
     }
 
-    /* Read GSSOptions */
-    if ((opts = get_param_ptr(main_server->conf, "GSSOptions", FALSE)) != NULL)
-	gss_opts = *opts;
-
-
-    /* Read GSSRequired */
-    if ((c = find_config(main_server->conf, CONF_PARAM, "GSSRequired",
-			 FALSE))) {
-	gss_required_on_ctrl = *((unsigned char *) c->argv[0]);
-	gss_required_on_data = *((unsigned char *) c->argv[1]);
-    }
-
     /* Open the GSSLog, if configured */
     if ((res = gss_openlog()) < 0) {
 	if (res == -1)
@@ -1974,6 +1968,16 @@ static int gss_sess_init(void) {
 		    "cannot log to a symbolic link");
     }
 
+    /* Read GSSOptions */
+    if ((opts = get_param_ptr(main_server->conf, "GSSOptions", FALSE)) != NULL)
+	gss_opts = *opts;
+
+    /* Read GSSRequired */
+    if ((c = find_config(main_server->conf, CONF_PARAM, "GSSRequired",
+			 FALSE))) {
+	gss_required_on_ctrl = *((unsigned char *) c->argv[0]);
+	gss_required_on_data = *((unsigned char *) c->argv[1]);
+    }
 
     /* Set GSSkeytab file */
     gss_keytab_file = get_param_ptr(main_server->conf, "GSSKeytab", FALSE);
@@ -2096,7 +2100,7 @@ static char *gss_format_cb(pool *pool, const char *fmt, ...)
     va_end(msg);
     buf[sizeof(buf)-1] = '\0';
 
-    log_debug(DEBUG9,"unwrapped response '%s'",buf);
+    log_debug(DEBUG9,"GSSAPI unwrapped response '%s'",buf);
     /* return buffer if no protection is set */
     if ( !session.sp_flags || (session.sp_flags & SP_CCC) )
           return pstrdup(pool ,buf);
@@ -2154,7 +2158,7 @@ static char *gss_format_cb(pool *pool, const char *fmt, ...)
                   session.sp_flags & SP_MIC ?  R_632 : 
   		  session.sp_flags & SP_CONF ?  R_633 : NULL,
                   " ",reply,"\r\n",NULL);
-    log_debug(DEBUG9,"wrapped response '%s'",reply);
+    log_debug(DEBUG9,"GSSAPI wrapped response '%s'",reply);
     return reply;
 }
 
