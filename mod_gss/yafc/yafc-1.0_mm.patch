@@ -1,0 +1,164 @@
+diff -cr yafc-1.0/src/ftp/ftpsend.c yafc-1.0-mm/src/ftp/ftpsend.c
+*** yafc-1.0/src/ftp/ftpsend.c	2002-11-05 22:51:58.000000000 +0000
+--- yafc-1.0-mm/src/ftp/ftpsend.c	2003-04-02 12:49:11.000000000 +0100
+***************
+*** 27,32 ****
+--- 27,36 ----
+  	char *e;
+  	int i;
+  
++ #if defined(HAVE_KRB4) || defined(HAVE_KRB5)
++         int sc; 
++ #endif
++ 
+  	if(!ftp->has_pasv_command) {
+  		ftp_err(_("Host doesn't support passive mode\n"));
+  		return -1;
+***************
+*** 34,40 ****
+--- 38,57 ----
+  	ftp_set_tmp_verbosity(vbNone);
+  
+  	/* request passive mode */
++ #if defined(HAVE_KRB4) || defined(HAVE_KRB5)
++         if (gvFirewallClearCommandChannel) {
++            ftp_cmd("CCC");
++            sc=ftp->sec_complete;
++            ftp->sec_complete = 0;
++         }
++ #endif
+  	ftp_cmd("PASV");
++ #if defined(HAVE_KRB4) || defined(HAVE_KRB5)
++         if (gvFirewallClearCommandChannel) {
++             ftp->sec_complete = sc;
++             sc=0;
++         }
++ #endif
+  
+  	if(!ftp_connected())
+  		return -1;
+***************
+*** 74,79 ****
+--- 91,99 ----
+  	struct sockaddr_in sa;
+  	unsigned char *a, *p;
+  	unsigned char pac[6];
++ #if defined(HAVE_KRB4) || defined(HAVE_KRB5)
++         int sc; 
++ #endif
+  
+  	if(!ftp_connected())
+  		return -1;
+***************
+*** 97,104 ****
+--- 117,137 ----
+  		p = (unsigned char *)&ftp->data->local_addr.sin_port;
+  
+  		ftp_set_tmp_verbosity(vbError);
++ #if defined(HAVE_KRB4) || defined(HAVE_KRB5)
++                 if (gvFirewallClearCommandChannel) {
++ 		   ftp_cmd("CCC");
++                    sc=ftp->sec_complete;
++                    ftp->sec_complete = 0;
++                 }
++ #endif
+  		ftp_cmd("PORT %d,%d,%d,%d,%d,%d",
+  				a[0], a[1], a[2], a[3], p[0], p[1]);
++ #if defined(HAVE_KRB4) || defined(HAVE_KRB5)
++                 if (gvFirewallClearCommandChannel) {
++         	   ftp->sec_complete = sc;
++ 	            sc=0;
++                 }
++ #endif
+  		if(ftp->code != ctComplete)
+  			return -1;
+  	}
+***************
+*** 778,783 ****
+--- 811,819 ----
+  	unsigned int old_reply_timeout;
+  	Ftp *thisftp;
+  	unsigned char addr[6];
++ #if defined(HAVE_KRB4) || defined(HAVE_KRB5)
++         int sc; 
++ #endif
+  
+  /*	printf("FxP: %s -> %s\n", srcftp->url->hostname, destftp->url->hostname);*/
+  
+***************
+*** 805,812 ****
+--- 841,861 ----
+  	/* setup destination side */
+  	ftp_use(destftp);
+  	ftp_type(mode);
++ #if defined(HAVE_KRB4) || defined(HAVE_KRB5)
++         if (gvFirewallClearCommandChannel) {
++ 	   ftp_cmd("CCC");
++            sc=ftp->sec_complete;
++            ftp->sec_complete = 0;
++         }
++ #endif
+  	ftp_cmd("PORT %d,%d,%d,%d,%d,%d",
+  			addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]);
++ #if defined(HAVE_KRB4) || defined(HAVE_KRB5)
++         if (gvFirewallClearCommandChannel) {
++            ftp->sec_complete = sc;
++ 	   sc=0;
++         }
++ #endif
+  	if(ftp->code != ctComplete) {
+  		ftp_use(thisftp);
+  		return -1;
+diff -cr yafc-1.0/src/gvars.c yafc-1.0-mm/src/gvars.c
+*** yafc-1.0/src/gvars.c	2002-12-02 12:38:48.000000000 +0000
+--- yafc-1.0-mm/src/gvars.c	2003-04-02 12:48:53.000000000 +0100
+***************
+*** 169,174 ****
+--- 169,178 ----
+  #endif
+  bool gvJmpBufSet = false;
+  
++ #if defined(HAVE_KRB4) || defined(HAVE_KRB5)
++ bool gvFirewallClearCommandChannel = false;
++ #endif
++ 
+  void gvars_destroy(void)
+  {
+  	xfree(gvEditor);
+diff -cr yafc-1.0/src/gvars.h yafc-1.0-mm/src/gvars.h
+*** yafc-1.0/src/gvars.h	2002-12-02 12:38:48.000000000 +0000
+--- yafc-1.0-mm/src/gvars.h	2003-04-02 12:48:50.000000000 +0100
+***************
+*** 165,170 ****
+  #endif
+  extern bool gvJmpBufSet;
+  
+! void gvars_destroy(void);
+  
+  #endif
+--- 165,173 ----
+  #endif
+  extern bool gvJmpBufSet;
+  
+! #if defined(HAVE_KRB4) || defined(HAVE_KRB5)
+! extern bool gvFirewallClearCommandChannel;
+! #endif
+  
++ void gvars_destroy(void);
+  #endif
+diff -cr yafc-1.0/src/rc.c yafc-1.0-mm/src/rc.c
+*** yafc-1.0/src/rc.c	2002-12-02 12:22:26.000000000 +0000
+--- yafc-1.0-mm/src/rc.c	2003-04-02 12:48:59.000000000 +0100
+***************
+*** 530,535 ****
+--- 530,539 ----
+  			parse_host(TRIG_DEFAULT, fp);
+  		else if(strcasecmp(e, "local") == 0)
+  			parse_host(TRIG_LOCAL, fp);
++ #if defined(HAVE_KRB4) || defined(HAVE_KRB5)
++ 		else if(strcasecmp(e, "FirewallClearCommandChannel") == 0)
++                         gvFirewallClearCommandChannel = nextbool(fp);
++ #endif
+  		else
+  			errp(_("Config parse error: '%s'\n"), e);
+  	}

@@ -1,0 +1,221 @@
+diff -rc krb5-1.2.8/src/appl/gssftp/ftp/ftp.c krb5-1.2.8-mm/src/appl/gssftp/ftp/ftp.c
+*** krb5-1.2.8/src/appl/gssftp/ftp/ftp.c	2001-12-21 18:10:43.000000000 +0000
+--- krb5-1.2.8-mm/src/appl/gssftp/ftp/ftp.c	2003-04-24 16:28:06.000000000 +0100
+***************
+*** 472,477 ****
+--- 472,478 ----
+  	int r;
+  	sig_t oldintr;
+  	sigtype cmdabort();
++         char* tmpa;
+  
+  	abrtflag = 0;
+  	if (debug) {
+***************
+*** 508,514 ****
+--- 509,525 ----
+  again:	if (secure_command(in) == 0)
+  		return(0);
+  	cpend = 1;
++         if (allowfwccc && 
++            ( !strncmp(fmt, "CCC",3) || !strncmp(fmt, "PORT",4) || !strncmp(fmt, "PASV",4) ) ) {
++ 		tmpa = auth_type;
++ 		auth_type = NULL;
++         }
+  	r = getreply(!strcmp(fmt, "QUIT"));
++         if (allowfwccc && 
++            ( !strncmp(fmt, "CCC",3) || !strncmp(fmt, "PORT",4) || !strncmp(fmt, "PASV",4) ) ) {
++ 		auth_type = tmpa;
++ 		tmpa=NULL;
++         }
+  #ifndef NOENCRYPTION
+  	if (r == 533 && clevel == PROT_P) {
+  		fprintf(stderr,
+***************
+*** 1380,1385 ****
+--- 1391,1397 ----
+  	int on = 1;
+  #ifndef NO_PASSIVE_MODE
+  	int a1,a2,a3,a4,p1,p2;
++         int sl;
+  
+  	if (passivemode) {
+  		data = socket(AF_INET, SOCK_STREAM, 0);
+***************
+*** 1390,1400 ****
+--- 1402,1422 ----
+  		if (options & SO_DEBUG &&
+  		    setsockopt(data, SOL_SOCKET, SO_DEBUG, (char *)&on, sizeof (on)) < 0)
+  			perror("ftp: setsockopt (ignored)");
++                 if (allowfwccc ) {
++ 			result=command("CCC");
++ 			sl = clevel;
++ 			if ( result == COMPLETE )
++ 				clevel = PROT_C;
++                 }
+  		if (command("PASV") != COMPLETE) {
+  			printf("Passive mode refused.  Turning off passive mode.\n");
+  			passivemode = 0;
++                         if (allowfwccc )
++ 				clevel = sl;
+  			return initconn();
+  		}
++                 if (allowfwccc )
++ 			clevel = sl;
+  
+  /*
+   * What we've got at this point is a string of comma separated
+***************
+*** 1465,1475 ****
+  		a = (char *)&data_addr.sin_addr;
+  		p = (char *)&data_addr.sin_port;
+  #define	UC(b)	(((int)b)&0xff)
+  		result =
+  		    command("PORT %d,%d,%d,%d,%d,%d",
+  		      UC(a[0]), UC(a[1]), UC(a[2]), UC(a[3]),
+  		      UC(p[0]), UC(p[1]));
+! 		if (result == ERROR && sendport == -1) {
+  			sendport = 0;
+  			tmpno = 1;
+  			goto noport;
+--- 1487,1505 ----
+  		a = (char *)&data_addr.sin_addr;
+  		p = (char *)&data_addr.sin_port;
+  #define	UC(b)	(((int)b)&0xff)
++                 if (allowfwccc ) {
++ 			result=command("CCC");
++ 			sl = clevel;
++ 			if ( result == COMPLETE )
++ 				clevel = PROT_C;
++                 }
+  		result =
+  		    command("PORT %d,%d,%d,%d,%d,%d",
+  		      UC(a[0]), UC(a[1]), UC(a[2]), UC(a[3]),
+  		      UC(p[0]), UC(p[1]));
+!                 if (allowfwccc )
+! 			clevel = sl;
+!  		if (result == ERROR && sendport == -1) {
+  			sendport = 0;
+  			tmpno = 1;
+  			goto noport;
+***************
+*** 1713,1718 ****
+--- 1743,1749 ----
+  	char *volatile cmd2;
+  	 fd_set mask;
+  	sigtype abortpt();
++ 	int  sl;
+  
+  	if (strcmp(cmd, "RETR"))
+  		cmd2 = "RETR";
+***************
+*** 1726,1736 ****
+  	}
+  	if (curtype != prox_type)
+  		changetype(prox_type, 1);
+  	if (command("PASV") != COMPLETE) {
+  		printf("proxy server does not support third party transfers.\n");
+  		return;
+  	}
+! 	pswitch(0);
+  	if (!connected) {
+  		printf("No primary connection\n");
+  		pswitch(1);
+--- 1757,1778 ----
+  	}
+  	if (curtype != prox_type)
+  		changetype(prox_type, 1);
++         if (allowfwccc) {
++ 		int result;
++ 		result=command("CCC");
++ 		sl = clevel;
++ 		if ( result == COMPLETE )
++ 		clevel = PROT_C;
++         }
+  	if (command("PASV") != COMPLETE) {
+  		printf("proxy server does not support third party transfers.\n");
++ 		if (allowfwccc)
++ 			clevel = sl;
+  		return;
+  	}
+! 	if (allowfwccc)
+! 		clevel = sl;
+!  	pswitch(0);
+  	if (!connected) {
+  		printf("No primary connection\n");
+  		pswitch(1);
+***************
+*** 1739,1749 ****
+  	}
+  	if (curtype != prox_type)
+  		changetype(prox_type, 1);
+  	if (command("PORT %s", pasv) != COMPLETE) {
+  		pswitch(1);
+  		return;
+  	}
+! 	if (setjmp(ptabort))
+  		goto abort;
+  	oldintr = signal(SIGINT, abortpt);
+  	if (command("%s %s", cmd, remote) != PRELIM) {
+--- 1781,1802 ----
+  	}
+  	if (curtype != prox_type)
+  		changetype(prox_type, 1);
++ 	if (allowfwccc) {
++ 		int result;
++ 		result=command("CCC");
++ 		sl = clevel;
++ 		if ( result == COMPLETE )
++ 			clevel = PROT_C;
++ 	}
+  	if (command("PORT %s", pasv) != COMPLETE) {
+  		pswitch(1);
++ 		if (allowfwccc)
++ 			clevel = sl;
+  		return;
+  	}
+! 	if (allowfwccc)
+! 		clevel = sl;
+!  	if (setjmp(ptabort))
+  		goto abort;
+  	oldintr = signal(SIGINT, abortpt);
+  	if (command("%s %s", cmd, remote) != PRELIM) {
+diff -rc krb5-1.2.8/src/appl/gssftp/ftp/ftp_var.h krb5-1.2.8-mm/src/appl/gssftp/ftp/ftp_var.h
+*** krb5-1.2.8/src/appl/gssftp/ftp/ftp_var.h	1998-08-12 07:53:38.000000000 +0100
+--- krb5-1.2.8-mm/src/appl/gssftp/ftp/ftp_var.h	2003-04-24 16:29:16.000000000 +0100
+***************
+*** 49,54 ****
+--- 49,55 ----
+  extern int	sendport;	/* use PORT cmd for each data connection */
+  extern int	verbose;	/* print messages coming back from server */
+  extern int	connected;	/* connected to server */
++ extern int	allowfwccc;     /* Set CCC mode before PORT/PASV command */
+  extern int	fromatty;	/* input is from a terminal */
+  extern int	interactive;	/* interactively prompt on m* cmds */
+  extern int	debug;		/* debugging level */
+diff -rc krb5-1.2.8/src/appl/gssftp/ftp/main.c krb5-1.2.8-mm/src/appl/gssftp/ftp/main.c
+*** krb5-1.2.8/src/appl/gssftp/ftp/main.c	2000-05-24 02:02:51.000000000 +0100
+--- krb5-1.2.8-mm/src/appl/gssftp/ftp/main.c	2003-04-24 16:31:07.000000000 +0100
+***************
+*** 102,107 ****
+--- 102,108 ----
+  #endif /* KRB5_KRB4_COMPAT */
+  	doglob = 1;
+  	interactive = 1;
++ 	allowfwccc = 0;
+  	autoauth = 1;
+  	autologin = 1;
+  	forward = 0;
+***************
+*** 161,166 ****
+--- 162,171 ----
+  				autoencrypt = 1;
+  				break;
+  
++                         case 'c':
++                                 allowfwccc = 1;
++                                 break;
++ 
+  			default:
+  			  fprintf(stderr,
+  				  "ftp: %c: unknown option\n", *cp);
