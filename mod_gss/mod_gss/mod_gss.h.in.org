@@ -234,7 +234,7 @@ extern krb5_error_code KRB5_CALLCONV krb5_prompter_posix (krb5_context context,
 #endif 
 #endif
 
-#define MOD_GSS_VERSION		"$PACKAGE_NAME/$PACKAGE_VERSION"
+#define MOD_GSS_VERSION         PACKAGE_NAME"/"PACKAGE_VERSION
 #define C_FWCCC   "FWCCC"       /* FW support PORT/EPORT/PASV/EPASV in clear */
 
 extern session_t session;
