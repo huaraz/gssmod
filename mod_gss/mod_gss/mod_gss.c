@@ -987,7 +987,9 @@ MODRET gss_any(cmd_rec *cmd) {
 
     /* Ignore clear PORT/PASV commands if FW_CCC is allowed*/
     if (( (gss_opts & GSS_OPT_ALLOW_FW_CCC) && !strcmp(cmd->argv[0], C_PORT) ) ||
-        ( (gss_opts & GSS_OPT_ALLOW_FW_CCC) && !strcmp(cmd->argv[0], C_PASV) )) {
+        ( (gss_opts & GSS_OPT_ALLOW_FW_CCC) && !strcmp(cmd->argv[0], C_PASV) ) ||
+        ( (gss_opts & GSS_OPT_ALLOW_FW_CCC) && !strcmp(cmd->argv[0], C_EPRT) ) ||
+        ( (gss_opts & GSS_OPT_ALLOW_FW_CCC) && !strcmp(cmd->argv[0], C_EPSV) )) {
         session.sp_flags = SP_CCC; 
         return DECLINED(cmd);
     }
@@ -1002,7 +1004,7 @@ MODRET gss_any(cmd_rec *cmd) {
     if ( (gss_flags & GSS_SESS_ADAT_OK) ) {
         session.sp_flags = SP_CCC; 
 	pr_response_add_err(R_533, "All commands must be protected.");
-	gss_log("GSSAPI Unprotected command received");
+	gss_log("GSSAPI Unprotected command(%s) received",cmd->argv[0]);
 	return ERROR(cmd);
     }
 
