@@ -226,7 +226,8 @@ static ssize_t gss_write(pr_netio_stream_t *nstrm, char *buf,int buflen) {
 			 count, count == -1 ? strerror(errno):"premature EOF");
         gss_log("GSSAPI Could not write PROT buffer length %d/%s",
                 count, count == -1 ? strerror(errno):"premature EOF");
-        destroy_pool(pool);
+        if (pool)
+            destroy_pool(pool);
         return -1;
     }
     if ( (count=looping_write(nstrm->strm_fd, enc_buf,length)) != length) {
@@ -234,11 +235,13 @@ static ssize_t gss_write(pr_netio_stream_t *nstrm, char *buf,int buflen) {
 			 length, count == -1 ? strerror(errno) : "premature EOF");
 	gss_log("GSSAPI Could not write %u byte PROT buffer: %s",
 		length, count == -1 ? strerror(errno) : "premature EOF");
-        destroy_pool(pool);
+        if (pool)
+           destroy_pool(pool);
         return -1;  
     }
     
-    destroy_pool(pool);
+    if (pool)
+       destroy_pool(pool);
     return buflen;
 }
 
@@ -339,7 +342,8 @@ static int gss_netio_read_cb(pr_netio_stream_t *nstrm, char *buf,
 
         msg_count = 0;
         msg_p = NULL;
-        destroy_pool(pool);
+        if (pool)
+            destroy_pool(pool);
         dec_buf = NULL;
         /* read length of encoded block */
 	count = read(nstrm->strm_fd, &length, sizeof(length));    
