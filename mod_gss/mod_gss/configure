@@ -2446,6 +2446,76 @@ fi
 
 
        if test -e /usr/lib/gss/gl/mech_krb5.so ; then
+          ac_gss_libs="-lgss -R\/usr\/lib\/gss\/do \/usr\/lib\/gss\/do\/mech_krb5.so";
+          ln -s /usr/lib/gss/do/mech_krb5.so /tmp/libmech_krb5.so;
+          LDFLAGS_sav=$LDFLAGS;
+          LDFLAGS="-L/tmp";
+          echo "$as_me:$LINENO: checking for krb5_get_init_creds_password in -lmech_krb5" >&5
+echo $ECHO_N "checking for krb5_get_init_creds_password in -lmech_krb5... $ECHO_C" >&6
+if test "${ac_cv_lib_mech_krb5_krb5_get_init_creds_password+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lmech_krb5  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+#include "confdefs.h"
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char krb5_get_init_creds_password ();
+#ifdef F77_DUMMY_MAIN
+#  ifdef __cplusplus
+     extern "C"
+#  endif
+   int F77_DUMMY_MAIN() { return 1; }
+#endif
+int
+main ()
+{
+krb5_get_init_creds_password ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_lib_mech_krb5_krb5_get_init_creds_password=yes
+else
+  echo "$as_me: failed program was:" >&5
+cat conftest.$ac_ext >&5
+ac_cv_lib_mech_krb5_krb5_get_init_creds_password=no
+fi
+rm -f conftest.$ac_objext conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+echo "$as_me:$LINENO: result: $ac_cv_lib_mech_krb5_krb5_get_init_creds_password" >&5
+echo "${ECHO_T}$ac_cv_lib_mech_krb5_krb5_get_init_creds_password" >&6
+if test $ac_cv_lib_mech_krb5_krb5_get_init_creds_password = yes; then
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_INIT_CREDS_PASSWORD 1
+_ACEOF
+
+fi
+
+          LDFLAGS=$LDFLAGS_sav
+          rm /tmp/libmech_krb5.so
+       elif test -e /usr/lib/gss/gl/mech_krb5.so ; then
           ac_gss_libs="-lgss -R\/usr\/lib\/gss\/gl \/usr\/lib\/gss\/gl\/mech_krb5.so";
           ln -s /usr/lib/gss/gl/mech_krb5.so /tmp/libmech_krb5.so;
           LDFLAGS_sav=$LDFLAGS;
@@ -2517,7 +2587,7 @@ fi
           rm /tmp/libmech_krb5.so
        else
           ac_gss_libs="-lgss -R\/usr\/lib\/gss \/usr\/lib\/gss\/mech_krb5.so";
-          ln -s /usr/lib/gss/gl/mech_krb5.so /tmp/libmech_krb5.so;
+          ln -s /usr/lib/gss/mech_krb5.so /tmp/libmech_krb5.so;
           LDFLAGS_sav=$LDFLAGS;
           LDFLAGS="-L/tmp";
           echo "$as_me:$LINENO: checking for krb5_get_init_creds_password in -lmech_krb5" >&5

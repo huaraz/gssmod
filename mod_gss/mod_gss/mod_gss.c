@@ -28,7 +28,7 @@
  *
  *  $MIT-Libraries: -lgssapi_krb5 -ldes425 -lkrb5 -lkcrypto -lcom_err$
  *  $HEIMDAL-Libraries: -lgssapi -lkrb5 -lcom_err -lasn1 -lroken$
- *  $SEAM-Libraries: -lgss -R/usr/lib/gss/(gl/) /usr/lib/gss/(gl/)mech_krb5.so$
+ *  $SEAM-Libraries: -lgss -R/usr/lib/gss/(gl|do/) /usr/lib/gss/(gl|do/)mech_krb5.so$
  *  $NAS-Libraries: -L/usr/lib -lgssapi_krb5 -lkrb5$
  * 
  * $Id$
@@ -87,7 +87,8 @@ static gss_buffer_desc client_name,server_name;
 #define GSS_SESS_DISPATCH		0x0100
 #define GSS_SESS_CCC			0x0200
 #define GSS_SESS_FWCCC			0x0400
-#define GSS_SESS_CONF_SUP		0x1000
+#define GSS_SESS_INT_SUP		0x1000
+#define GSS_SESS_CONF_SUP		0x2000
 
 #define GSS_SESS_PROT_C                 0x0000
 #define GSS_SESS_PROT_S                 0x0001
@@ -943,7 +944,7 @@ MODRET gss_dec(cmd_rec *cmd) {
     } else if ( ! strcmp(cmd->argv[0], "ENC") && (gss_flags & GSS_SESS_CONF_SUP)) { 
         session.sp_flags = SP_ENC;
 	conf_state = 1;
-    } else if ( ! strcmp(cmd->argv[0], "MIC") ) {
+    } else if ( ! strcmp(cmd->argv[0], "MIC") && (gss_flags & GSS_SESS_INT_SUP)) {
        session.sp_flags = SP_MIC;
        conf_state = 0;
     } else {
@@ -1508,12 +1509,17 @@ MODRET gss_adat(cmd_rec *cmd) {
 	gss_netio_install_data();
         session.sp_flags = 0;
 
+        gss_flags |= GSS_SESS_INT_SUP;
         gss_flags |= GSS_SESS_CONF_SUP;
         if ( !(ret_flags & GSS_C_REPLAY_FLAG || ret_flags & GSS_C_SEQUENCE_FLAG) ){
             gss_log("GSSAPI Warning: no replay protection !");
         }
         if ( !(ret_flags & GSS_C_SEQUENCE_FLAG) ){
             gss_log("GSSAPI Warning: no sequence protection !");
+        }
+        if ( !(ret_flags & GSS_C_INTEG_FLAG) ){
+            gss_log("GSSAPI Warning: no integrity service supported !");
+            gss_flags &= ~GSS_SESS_INT_SUP;
         }
         if ( !(ret_flags & GSS_C_CONF_FLAG) ){
             gss_log("GSSAPI Warning: no confidentiality service supported !");
@@ -1844,7 +1850,7 @@ MODRET gss_prot(cmd_rec *cmd) {
 	pr_response_add(R_200, "%s", mesg);
 	gss_log("GSSAPI %s", mesg);
 
-    } else if (!strcmp(cmd->argv[1], "S")) {
+    } else if (!strcmp(cmd->argv[1], "S") && (gss_flags & GSS_SESS_INT_SUP)) {
 	char *mesg = "Protection set to Safe";
 
 	gss_prot_flags = GSS_SESS_PROT_S;
@@ -2300,7 +2306,7 @@ static char *gss_format_cb(pool *pool, const char *fmt, ...)
 */
 	log_gss_error(maj_stat, min_stat, "could not seal/wrap reply");
 	gss_release_buffer(&min_stat, &gss_out_buf);
-        return buf;
+        return pstrdup(pool ,buf);
     } else if ((session.sp_flags & SP_ENC) && !conf_state) {
 /* ??? how can this work?
  *      At this point of the conversation the client accepts 
@@ -2311,14 +2317,14 @@ static char *gss_format_cb(pool *pool, const char *fmt, ...)
 */
 	log_gss_error(maj_stat,min_stat,"could not protect message");
 	gss_release_buffer(&min_stat, &gss_out_buf);
-        return buf;
+        return pstrdup(pool ,buf);
     } 
     /* protected reply <= 4*unprotected reply */
     reply=pcalloc(pool, gss_out_buf.length*4+1);
     if ((error = radix_encode(gss_out_buf.value, reply, (int *)&gss_out_buf.length, 0)) != 0 ) {
 	gss_log("Couldn't encode reply (%s)", radix_error(error));
 	gss_release_buffer(&min_stat, &gss_out_buf);
-	return buf;
+        return pstrdup(pool ,buf);
     } 
     gss_release_buffer(&min_stat, &gss_out_buf);
     
