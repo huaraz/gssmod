@@ -1,263 +1,210 @@
-<!-- $Id$ -->
-<!-- $Source$ -->
-
-<html>
-<head>
-<title>ProFTPD module mod_gss</title>
-</head>
-
-<body bgcolor=white>
-
-<hr><br>
-<center>
-<h2><b>ProFTPD module <code>mod_gss</code></b></h2>
-</center>
-<hr><br>
-
-This module is contained in the <code>mod_gss.c</code> file for ProFTPD 1.2,
-and is not compiled by default.  Installation instructions
-are discussed <a href="#Installation">here</a>.
-
-<p>
-The project is hosted at <a href="http://sourceforge.net/projects/gssmod/"> Sourceforge.net </a> and the most current version of <code>mod_gss</code> can be found at:
-<pre>
-  <a href="http://prdownloads.sourceforge.net/gssmod/">http://prdownloads.sourceforge.net/gssmod/</a>
-</pre>
-<p>
-<p>
-Please report bugs to <a href="http://sourceforge.net/tracker/?atid=529593&group_id=70951&func=browse"> GSS module for proftpd: Bugs </a> <br>
-Please report feature requests to <a href="http://sourceforge.net/tracker/?atid=529596&group_id=70951&func=browse"> GSS module for proftpd: Feature Requests</a> <br>
-Please send patches to <a href="http://sourceforge.net/tracker/?atid=529595&group_id=70951&func=browse"> GSS module for proftpd: Patches</a> <br>
-
-<h2>Author</h2>
-<p>
-Contact M M&ouml;ller &lt;markus_moeller <i>at</i> compuserve.com&gt; with any
-questions, concerns, or suggestions regarding this module.
-<p>
-
-<h2>Directives</h2>
-<ul>
-  <li><a href="#GSSEngine">GSSEngine</a>
-  <li><a href="#GSSLog">GSSLog</a>
-  <li><a href="#GSSOptions">GSSOptions</a>
-  <li><a href="#GSSRequired">GSSRequired</a>
-  <li><a href="#GSSKeytab">GSSKeytab</a>
-</ul>
-
-<p>
-<hr>
-<h2><a name="GSSEngine">GSSEngine</a></h2>
-<strong>Syntax:</strong> GSSEngine <em>on|off</em><br>
-<strong>Default:</strong> None<br>
-<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
-<strong>Module:</strong> mod_gss<br>
-<strong>Compatibility:</strong> 1.2.8 and later
-
-<p>
-The <code>GSSEngine</code> directive toggles the use of the GSS protocol
-engine (<i>e.g.</i> <code>mod_gss</code>).  This is usually used inside a
-<code>&lt;VirtualHost&gt;</code> section to enable GSS sessions for a
-particular virtual host. By default <code>mod_gss</code> is disabled for both
-the main server and all configured virtual hosts. 
-
-<p>
-<hr>
-<h2><a name="GSSLog">GSSLog</a></h2>
-<strong>Syntax:</strong> GSSLog <em>file</em><br>
-<strong>Default:</strong> None<br>
-<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
-<strong>Module:</strong> mod_gss<br>
-<strong>Compatibility:</strong> 1.2.8 and later
-
-<p>
-The <code>GSSLog</code> directive is used to specify a log file for
-<code>mod_gss</code>'s reporting on a per-server basis.  The <em>file</em>
-parameter given must be the full path to the file to use for
-logging. If <em>syslog</em> is used as <em>file</em> then logging is
-send to syslog.
-
-<p>
-<hr>
-<h2><a name="GSSOptions">GSSOptions</a></h2>
-<strong>Syntax:</strong> GSSOptions <em>opt1 ...</em><br>
-<strong>Default:</strong> None<br>
-<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
-<strong>Module:</strong> mod_gss<br>
-<strong>Compatibility:</strong> 1.2.8 and later
-
-<p>
-The <code>GSSOptions</code> directive is used to configure various optional
-behavior of <code>mod_gss</code>.
-
-<p>
-Example:
-<pre>
-  AllowCCC - Allows CCC commands. 
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<HTML>
+<HEAD>
+	<META HTTP-EQUIV="CONTENT-TYPE" CONTENT="text/html; charset=windows-1252">
+	<TITLE>ProFTPD module mod_gss</TITLE>
+	<META NAME="GENERATOR" CONTENT="StarOffice 7  (Win32)">
+	<META NAME="CREATED" CONTENT="20040121;19294154">
+	<META NAME="CHANGED" CONTENT="20040121;19305149">
+	<!-- $Id$ -->
+	<!-- $Source$ -->
+</HEAD>
+<BODY LANG="en-US" BGCOLOR="#ffffff" DIR="LTR">
+<P STYLE="border-top: none; border-bottom: 1.10pt double #808080; border-left: none; border-right: none; padding: 0cm">
+<BR><BR>
+</P>
+<P><BR><BR>
+</P>
+<H2 ALIGN=CENTER>ProFTPD module <CODE>mod_gss</CODE></H2>
+<HR>
+<P><BR>This module is contained in the <CODE>mod_gss.c</CODE> file
+for ProFTPD 1.2, and is not compiled by default. Installation
+instructions are discussed <A HREF="#Installation">here</A>. 
+</P>
+<P>The project is hosted at <A HREF="http://sourceforge.net/projects/gssmod/">Sourceforge.net
+</A>and the most current version of <CODE>mod_gss</CODE> can be found
+at: 
+</P>
+<PRE STYLE="margin-bottom: 0.5cm">  <A HREF="http://prdownloads.sourceforge.net/gssmod/">http://prdownloads.sourceforge.net/gssmod/</A></PRE><P>
+Please report bugs to <A HREF="http://sourceforge.net/tracker/?atid=529593&amp;group_id=70951&amp;func=browse">GSS
+module for proftpd: Bugs </A><BR>Please report feature requests to
+<A HREF="http://sourceforge.net/tracker/?atid=529596&amp;group_id=70951&amp;func=browse">GSS
+module for proftpd: Feature Requests</A> <BR>Please send patches to
+<A HREF="http://sourceforge.net/tracker/?atid=529595&amp;group_id=70951&amp;func=browse">GSS
+module for proftpd: Patches</A> 
+</P>
+<H2>Author</H2>
+<P>Contact M M&ouml;ller &lt;markus_moeller <I>at</I> compuserve.com&gt;
+with any questions, concerns, or suggestions regarding this module. 
+</P>
+<H2>Directives</H2>
+<UL>
+	<LI><P STYLE="margin-bottom: 0cm"><A HREF="#GSSEngine">GSSEngine</A>
+		</P>
+	<LI><P STYLE="margin-bottom: 0cm"><A HREF="#GSSLog">GSSLog</A> 
+	</P>
+	<LI><P STYLE="margin-bottom: 0cm"><A HREF="#GSSOptions">GSSOptions</A>
+		</P>
+	<LI><P STYLE="margin-bottom: 0cm"><A HREF="#GSSRequired">GSSRequired</A>
+		</P>
+	<LI><P><A HREF="#GSSKeytab">GSSKeytab</A> 
+	</P>
+</UL>
+<HR>
+<H2><A NAME="GSSEngine"></A>GSSEngine</H2>
+<P><STRONG>Syntax:</STRONG> GSSEngine <EM>on|off</EM><BR><STRONG>Default:</STRONG>
+None<BR><STRONG>Context:</STRONG> server config, <CODE>&lt;VirtualHost&gt;</CODE>,
+<CODE>&lt;Global&gt;</CODE><BR><STRONG>Module:</STRONG>
+mod_gss<BR><STRONG>Compatibility:</STRONG> 1.2.8 and later 
+</P>
+<P>The <CODE>GSSEngine</CODE> directive toggles the use of the GSS
+protocol engine (<I>e.g.</I> <CODE>mod_gss</CODE>). This is usually
+used inside a <CODE>&lt;VirtualHost&gt;</CODE> section to enable GSS
+sessions for a particular virtual host. By default <CODE>mod_gss</CODE>
+is disabled for both the main server and all configured virtual
+hosts. 
+</P>
+<HR>
+<H2><A NAME="GSSLog"></A>GSSLog</H2>
+<P><STRONG>Syntax:</STRONG> GSSLog <EM>file</EM><BR><STRONG>Default:</STRONG>
+None<BR><STRONG>Context:</STRONG> server config, <CODE>&lt;VirtualHost&gt;</CODE>,
+<CODE>&lt;Global&gt;</CODE><BR><STRONG>Module:</STRONG>
+mod_gss<BR><STRONG>Compatibility:</STRONG> 1.2.8 and later 
+</P>
+<P>The <CODE>GSSLog</CODE> directive is used to specify a log file
+for <CODE>mod_gss</CODE>'s reporting on a per-server basis. The <EM>file</EM>
+parameter given must be the full path to the file to use for logging.
+If <EM>syslog</EM> is used as <EM>file</EM> then logging is send to
+syslog. 
+</P>
+<HR>
+<H2><A NAME="GSSOptions"></A>GSSOptions</H2>
+<P><STRONG>Syntax:</STRONG> GSSOptions <EM>opt1 ...</EM><BR><STRONG>Default:</STRONG>
+None<BR><STRONG>Context:</STRONG> server config, <CODE>&lt;VirtualHost&gt;</CODE>,
+<CODE>&lt;Global&gt;</CODE><BR><STRONG>Module:</STRONG>
+mod_gss<BR><STRONG>Compatibility:</STRONG> 1.2.8 and later 
+</P>
+<P>The <CODE>GSSOptions</CODE> directive is used to configure various
+optional behavior of <CODE>mod_gss</CODE>. 
+</P>
+<P>Example: 
+</P>
+<PRE>  AllowCCC - Allows CCC commands. 
 
   AllowFWCCC - Allows PORT and PASV only as clear commands for stateful firewalls. Needs special client patch.
 
   AllowFWNAT - Allows No Channel Binding to support Network Address Translation. Needs special client patch.
-  NoChannelBinding - Allows No Channel Binding to support Network Address Translation. Needs special client patch.
-</pre>
-
-<p>
-<hr>
-<h2><a name="GSSRequired">GSSRequired</a></h2>
-<strong>Syntax:</strong> GSSRequired <em>on|off|ctrl|data</em><br>
-<strong>Default:</strong> None<br>
-<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
-<strong>Module:</strong> mod_gss<br>
-<strong>Compatibility:</strong> 1.2.8 and later
-
-<p>
-The <code>GSSRequired</code> directive is used to define a basic security
-policy, one that dictates whether the control channel, or data channel, or
-both, of an FTP session must occur over GSS.
-
-<p>
-The <em>on</em> parameter enables GSS requirements on both control and
-data channels; <em>off</em> disables the requirements on both channels.
-Use <em>ctrl</em> and <em>data</em> to require GSS on either channel
-individually.
-
-<p>
-Example:
-<pre>
-  # Require GSS on the control channel, so that passwords are not sent
+  NoChannelBinding - Allows No Channel Binding to support Network Address Translation. Needs special client patch.</PRE>
+<HR>
+<H2><A NAME="GSSRequired"></A>GSSRequired</H2>
+<P><STRONG>Syntax:</STRONG> GSSRequired <EM>on|off|ctrl|data</EM><BR><STRONG>Default:</STRONG>
+None<BR><STRONG>Context:</STRONG> server config, <CODE>&lt;VirtualHost&gt;</CODE>,
+<CODE>&lt;Global&gt;</CODE><BR><STRONG>Module:</STRONG>
+mod_gss<BR><STRONG>Compatibility:</STRONG> 1.2.8 and later 
+</P>
+<P>The <CODE>GSSRequired</CODE> directive is used to define a basic
+security policy, one that dictates whether the control channel, or
+data channel, or both, of an FTP session must occur over GSS. 
+</P>
+<P>The <EM>on</EM> parameter enables GSS requirements on both control
+and data channels; <EM>off</EM> disables the requirements on both
+channels. Use <EM>ctrl</EM> and <EM>data</EM> to require GSS on
+either channel individually. 
+</P>
+<P>Example: 
+</P>
+<PRE>  # Require GSS on the control channel, so that passwords are not sent
   # in the clear.
   GSSRequired ctrl
 
   # Require GSS on both channels.
-  GSSRequired on
-</pre>
-
-<p>
-<hr>
-<h2><a name="GSSKeytab">GSSKeytab</a></h2>
-<strong>Syntax:</strong> GSSKeytab <em>file</em><br>
-<strong>Default:</strong> None<br>
-<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
-<strong>Module:</strong> mod_gss<br>
-<strong>Compatibility:</strong> 1.2.8 and later
-
-<p>
-The <code>GSSKeytab</code> directive is used to specify a Kerberos5 keytab file for
-<code>mod_gss</code>'s Kerberos5 service key on a per-server basis.  The <em>file</em>
-parameter given must be the full path to the file.
-
-<p>
-<hr><br>
-<h2><a name="Usage">Usage</a></h2>
-Much of the documentation for the GSSAPI applies to this module:
-<pre>
-  <a href="http://docs-pdf.sun.com/816-1331/816-1331.pdf">http://docs-pdf.sun.com/816-1331/816-1331.pdf </a>
-</pre> or
-<pre>
-  <a
-  href="http://www.nectar.cc/zope/krb/sun_gss_api.pdf">http://www.nectar.cc/zope/krb/sun_gss_api.pdf </a>
-</pre>
-
-<p>
-The Kerberos documentation, and its
-<a
-href="http://www.nrl.navy.mil/CCS/people/kenh/kerberos-faq.html">FAQ</a>,
-are recommended as well:
-<pre>
-  <a href="http://web.mit.edu/kerberos/www/">http://web.mit.edu/kerberos/www/</a>
-</pre>
-
-
-
-
-
-
-<p>
-A copy of RFC2228 describing <em>FTP Security Extensions</em> and of RFC1509
-describing <em>Generic Security Service API : C-bindings</em> is
-included with the source code for this module.
-
-<p>
-<hr><br>
-<h2><a name="Installation">Installation</a></h2>
-To install <code>mod_gss.c</code>, follow these instructions.  After unpacking
-the tarball, run the <code>configure</code> script:
-<pre>
-  cd mod_gss
-  ./configure
-</pre>
-If you wish <code>mod_gss</code> to support Heimdal GSS/Kerberos5, you'll want to use
-<code>configure</code>'s <code>--enable-heimdal</code> option.
-
-<p>
-Now, copy after unpacking the latest proftpd-1.2 source code 
-the <code>mod_gss.h</code> file into:
-<pre>
-  <i>proftpd-dir</i>/include/
-</pre>
-and the <code>mod_gss.c</code> file into:
-<pre>
-  <i>proftpd-dir</i>/contrib/
-</pre>
-<p>
-Then follow the normal steps for 
-using third-party modules in proftpd: 
-<pre>
-  ./configure --with-modules=mod_gss
+  GSSRequired on</PRE>
+<HR>
+<H2><A NAME="GSSKeytab"></A>GSSKeytab</H2>
+<P><STRONG>Syntax:</STRONG> GSSKeytab <EM>file</EM><BR><STRONG>Default:</STRONG>
+None<BR><STRONG>Context:</STRONG> server config, <CODE>&lt;VirtualHost&gt;</CODE>,
+<CODE>&lt;Global&gt;</CODE><BR><STRONG>Module:</STRONG>
+mod_gss<BR><STRONG>Compatibility:</STRONG> 1.2.8 and later 
+</P>
+<P>The <CODE>GSSKeytab</CODE> directive is used to specify a
+Kerberos5 keytab file for <CODE>mod_gss</CODE>'s Kerberos5 service
+key on a per-server basis. The <EM>file</EM> parameter given must be
+the full path to the file. 
+</P>
+<HR>
+<P><BR><BR>
+</P>
+<H2><A NAME="Usage"></A>Usage</H2>
+<P>Much of the documentation for the GSSAPI applies to this module: 
+</P>
+<PRE STYLE="margin-bottom: 0.5cm">  <A HREF="http://docs-pdf.sun.com/816-1331/816-1331.pdf">http://docs-pdf.sun.com/816-1331/816-1331.pdf </A></PRE><P>
+or 
+</P>
+<PRE STYLE="margin-bottom: 0.5cm">  <A HREF="http://www.nectar.cc/zope/krb/sun_gss_api.pdf">http://www.nectar.cc/zope/krb/sun_gss_api.pdf </A></PRE><P>
+The Kerberos documentation, and its <A HREF="http://www.nrl.navy.mil/CCS/people/kenh/kerberos-faq.html">FAQ</A>,
+are recommended as well: 
+</P>
+<PRE STYLE="margin-bottom: 0.5cm">  <A HREF="http://web.mit.edu/kerberos/www/">http://web.mit.edu/kerberos/www/</A></PRE><P>
+A copy of RFC2228 describing <EM>FTP Security Extensions</EM> and of
+RFC1509 describing <EM>Generic Security Service API : C-bindings</EM>
+is included with the source code for this module. 
+</P>
+<HR>
+<P><BR><BR>
+</P>
+<H2><A NAME="Installation"></A>Installation</H2>
+<P>To install <CODE>mod_gss.c</CODE>, follow these instructions.
+After unpacking the tarball, run the <CODE>configure</CODE> script: 
+</P>
+<PRE>  cd mod_gss
+  ./configure</PRE><P>
+If you wish <CODE>mod_gss</CODE> to support Heimdal GSS/Kerberos5,
+you'll want to use <CODE>configure</CODE>'s <CODE>--enable-heimdal</CODE>
+option. 
+</P>
+<P>Now, copy after unpacking the latest proftpd-1.2 source code the
+<CODE>mod_gss.h</CODE> file into: 
+</P>
+<PRE STYLE="margin-bottom: 0.5cm">  <I>proftpd-dir</I>/include/</PRE><P>
+and the <CODE>mod_gss.c</CODE> file into: 
+</P>
+<PRE STYLE="margin-bottom: 0.5cm">  <I>proftpd-dir</I>/contrib/</PRE><P>
+Then follow the normal steps for using third-party modules in
+proftpd: 
+</P>
+<PRE>  ./configure --with-modules=mod_gss
   make
-  make install
-</pre>
-You may need to specify the location of the GSS/Kerberos5 header and library files
-in your <code>configure</code> command, <i>e.g.</i>:
-<pre>
- ./configure --with-modules=mod_gss \
+  make install</PRE><P>
+You may need to specify the location of the GSS/Kerberos5 header and
+library files in your <CODE>configure</CODE> command, <I>e.g.</I>: 
+</P>
+<PRE> ./configure --with-modules=mod_gss \
     --with-includes=/usr/local/include \
-    --with-libraries=/usr/local/lib
-</pre>
-<p>
+    --with-libraries=/usr/local/lib</PRE><P>
 To be able to use GSS/Kerberos5 add the following line to the
-configuration file.
-<pre>
- CommandBufferSize    1023
-</pre>
-
-<p>
+configuration file. 
+</P>
+<PRE STYLE="margin-bottom: 0.5cm"> CommandBufferSize    1023</PRE><P>
 If the Kerberos5 credential cache is bigger than 1023 bytes compile
-proftpd with --enable-buffer-size=<em>max cache size<em>
-
-<p>
-<hr><br>
-Author: <i>$Author$</i><br>
-Last Updated: <i>$Date$</i><br>
-
-<br><hr>
-
-<font size=2><b><i>
-&copy; Copyright 2002-2003 M M&ouml;ller<br>
- All Rights Reserved<br>
-</i></b></font>
-
-<hr><br>
-<center>
-<A href="http://sourceforge.net"> <IMG src="http://sourceforge.net/sflogo.php?group_id=70951&amp;type=5" width="210" height="62" border="0" alt="SourceForge.net Logo"></A> 
-<!-- Begin Nedstat Basic code -->
-<!-- Title: ProFTPD module mod_gss -->
-<!-- URL: http://gssmod.sourceforge.net -->
-<script language="JavaScript" src="http://m1.nedstatbasic.net/basic.js">
-</script>
-<script language="JavaScript">
+proftpd with --enable-buffer-size=<EM>max cache size<EM> </EM></EM>
+</P>
+<HR>
+<P><EM><BR>Author: <I>$Author$</I><BR>Last Updated:
+<I>$Date$</I></EM></P>
+<HR>
+<P STYLE="margin-bottom: 0cm"><FONT SIZE=2><I><B><EM>&copy; Copyright
+2002-2004 M M&ouml;ller<BR>All Rights Reserved</EM></B></I></FONT></P>
+<HR>
+<P STYLE="margin-bottom: 0cm"><BR>
+</P>
+<P ALIGN=CENTER STYLE="margin-bottom: 0cm"><EM><A HREF="http://sourceforge.net/"><IMG SRC="http://sourceforge.net/sflogo.php?group_id=70951&amp;type=5" NAME="Graphic1" ALT="SourceForge.net Logo" ALIGN=BOTTOM WIDTH=210 HEIGHT=62 BORDER=0></A><!-- Begin Nedstat Basic code --><!-- Title: ProFTPD module mod_gss --><!-- URL: http://gssmod.sourceforge.net -->
+<SCRIPT LANGUAGE="JavaScript" SRC="http://m1.nedstatbasic.net/basic.js"></SCRIPT>
+<SCRIPT LANGUAGE="JavaScript">
 <!--
   nedstatbasic("ACDUGwzeL2vzniAMJdUmtnbmaNlw", 0);
 // -->
-</script>
-<noscript>
-<a target="_blank" href="http://v1.nedstatbasic.net/stats?ACDUGwzeL2vzniAMJdUmtnbmaNlw"><img
-src="http://m1.nedstatbasic.net/n?id=ACDUGwzeL2vzniAMJdUmtnbmaNlw"
-border="0" nosave width="18" height="18"></a>
-</noscript>
-<!-- End Nedstat Basic code -->
-</center>
-
-
-</body>
-</html>
-
+</SCRIPT><noscript><A HREF="http://v1.nedstatbasic.net/stats?ACDUGwzeL2vzniAMJdUmtnbmaNlw" TARGET="_blank"><IMG SRC="http://m1.nedstatbasic.net/n?id=ACDUGwzeL2vzniAMJdUmtnbmaNlw" NAME="Graphic2" ALIGN=BOTTOM WIDTH=18 HEIGHT=18 BORDER=0></A></noscript><!-- End Nedstat Basic code -->
+</EM>
+</P>
+</BODY>
+</HTML>
