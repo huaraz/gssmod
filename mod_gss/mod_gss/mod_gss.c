@@ -115,6 +115,7 @@ static ssize_t looping_read(int fd, register char *buf,register int len);
 static ssize_t looping_write(int fd, register const char *buf, int len);
 static int gss_dispatch(char *buf);
 static int kpass(char *name, char *pass);
+static void gss_switch_keytab(char *name,int flag);
 
 static int gss_openlog(server_rec *s);
 
@@ -1375,16 +1376,7 @@ MODRET gss_adat(cmd_rec *cmd) {
     }
     strcpy(localname,pr_netaddr_get_dnsstr(session.c->local_addr));
 
-    if (gss_keytab_file) {
-	char *p;
-        gss_log("GSSAPI Set KRB5_KTNAME=FILE:%s",gss_keytab_file);
-        if ( (p = getenv("KRB5_KTNAME")) != NULL )
-            keytab_file = strdup(p);
-        putenv(pstrcat(main_server->pool, "KRB5_KTNAME=FILE:", gss_keytab_file, NULL));
-    } else {
-        gss_log("GSSAPI Use default KRB5 keytab");
-    }
-
+    gss_switch_keytab(gss_keytab_file,1);
     for (service = gss_services; *service; service++) {
 	sprintf(service_name, "%s@%s", *service, localname);
 	name_buf.value = service_name;
@@ -1529,14 +1521,7 @@ MODRET gss_adat(cmd_rec *cmd) {
             gss_log("GSSAPI Warning: no confidentiality service supported !");
             gss_flags &= ~GSS_SESS_CONF_SUP;
         }
-
-        if (keytab_file) {
-            gss_log("GSSAPI ReSet %s",keytab_file);
-            putenv(pstrcat(main_server->pool, "KRB5_KTNAME=", keytab_file, NULL));
-        } else {
-            gss_log("GSSAPI UnSet KRB5_KTNAME");
-            unsetenv("KRB5_KTNAME");
-        } 
+        gss_switch_keytab(keytab_file,0);
         return HANDLED(cmd);
     } else if (maj_stat == GSS_S_CONTINUE_NEEDED) {
 	/* If the server accepts the security data, and
@@ -1546,13 +1531,7 @@ MODRET gss_adat(cmd_rec *cmd) {
    	gss_release_buffer(&accept_min, &out_tok);
         gss_release_cred(&acquire_min, &server_creds);
 	gss_release_name(&min_stat, &server);
-        if (keytab_file) {
-            gss_log("GSSAPI ReSet %s",keytab_file);
-            putenv(pstrcat(main_server->pool, "KRB5_KTNAME=", keytab_file, NULL));
-        } else {
-            gss_log("GSSAPI UnSet KRB5_KTNAME");
-            unsetenv("KRB5_KTNAME");
-        }
+        gss_switch_keytab(keytab_file,0);
 	return HANDLED(cmd);
     } else {
 	/* "If the server rejects the security data (if
@@ -1571,13 +1550,7 @@ MODRET gss_adat(cmd_rec *cmd) {
     pr_response_add_err(R_535, "failed processing ADAT");
     gss_log("GSSAPI Failed processing ADAT");
 err:
-    if (keytab_file) {
-        gss_log("GSSAPI ReSet %s",keytab_file);
-        putenv(pstrcat(main_server->pool, "KRB5_KTNAME=", keytab_file, NULL));
-    } else {
-       gss_log("GSSAPI UnSet KRB5_KTNAME");
-       unsetenv("KRB5_KTNAME");
-    }
+    gss_switch_keytab(keytab_file,0);
     return ERROR(cmd);
 }
 
@@ -2103,8 +2076,8 @@ static void gss_sess_exit_ev(const void *event_data, void *user_data) {
 static int gss_init(void) {
 
     /* Make sure the version of proftpd is as necessary. */
-    if (PROFTPD_VERSION_NUMBER < 0x0001021001) {
-	pr_log_pri(LOG_ERR, MOD_GSS_VERSION " requires proftpd 1.2.10rc1 and later");
+    if (PROFTPD_VERSION_NUMBER < 0x0001030001) {
+	pr_log_pri(LOG_ERR, MOD_GSS_VERSION " requires proftpd 1.3.0rc1 and later");
 	exit(1);
     }
     /* set command size buffer to maximum */
@@ -2365,21 +2338,25 @@ static int gss_dispatch(char *buf)
     newcmd->stash_index = -1;
 
     tarr = make_array(newcmd->pool, 2, sizeof(char *));
-    *((char **) push_array(tarr)) = pstrdup(newpool, wrd);
+    *((char **) push_array(tarr)) = pstrdup(newcmd->pool, wrd);
     newcmd->argc++;
-    newcmd->arg = pstrdup(newpool, cp);
+    newcmd->arg = pstrdup(newcmd->pool, cp);
 
     while((wrd = pr_str_get_word(&cp,TRUE)) != NULL) {
-      *((char **) push_array(tarr)) = pstrdup(newpool, wrd);
+      *((char **) push_array(tarr)) = pstrdup(newcmd->pool, wrd);
       newcmd->argc++;
     }
 
     *((char **) push_array(tarr)) = NULL;
 
     newcmd->argv = (char **) tarr->elts;
+    /* This table will not contain that many entries, so a low number
+     * of chains should suffice.
+     */
+    newcmd->notes = pr_table_nalloc(newcmd->pool, 0, 8);
 
     pr_cmd_dispatch(newcmd);
-    destroy_pool(newpool);
+    destroy_pool(newcmd->pool);
 
     return 0;   
 }
@@ -2457,7 +2434,48 @@ static int kpass(char *name, char *passwd)
 #endif
 
 }
+/* Set/Unset keytab name
+*/
+void gss_switch_keytab(char *keytab_file, int sflag){
+    krb5_context kc;
+    krb5_error_code kerr;
+    krb5_keytab kt;
+    char ktn[1024];
 
+    if (keytab_file && sflag) {
+        gss_log("GSSAPI Set KRB5_KTNAME=FILE:%s",gss_keytab_file);
+        /* Save old value */
+        keytab_file = getenv("KRB5_KTNAME");
+        putenv(pstrcat(main_server->pool, "KRB5_KTNAME=FILE:", gss_keytab_file, NULL));
+#ifdef HAVE_HEIMDAL_KERBEROS
+        gsskrb5_register_acceptor_identity(pstrcat(main_server->pool,"FILE:", gss_keytab_file, NULL));
+#endif
+    } else if (keytab_file && !sflag) {
+        gss_log("GSSAPI ReSet %s",keytab_file);
+        putenv(pstrcat(main_server->pool, "KRB5_KTNAME=", keytab_file, NULL));
+#ifdef HAVE_HEIMDAL_KERBEROS
+        gsskrb5_register_acceptor_identity(pstrcat(main_server->pool,"FILE:", keytab_file, NULL));
+#endif
+    } else if (!keytab_file && sflag) {
+        gss_log("GSSAPI Use default KRB5 keytab");
+    } else {
+        gss_log("GSSAPI UnSet KRB5_KTNAME");
+        unsetenv("KRB5_KTNAME");
+#ifdef HAVE_HEIMDAL_KERBEROS
+        kerr = krb5_init_context(&kc);
+        if (kerr)
+            gss_log("GSSAPI Could not initialise krb5 context (%s)",error_message(kerr));
+        kerr = krb5_kt_default(kc, &kt);
+        if (kerr)
+            gss_log("GSSAPI Could not set default keytab (%s)",error_message(kerr));
+        kerr = krb5_kt_get_name(kc, kt, ktn, sizeof(ktn));
+        if (kerr)
+            gss_log("GSSAPI Could not get default keytab name (%s)",error_message(kerr));
+        gsskrb5_register_acceptor_identity(pstrcat(main_server->pool,"FILE:",ktn,NULL));
+        krb5_free_context(kc);
+#endif
+    }
+}
 /* write data to stream 
  */
 static ssize_t looping_write(int fd, register const char *buf, int len)
