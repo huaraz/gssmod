@@ -26,7 +26,7 @@
  *  --- DO NOT DELETE BELOW THIS LINE ----
  *  $Libraries: $
  *
- *  $MIT-Libraries: -lgssapi_krb5 -ldes425 -lkrb5 -lkcrypto -lcom_err$
+ *  $MIT-Libraries: -lgssapi_krb5 -ldes425 -lkrb5 -lk5crypto -lcom_err$
  *  $HEIMDAL-Libraries: -lgssapi -lkrb5 -lcom_err -lasn1 -lroken$
  *  $SEAM-Libraries: -lgss -R/usr/lib/gss/(gl|do/) /usr/lib/gss/(gl|do/)mech_krb5.so$
  *  $NAS-Libraries: -L/usr/lib -lksvc -lgssapi_krb5 -lkrb5$
@@ -1280,7 +1280,6 @@ MODRET gss_auth(cmd_rec *cmd) {
  */
 MODRET gss_adat(cmd_rec *cmd) {
     int error = 0;
-    int ret_flags = 0;
     int found = 0;
     int replied = 0;
 
@@ -1289,9 +1288,10 @@ MODRET gss_adat(cmd_rec *cmd) {
     gss_name_t      client;
     gss_cred_id_t   server_creds;
     gss_OID         mechid;
-    OM_uint32 acquire_maj=0, acquire_min;
-    OM_uint32 accept_maj=0, accept_min;
-    OM_uint32 maj_stat=0, min_stat;
+    OM_uint32       acquire_maj=0, acquire_min;
+    OM_uint32       accept_maj=0, accept_min;
+    OM_uint32       maj_stat=0, min_stat;
+    OM_uint32       ret_flags = 0;
 
     char localname[MAXHOSTNAMELEN];
     char service_name[MAXHOSTNAMELEN+10];
@@ -2659,8 +2659,8 @@ static char *radix_error(e)
 static void reply_gss_error(char *code, OM_uint32 maj_stat, OM_uint32 min_stat, char *s)
 {
     OM_uint32       gmaj_stat, gmin_stat;
+    OM_uint32       msg_ctx;
     gss_buffer_desc msg;
-    int             msg_ctx;
 
     /* log error first */
     log_gss_error(maj_stat, min_stat, s);
@@ -2703,8 +2703,8 @@ static void log_gss_error(OM_uint32 maj_stat, OM_uint32 min_stat, char *s)
 
     /* a lot of work just to report the error */
     OM_uint32       gmaj_stat, gmin_stat;
+    OM_uint32       msg_ctx;
     gss_buffer_desc msg;
-    int             msg_ctx;
 
     msg_ctx = 0;
     while (!msg_ctx) {
