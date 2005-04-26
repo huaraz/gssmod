@@ -65,7 +65,7 @@ module gss_module;
 static char *radixN = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 static char *gss_services[] = { "ftp", "host", 0 };
 static char *gss_keytab_file = NULL;
-static char *keytab_file = NULL;
+static char *env_keytab_file = NULL;
 static unsigned char gss_engine = FALSE;
 static unsigned long gss_flags = 0UL, gss_prot_flags = 0UL, gss_opts = 0UL;
 static int           gss_logfd = -1;
@@ -115,7 +115,7 @@ static ssize_t looping_read(int fd, register char *buf,register int len);
 static ssize_t looping_write(int fd, register const char *buf, int len);
 static int gss_dispatch(char *buf);
 static int kpass(char *name, char *pass);
-static void gss_switch_keytab(char *name,int flag)
+static void gss_switch_keytab(char *name,int flag);
 
 static int gss_openlog(server_rec *s);
 
@@ -1521,7 +1521,7 @@ MODRET gss_adat(cmd_rec *cmd) {
             gss_log("GSSAPI Warning: no confidentiality service supported !");
             gss_flags &= ~GSS_SESS_CONF_SUP;
         }
-        gss_switch_keytab(keytab_file,0);
+        gss_switch_keytab(env_keytab_file,0);
         return HANDLED(cmd);
     } else if (maj_stat == GSS_S_CONTINUE_NEEDED) {
 	/* If the server accepts the security data, and
@@ -1531,7 +1531,7 @@ MODRET gss_adat(cmd_rec *cmd) {
    	gss_release_buffer(&accept_min, &out_tok);
         gss_release_cred(&acquire_min, &server_creds);
 	gss_release_name(&min_stat, &server);
-        gss_switch_keytab(keytab_file,0);
+        gss_switch_keytab(env_keytab_file,0);
 	return HANDLED(cmd);
     } else {
 	/* "If the server rejects the security data (if
@@ -1550,7 +1550,7 @@ MODRET gss_adat(cmd_rec *cmd) {
     pr_response_add_err(R_535, "failed processing ADAT");
     gss_log("GSSAPI Failed processing ADAT");
 err:
-    gss_switch_keytab(keytab_file,0);
+    gss_switch_keytab(env_keytab_file,0);
     return ERROR(cmd);
 }
 
@@ -2437,24 +2437,33 @@ static int kpass(char *name, char *passwd)
 /* Set/Unset keytab name
 */
 void gss_switch_keytab(char *keytab_file, int sflag){
+#ifdef HAVE_HEIMDAL_KERBEROS
     krb5_context kc;
     krb5_error_code kerr;
     krb5_keytab kt;
     char ktn[1024];
+#endif
+    char *full_keytab_file; 
+
+    if (strchr(keytab_file,':')) {
+       full_keytab_file = pstrdup(main_server->pool,keytab_file);
+    } else {
+       full_keytab_file = pstrcat(main_server->pool,"FILE:", keytab_file, NULL);
+    }
 
     if (keytab_file && sflag) {
-        gss_log("GSSAPI Set KRB5_KTNAME=FILE:%s",gss_keytab_file);
-        /* Save old value */
-        keytab_file = getenv("KRB5_KTNAME");
-        putenv(pstrcat(main_server->pool, "KRB5_KTNAME=FILE:", gss_keytab_file, NULL));
+        /* Save environment value */
+        env_keytab_file = getenv("KRB5_KTNAME");
+        gss_log("GSSAPI Set KRB5_KTNAME=%s",full_keytab_file);
+        putenv(pstrcat(main_server->pool, "KRB5_KTNAME=", full_keytab_file, NULL));
 #ifdef HAVE_HEIMDAL_KERBEROS
-        gsskrb5_register_acceptor_identity(pstrcat(main_server->pool,"FILE:", gss_keytab_file, NULL));
+        gsskrb5_register_acceptor_identity(full_keytab_file);
 #endif
     } else if (keytab_file && !sflag) {
-        gss_log("GSSAPI ReSet %s",keytab_file);
-        putenv(pstrcat(main_server->pool, "KRB5_KTNAME=", keytab_file, NULL));
+        gss_log("GSSAPI ReSet KRB5_KTNAME=%s",full_keytab_file);
+        putenv(pstrcat(main_server->pool, "KRB5_KTNAME=", full_keytab_file, NULL));
 #ifdef HAVE_HEIMDAL_KERBEROS
-        gsskrb5_register_acceptor_identity(pstrcat(main_server->pool,"FILE:", keytab_file, NULL));
+        gsskrb5_register_acceptor_identity(full_keytab_file);
 #endif
     } else if (!keytab_file && sflag) {
         gss_log("GSSAPI Use default KRB5 keytab");
@@ -2471,7 +2480,11 @@ void gss_switch_keytab(char *keytab_file, int sflag){
         kerr = krb5_kt_get_name(kc, kt, ktn, sizeof(ktn));
         if (kerr)
             gss_log("GSSAPI Could not get default keytab name (%s)",error_message(kerr));
-        gsskrb5_register_acceptor_identity(pstrcat(main_server->pool,"FILE:",ktn,NULL));
+        if (strchr(ktn,':')){
+           gsskrb5_register_acceptor_identity(ktn);
+        } else {
+           gsskrb5_register_acceptor_identity(pstrcat(main_server->pool,"FILE:",ktn,NULL));
+        }
         krb5_free_context(kc);
 #endif
     }
