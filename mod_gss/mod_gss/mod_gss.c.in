@@ -587,6 +587,7 @@ static void gss_closelog(void) {
 
 static int gss_log(const char *fmt, ...) {
     char buf[PR_TUNABLE_BUFFER_SIZE] = {'\0'};
+    char *mbuf;
     time_t timestamp = time(NULL);
     struct tm *t = NULL;
     va_list msg;
@@ -617,6 +618,7 @@ static int gss_log(const char *fmt, ...) {
     snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), MOD_GSS_VERSION
 	     "[%u]: ", (unsigned int) getpid());
     buf[sizeof(buf)-1] = '\0';
+    mbuf = buf + strlen(buf);
 
     /* Affix the message */
     va_start(msg, fmt);
@@ -626,6 +628,7 @@ static int gss_log(const char *fmt, ...) {
     buf[strlen(buf)] = '\n';
     buf[sizeof(buf)-1] = '\0';
 
+    pr_log_pri(PR_LOG_NOTICE,mbuf);
     if (write(gss_logfd, buf, strlen(buf)) < 0)
 	return -1;
 
@@ -755,7 +758,7 @@ MODRET gss_authenticate(cmd_rec *cmd) {
     if (k5ret == TRUE) {
        gss_log("GSSAPI User %s is authorized as %s.", (char *) client_name.value,cmd->argv[0]);
        return mod_create_data(cmd, (void *) PR_AUTH_RFC2228_OK);
-   } else if (cmd->argv[1] != NULL) {
+    } else if (cmd->argv[1] != NULL) {
 
         /* check password against kdc */
         if (kpass(cmd->argv[0],cmd->argv[1])) {
@@ -766,6 +769,63 @@ MODRET gss_authenticate(cmd_rec *cmd) {
            return mod_create_data(cmd, (void *) PR_AUTH_RFC2228_OK);
         }
     }
+    return DECLINED(cmd);
+}
+/* This function does the main authentication work, and is called in the
+ * normal course of events:
+ *
+ *   cmd->argv[0]: user name
+ */
+MODRET gss_auth_nopass(cmd_rec *cmd) {
+    krb5_boolean k5ret;
+    krb5_context kc;
+    krb5_principal p;
+    krb5_error_code kerr;
+
+    if (!gss_engine)
+	return DECLINED(cmd);
+
+    /* only allow Kerberos 5 authentication if GSSAPI was used */
+    if ( !(gss_flags & GSS_SESS_AUTH_OK) )
+	return DECLINED(cmd);
+
+    kerr = krb5_init_context(&kc);
+    if (kerr) {
+        gss_log("GSSAPI Could not initialise krb5 context (%s)",error_message(kerr));
+        return ERROR_INT(cmd,PR_AUTH_ERROR);
+    }
+    
+    if (!client_name.value) {
+        if (gss_flags & GSS_SESS_ADAT_OK ) {
+           gss_log("GSSAPI Client name not set, but ADAT successful");
+           return ERROR_INT(cmd,PR_AUTH_ERROR);
+        } else {
+           gss_log("GSSAPI Client name not set and ADAT not successful. Use other methods to authenticate.");       
+           return DECLINED(cmd);
+	} 
+    }
+
+    kerr = krb5_parse_name(kc, client_name.value, &p);
+    if (kerr) { 
+        gss_log("GSSAPI Could not parse krb5 name (%s).",error_message(kerr));
+        krb5_free_context(kc);
+        return ERROR_INT(cmd,PR_AUTH_ERROR);
+    }
+
+    /* Check first if principal and local user match or .k5login has correct entry,
+     * then check password against kdc
+     */
+    pr_signals_block();
+    PRIVS_ROOT
+    k5ret = krb5_kuserok(kc, p, cmd->argv[0]);
+    PRIVS_RELINQUISH
+    pr_signals_unblock();
+    krb5_free_principal(kc, p);
+    if (k5ret == TRUE) {
+       gss_log("GSSAPI User %s is authorized as %s.", (char *) client_name.value,cmd->argv[0]);
+       return mod_create_data(cmd, (void *) PR_AUTH_RFC2228_OK);
+    }
+    gss_log("GSSAPI User %s is not authorized as %s. Use other methods to authenticate.", (char *) client_name.value,cmd->argv[0]);
     return DECLINED(cmd);
 }
 /* This function does the main authentication work, and is called in the
@@ -2445,10 +2505,12 @@ void gss_switch_keytab(char *keytab_file, int sflag){
 #endif
     char *full_keytab_file; 
 
-    if (strchr(keytab_file,':')) {
-       full_keytab_file = pstrdup(main_server->pool,keytab_file);
-    } else {
-       full_keytab_file = pstrcat(main_server->pool,"FILE:", keytab_file, NULL);
+    if (keytab_file) {
+       if (strchr(keytab_file,':')) {
+          full_keytab_file = pstrdup(main_server->pool,keytab_file);
+       } else {
+          full_keytab_file = pstrcat(main_server->pool,"FILE:", keytab_file, NULL);
+       }
     }
 
     if (keytab_file && sflag) {
@@ -2782,6 +2844,7 @@ static authtable gss_authtab[] = {
     { 0, "auth",	gss_authenticate },
 /* check password */
     { 0, "check",	gss_auth_check },
+    { 0, "nopass",	gss_auth_nopass },
     { 0, NULL }
 };
 
