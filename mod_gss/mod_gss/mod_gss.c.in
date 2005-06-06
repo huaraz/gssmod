@@ -89,6 +89,7 @@ static gss_buffer_desc client_name,server_name;
 #define GSS_SESS_FWCCC			0x0400
 #define GSS_SESS_INT_SUP		0x1000
 #define GSS_SESS_CONF_SUP		0x2000
+#define GSS_AUTH_AUTHORITATIVE          0x4000
 
 #define GSS_SESS_PROT_C                 0x0000
 #define GSS_SESS_PROT_S                 0x0001
@@ -761,14 +762,29 @@ MODRET gss_authenticate(cmd_rec *cmd) {
     } else if (cmd->argv[1] != NULL) {
 
         /* check password against kdc */
-        if (kpass(cmd->argv[0],cmd->argv[1])) {
+        kerr = kpass(cmd->argv[0],cmd->argv[1]);
+        if ( kerr ) {
             gss_log("GSSAPI User %s is not authorized as %s. Use other methods to authenticate.", (char *) client_name.value,cmd->argv[0]);
-            return DECLINED(cmd);
+            if ( gss_flags & GSS_AUTH_AUTHORITATIVE ) {
+                switch ( kerr ) {
+                    case KRB5KDC_ERR_CLIENT_REVOKED:
+                       return ERROR_INT(cmd,PR_AUTH_BADPWD);
+                    case KRB5KDC_ERR_C_PRINCIPAL_UNKNOWN:
+                       return ERROR_INT(cmd,PR_AUTH_NOPWD);
+                    case KRB5KDC_ERR_PREAUTH_FAILED:
+                       return ERROR_INT(cmd,PR_AUTH_BADPWD);
+                    default:
+                       return ERROR_INT(cmd,PR_AUTH_BADPWD);
+                }
+            } else {
+                return DECLINED(cmd);
+            }
         } else {
            gss_log("GSSAPI User %s/%s authorized by kdc.",cmd->argv[0],client_name.value? (char *) client_name.value:"-");
-           return mod_create_data(cmd, (void *) PR_AUTH_RFC2228_OK);
+	   return HANDLED(cmd);
         }
     }
+    gss_log("GSSAPI User %s is not authorized. Use other methods to authenticate.", cmd->argv[0]);
     return DECLINED(cmd);
 }
 /* This function does the main authentication work, and is called in the
@@ -776,7 +792,7 @@ MODRET gss_authenticate(cmd_rec *cmd) {
  *
  *   cmd->argv[0]: user name
  */
-MODRET gss_auth_nopass(cmd_rec *cmd) {
+MODRET gss_auth_requires_pass(cmd_rec *cmd) {
     krb5_boolean k5ret;
     krb5_context kc;
     krb5_principal p;
@@ -875,24 +891,43 @@ MODRET gss_auth_check(cmd_rec *cmd) {
     /* Check first if principal and local user match or .k5login has correct entry,
      * then check password against kdc
      */
+    pr_signals_block();
+    PRIVS_ROOT
     k5ret = krb5_kuserok(kc, p, cmd->argv[1]);
+    PRIVS_RELINQUISH
+    pr_signals_unblock();
     krb5_free_principal(kc, p);
     if (k5ret == TRUE) {
        gss_log("GSSAPI User %s is authorized as %s.", (char *) client_name.value,cmd->argv[1]);
        return mod_create_data(cmd, (void *) PR_AUTH_RFC2228_OK);
     } else if (cmd->argv[2] != NULL) {
+
         /* check password against kdc */
-        if (kpass(cmd->argv[1],cmd->argv[2])) {
+        kerr = kpass(cmd->argv[1],cmd->argv[2]);
+        if ( kerr ) {
             gss_log("GSSAPI User %s is not authorized as %s. Use other methods to authenticate.", (char *) client_name.value,cmd->argv[1]);
-            return DECLINED(cmd);
-        } else  {
+            if ( gss_flags & GSS_AUTH_AUTHORITATIVE ) {
+                switch ( kerr ) {
+                    case KRB5KDC_ERR_CLIENT_REVOKED:
+                       return ERROR_INT(cmd,PR_AUTH_BADPWD);
+                    case KRB5KDC_ERR_C_PRINCIPAL_UNKNOWN:
+                       return ERROR_INT(cmd,PR_AUTH_NOPWD);
+                    case KRB5KDC_ERR_PREAUTH_FAILED:
+                       return ERROR_INT(cmd,PR_AUTH_BADPWD);
+                    default:
+                       return ERROR_INT(cmd,PR_AUTH_BADPWD);
+                }
+            } else {
+                return DECLINED(cmd);
+            }
+        } else {
            gss_log("GSSAPI User %s/%s authorized by kdc.",cmd->argv[1],client_name.value? (char *) client_name.value:"-");
-           return mod_create_data(cmd, (void *) PR_AUTH_RFC2228_OK);
+	   return HANDLED(cmd);
         }
-    } else {
-        gss_log("GSSAPI User %s is not authorized. Use other methods to authenticate.", cmd->argv[0]);
-        return DECLINED(cmd);
     }
+    gss_log("GSSAPI User %s is not authorized. Use other methods to authenticate.", cmd->argv[1]);
+    return DECLINED(cmd);
+
 }
 
 
@@ -2422,7 +2457,7 @@ static int gss_dispatch(char *buf)
 }
 /* check Kerberos 5  password
  */
-static int kpass(char *name, char *passwd)
+static krb5_error_code kpass(char *name, char *passwd)
 {
 	krb5_error_code kerr;
         krb5_context kc;
@@ -2482,7 +2517,7 @@ static int kpass(char *name, char *passwd)
         if (kerr) { 
             gss_log("GSSAPI Could not get krb5 ticket (%s).",error_message(kerr));
             krb5_free_context(kc);
-            return 1;
+            return kerr;
         }	      
 
         krb5_free_context(kc);
@@ -2844,7 +2879,7 @@ static authtable gss_authtab[] = {
     { 0, "auth",	gss_authenticate },
 /* check password */
     { 0, "check",	gss_auth_check },
-    { 0, "nopass",	gss_auth_nopass },
+    { 0, "requires_pass",	gss_auth_requires_pass},
     { 0, NULL }
 };
 
