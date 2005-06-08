@@ -143,6 +143,9 @@ AH_BOTTOM([#include "conf.h"
 #define gss_int32 int32_t
 #endif
 /* Seam doesn't have krb5.h so define all here. Assume SEAM is based on MIT sources */
+#define KRB5KDC_ERR_CLIENT_REVOKED               (-1765328366L)
+#define KRB5KDC_ERR_C_PRINCIPAL_UNKNOWN          (-1765328378L)
+#define KRB5KDC_ERR_PREAUTH_FAILED               (-1765328360L)
 
 #if INT_MAX == 0x7fffffffL
 typedef int     krb5_int32;
