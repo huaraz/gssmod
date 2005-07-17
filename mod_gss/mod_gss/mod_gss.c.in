@@ -53,8 +53,6 @@
    A new class of reply types (6yz) is also introduced for protected
    replies.
 
-   Requires MIT Kerberos libraries.
-   Tested against MIT Kerberos ftp client
 */
 
 #include "mod_gss.h"
