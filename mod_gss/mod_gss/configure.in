@@ -45,11 +45,6 @@ AC_ARG_ENABLE(seam,
   [
     if test "$enableeval" != "no" ; then
        AC_DEFINE(HAVE_SEAM_KERBEROS,1,[Define SEAM Kerberos])
-       CPPFLAGS_sav=$CPPFLAGS;
-       CPPFLAGS="-I/usr/src/uts/common/gssapi/mechs/krb5/include"; 
-       AC_CHECK_HEADERS(krb5.h)
-       CPPFLAGS=$CPPFLAGS_sav;
-       AC_CHECK_HEADERS(security/pkcs11t.h)
        AC_TRY_COMPILE([#include <gssapi/gssapi.h>],
        [gss_int32 gint;],
        AC_DEFINE(HAVE_GSS_INT32,1,[Define gss_int32]),)
@@ -58,7 +53,7 @@ AC_ARG_ENABLE(seam,
           ln -s /usr/lib/gss/do/mech_krb5.so /tmp/libmech_krb5.so;
           LDFLAGS_sav=$LDFLAGS;
           LDFLAGS="-L/tmp"; 
-          AC_CHECK_LIB(mech_krb5,krb5_get_init_creds_password,AC_DEFINE(HAVE_INIT_CREDS_PASSWORD,1,[Define krb5_get_init_creds_password]),AC_DEFINE(HAVE_INIT_CREDS_PASSWORD,0,[UnDefine krb5_get_init_creds_password]))
+          AC_CHECK_LIB(mech_krb5,krb5_get_init_creds_password,AC_DEFINE(HAVE_INIT_CREDS_PASSWORD_UNUSED,1,[Define krb5_get_init_creds_password]),)
           LDFLAGS=$LDFLAGS_sav
           rm /tmp/libmech_krb5.so
        elif test -e /usr/lib/gss/gl/mech_krb5.so ; then
@@ -66,7 +61,7 @@ AC_ARG_ENABLE(seam,
           ln -s /usr/lib/gss/gl/mech_krb5.so /tmp/libmech_krb5.so;
           LDFLAGS_sav=$LDFLAGS;
           LDFLAGS="-L/tmp"; 
-          AC_CHECK_LIB(mech_krb5,krb5_get_init_creds_password,AC_DEFINE(HAVE_INIT_CREDS_PASSWORD,1,[Define krb5_get_init_creds_password]),AC_DEFINE(HAVE_INIT_CREDS_PASSWORD,0,[UnDefine krb5_get_init_creds_password]))
+          AC_CHECK_LIB(mech_krb5,krb5_get_init_creds_password,AC_DEFINE(HAVE_INIT_CREDS_PASSWORD_UNUSED,1,[Define krb5_get_init_creds_password]),)
           LDFLAGS=$LDFLAGS_sav
           rm /tmp/libmech_krb5.so
        else
@@ -74,7 +69,7 @@ AC_ARG_ENABLE(seam,
           ln -s /usr/lib/gss/mech_krb5.so /tmp/libmech_krb5.so;
           LDFLAGS_sav=$LDFLAGS;
           LDFLAGS="-L/tmp"; 
-          AC_CHECK_LIB(mech_krb5,krb5_get_init_creds_password,AC_DEFINE(HAVE_INIT_CREDS_PASSWORD,1,[Define krb5_get_init_creds_password]),AC_DEFINE(HAVE_INIT_CREDS_PASSWORD,0,[UnDefine krb5_get_init_creds_password]))
+          AC_CHECK_LIB(mech_krb5,krb5_get_init_creds_password,AC_DEFINE(HAVE_INIT_CREDS_PASSWORD_UNUSED,1,[Define krb5_get_init_creds_password]),)
           LDFLAGS=$LDFLAGS_sav
           rm /tmp/libmech_krb5.so
        fi
@@ -209,43 +204,6 @@ typedef struct krb5_principal_data {
 
 typedef krb5_principal_data *krb5_principal;
 
-#ifdef HAVE_SECURITY_PKCS11T_H
-struct _krb5_keyblock;
-
-/*
- * keyblocks will contain a list of derived keys,
- * this  structure will contain the derived key data.
- */
-typedef struct _dk_node {
-    krb5_keyusage   usage;
-    struct _krb5_keyblock   *derived_key;
-    uchar_t         dkid; /* derived key identifier byte */
-    struct _dk_node *next;
-} krb5_dk_node;
-
-/* an unsigned value, at least 32 bits long */
-typedef unsigned long int CK_ULONG;
-typedef CK_ULONG          CK_OBJECT_HANDLE;
-#endif
-
-typedef struct _krb5_keyblock {
-    krb5_magic magic;
-    krb5_enctype enctype;
-    unsigned int length;
-    krb5_octet *contents;
-#ifdef HAVE_SECURITY_PKCS11T_H
-    krb5_dk_node   *dk_list; /* list of keys derived from this key */
-#ifdef _KERNEL
-    crypto_mech_type_t     kef_mt;
-    crypto_key_t           kef_key;
-    crypto_ctx_template_t  key_tmpl;
-#else
-    CK_OBJECT_HANDLE       hKey; /* PKCS#11 key object handle */
-    pid_t       pid; /* fork safety */
-#endif /* _KERNEL */
-#endif
-} krb5_keyblock;
-
 typedef struct _krb5_ticket_times {
     krb5_timestamp authtime;
     krb5_timestamp starttime;
@@ -266,20 +224,6 @@ typedef struct _krb5_authdata {
     unsigned int length;
     krb5_octet *contents;
 } krb5_authdata;
-
-typedef struct _krb5_creds {
-    krb5_magic magic;
-    krb5_principal client;
-    krb5_principal server;
-    krb5_keyblock keyblock;
-    krb5_ticket_times times;
-    krb5_boolean is_skey;
-    krb5_flags ticket_flags;
-    krb5_address **addresses;
-    krb5_data ticket;
-    krb5_data second_ticket;
-    krb5_authdata **authdata;
-} krb5_creds;
 
 typedef struct _krb5_get_init_creds_opt {
     krb5_flags flags;
@@ -354,19 +298,6 @@ krb5_error_code KRB5_CALLCONV krb5_parse_name
                    krb5_const char *,
                    krb5_principal * ));
 
-#ifdef HAVE_INIT_CREDS_PASSWORD
-krb5_error_code KRB5_CALLCONV
-krb5_get_init_creds_password
-KRB5_PROTOTYPE((krb5_context context,
-                krb5_creds *creds,
-                krb5_principal client,
-                char *password,
-                krb5_prompter_fct prompter,
-                void *data,
-                krb5_deltat start_time,
-                char *in_tkt_service,
-                krb5_get_init_creds_opt *options));
-#endif
 #endif /*HAVE_KRB5_H */
 #else /*MIT*/
 #include <gssapi/gssapi.h>

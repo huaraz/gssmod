@@ -2457,6 +2457,7 @@ static int gss_dispatch(char *buf)
  */
 static krb5_error_code kpass(char *name, char *passwd)
 {
+#ifdef HAVE_INIT_CREDS_PASSWORD
 	krb5_error_code kerr;
         krb5_context kc;
 	krb5_principal server, p;
@@ -2508,7 +2509,6 @@ static krb5_error_code kpass(char *name, char *passwd)
 	creds.times.endtime = now + 60 * 60 * 10;
 	creds.times.renew_till = 0;
 
-#ifdef HAVE_INIT_CREDS_PASSWORD
         kerr = krb5_get_init_creds_password(kc, &creds, p, passwd,
                                             NULL, NULL,
                                             0, NULL, NULL);
@@ -2522,7 +2522,6 @@ static krb5_error_code kpass(char *name, char *passwd)
 	return 0;
 #else
 
-        krb5_free_context(kc);
         return 1;
 #endif
 
