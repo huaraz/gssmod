@@ -286,7 +286,7 @@ typedef krb5_error_code (KRB5_CALLCONV *krb5_prompter_fct)(krb5_context context,
                                              int num_prompts,
                                              krb5_prompt prompts[]);
 
-#define error_message(code) strerror(code)
+char *error_message(code);
 
 #if (defined(__STDC__) || defined(__cplusplus) || defined(_MSDOS) || defined(_WIN32) || defined(KRB5_PROVIDE_PROTOTYPES)) && !defined(KRB5_NO_PROTOTYPES)
 #define KRB5_PROTOTYPE(x) x
