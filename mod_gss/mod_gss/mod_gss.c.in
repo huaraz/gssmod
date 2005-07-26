@@ -2536,7 +2536,7 @@ void gss_switch_keytab(char *keytab_file, int sflag){
     krb5_keytab kt;
     char ktn[1024];
 #endif
-    char *full_keytab_file; 
+    char *full_keytab_file=NULL; 
 
     if (keytab_file) {
        if (strchr(keytab_file,':')) {
