@@ -385,7 +385,7 @@ static int gss_netio_read_cb(pr_netio_stream_t *nstrm, char *buf,
 	}
 
         /* read encoded block into ucbuf */
-        count=looping_read(nstrm->strm_fd,ucbuf,length);
+        count=looping_read(nstrm->strm_fd,(char *)ucbuf,length);
 
 	if ( count != length ) {
 	    gss_log("GSSAPI Could not read %u byte PROT buffer: %s",
@@ -1059,7 +1059,7 @@ MODRET gss_dec(cmd_rec *cmd) {
     xmit_buf.length=strlen(cmd->arg)+1;
     /* protected string <= unprotected string */
     xmit_buf.value=pcalloc(cmd->pool,strlen(cmd->arg)+1);
-    if ((error = radix_encode(cmd->arg, xmit_buf.value, (int *)&xmit_buf.length, 1)) != 0 ) {
+    if ((error = radix_encode((unsigned char*)cmd->arg, xmit_buf.value, (int *)&xmit_buf.length, 1)) != 0 ) {
 	pr_response_add_err(R_501, "Couldn't base 64 decode argument to %s command (%s)",
 		session.sp_flags & SP_ENC ? "ENC" : 
                 session.sp_flags & SP_MIC ? "MIC" : "", radix_error(error));
@@ -1456,7 +1456,7 @@ MODRET gss_adat(cmd_rec *cmd) {
     */
 
     tok.value=pcalloc(cmd->tmp_pool,strlen(cmd->arg));
-    if ((error = radix_encode(cmd->arg, tok.value , (int *)&tok.length, 1)) !=0  ) {
+    if ((error = radix_encode((unsigned char*)cmd->arg, tok.value , (int *)&tok.length, 1)) !=0  ) {
 	pr_response_add_err(R_501, "Couldn't decode ADAT (%s)",radix_error(error)); 
 	gss_log("GSSAPI Could not decode ADAT (%s)",radix_error(error));
 	return ERROR(cmd);
@@ -1534,7 +1534,7 @@ MODRET gss_adat(cmd_rec *cmd) {
 
     if (out_tok.length) {
         gbuf = pcalloc(cmd->tmp_pool,out_tok.length*4+1);
-	if ( (error = radix_encode(out_tok.value, gbuf, (int *)&out_tok.length, 0)) != 0 ) {
+	if ( (error = radix_encode((unsigned char*)out_tok.value, (unsigned char*)gbuf, (int *)&out_tok.length, 0)) != 0 ) {
 	    pr_response_add_err(R_535,"Couldn't encode ADAT reply (%s)",
 			     radix_error(error));
 	    gss_log("GSSAPI Could not encode ADAT reply (%s)",radix_error(error));
@@ -1635,13 +1635,7 @@ MODRET gss_adat(cmd_rec *cmd) {
    	gss_release_buffer(&accept_min, &out_tok);
         gss_release_cred(&acquire_min, &server_creds);
 	gss_release_name(&min_stat, &server);
-        goto err;
     }
-    gss_release_buffer(&accept_min, &out_tok);
-    gss_release_cred(&acquire_min, &server_creds);
-    gss_release_name(&min_stat, &server);
-    pr_response_add_err(R_535, "failed processing ADAT");
-    gss_log("GSSAPI Failed processing ADAT");
 err:
     gss_switch_keytab(env_keytab_file,0);
     return ERROR(cmd);
@@ -2391,7 +2385,7 @@ static char *gss_format_cb(pool *pool, const char *fmt, ...)
     } 
     /* protected reply <= 4*unprotected reply */
     reply=pcalloc(pool, gss_out_buf.length*4+1);
-    if ((error = radix_encode(gss_out_buf.value, reply, (int *)&gss_out_buf.length, 0)) != 0 ) {
+    if ((error = radix_encode(gss_out_buf.value, (unsigned char*)reply, (int *)&gss_out_buf.length, 0)) != 0 ) {
 	gss_log("Couldn't encode reply (%s)", radix_error(error));
 	gss_release_buffer(&min_stat, &gss_out_buf);
         return pstrdup(pool ,buf);
@@ -2750,7 +2744,7 @@ static int radix_encode(unsigned char inbuf[], unsigned char outbuf[], int *len,
 
 /* base64 error messages
  */
-static char *radix_error(e)
+static char *radix_error(int e)
 {
     switch (e) {
 	case 0:  return("Success");
