@@ -49,7 +49,7 @@ AC_ARG_ENABLE(seam,
        [gss_int32 gint;],
        AC_DEFINE(HAVE_GSS_INT32,1,[Define gss_int32]),)
        if test -e /usr/lib/gss/do/mech_krb5.so ; then
-          ac_gss_libs="-lgss -R\/usr\/lib\/gss\/do \/usr\/lib\/gss\/do\/mech_krb5.so";
+          ac_gss_libs="-lgss -R\/usr\/lib\/gss\/do -Wl,\/usr\/lib\/gss\/do\/mech_krb5.so";
           ln -s /usr/lib/gss/do/mech_krb5.so /tmp/libmech_krb5.so;
           LDFLAGS_sav=$LDFLAGS;
           LDFLAGS="-L/tmp"; 
@@ -57,7 +57,7 @@ AC_ARG_ENABLE(seam,
           LDFLAGS=$LDFLAGS_sav
           rm /tmp/libmech_krb5.so
        elif test -e /usr/lib/gss/gl/mech_krb5.so ; then
-          ac_gss_libs="-lgss -R\/usr\/lib\/gss\/gl \/usr\/lib\/gss\/gl\/mech_krb5.so";
+          ac_gss_libs="-lgss -R\/usr\/lib\/gss\/gl -Wl,\/usr\/lib\/gss\/gl\/mech_krb5.so";
           ln -s /usr/lib/gss/gl/mech_krb5.so /tmp/libmech_krb5.so;
           LDFLAGS_sav=$LDFLAGS;
           LDFLAGS="-L/tmp"; 
@@ -65,7 +65,7 @@ AC_ARG_ENABLE(seam,
           LDFLAGS=$LDFLAGS_sav
           rm /tmp/libmech_krb5.so
        else
-          ac_gss_libs="-lgss -R\/usr\/lib\/gss \/usr\/lib\/gss\/mech_krb5.so";
+          ac_gss_libs="-lgss -R\/usr\/lib\/gss -Wl,\/usr\/lib\/gss\/mech_krb5.so";
           ln -s /usr/lib/gss/mech_krb5.so /tmp/libmech_krb5.so;
           LDFLAGS_sav=$LDFLAGS;
           LDFLAGS="-L/tmp"; 
