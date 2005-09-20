@@ -98,6 +98,8 @@ static gss_buffer_desc client_name,server_name;
 #define GSS_OPT_ALLOW_CCC               0x0001
 #define GSS_OPT_ALLOW_FW_CCC            0x0002
 #define GSS_OPT_ALLOW_FW_NAT		0x0004
+#define GSS_OPT_REQUIRE_SEQ_PROT        0x0010
+#define GSS_OPT_REQUIRE_REP_PROT        0x0020
 
 static pr_netio_t *gss_data_netio = NULL;
 static pr_netio_stream_t *gss_data_rd_nstrm = NULL;
@@ -1544,6 +1546,41 @@ MODRET gss_adat(cmd_rec *cmd) {
             goto err;
 	}
 	if (accept_maj == GSS_S_COMPLETE) {
+            gss_flags |= GSS_SESS_INT_SUP;
+            gss_flags |= GSS_SESS_CONF_SUP;
+            if ( !(ret_flags & GSS_C_REPLAY_FLAG || ret_flags & GSS_C_SEQUENCE_FLAG) ){
+                gss_log("GSSAPI Warning: no replay protection !");
+            }
+            if ( !(ret_flags & GSS_C_SEQUENCE_FLAG) ){
+                gss_log("GSSAPI Warning: no sequence protection !");
+            }
+            if ( !(ret_flags & GSS_C_INTEG_FLAG) ){
+                gss_log("GSSAPI Warning: no integrity service supported !");
+                gss_flags &= ~GSS_SESS_INT_SUP;
+            }
+            if ( !(ret_flags & GSS_C_CONF_FLAG) ){
+                gss_log("GSSAPI Warning: no confidentiality service supported !");
+                gss_flags &= ~GSS_SESS_CONF_SUP;
+            }
+            if ( (gss_opts & GSS_OPT_REQUIRE_SEQ_PROT) &&
+                !(ret_flags & GSS_C_SEQUENCE_FLAG) ) {
+                gss_log("GSSAPI Sequence protection required");
+                pr_response_add_err(R_535, "Sequence protection required");
+   	        gss_release_buffer(&accept_min, &out_tok);
+                gss_release_cred(&acquire_min, &server_creds);
+	        gss_release_name(&min_stat, &server);
+                goto err;
+            }
+            if ( (gss_opts & GSS_OPT_REQUIRE_REP_PROT) &&
+                !(ret_flags & GSS_C_REPLAY_FLAG || ret_flags & GSS_C_SEQUENCE_FLAG) ) {
+                gss_log("GSSAPI Replay protection required");
+                pr_response_add_err(R_535, "Replay protection required");
+   	        gss_release_buffer(&accept_min, &out_tok);
+                gss_release_cred(&acquire_min, &server_creds);
+	        gss_release_name(&min_stat, &server);
+                goto err;
+            }
+
 	    pr_response_send(R_235, "ADAT=%s", gbuf);
 	    gss_flags |= GSS_SESS_ADAT_OK;
 	    replied = 1;
@@ -1589,7 +1626,7 @@ MODRET gss_adat(cmd_rec *cmd) {
 	if (!replied) { 
 	    pr_response_send(R_235, "GSSAPI Authentication succeeded");
 	    gss_flags |= GSS_SESS_ADAT_OK;
-        }
+        } 
    	gss_release_buffer(&accept_min, &out_tok);
         gss_release_cred(&acquire_min, &server_creds);
 	gss_release_name(&min_stat, &server);
@@ -1598,22 +1635,6 @@ MODRET gss_adat(cmd_rec *cmd) {
 	gss_netio_install_data();
         session.sp_flags = 0;
 
-        gss_flags |= GSS_SESS_INT_SUP;
-        gss_flags |= GSS_SESS_CONF_SUP;
-        if ( !(ret_flags & GSS_C_REPLAY_FLAG || ret_flags & GSS_C_SEQUENCE_FLAG) ){
-            gss_log("GSSAPI Warning: no replay protection !");
-        }
-        if ( !(ret_flags & GSS_C_SEQUENCE_FLAG) ){
-            gss_log("GSSAPI Warning: no sequence protection !");
-        }
-        if ( !(ret_flags & GSS_C_INTEG_FLAG) ){
-            gss_log("GSSAPI Warning: no integrity service supported !");
-            gss_flags &= ~GSS_SESS_INT_SUP;
-        }
-        if ( !(ret_flags & GSS_C_CONF_FLAG) ){
-            gss_log("GSSAPI Warning: no confidentiality service supported !");
-            gss_flags &= ~GSS_SESS_CONF_SUP;
-        }
         gss_switch_keytab(env_keytab_file,0);
         return HANDLED(cmd);
     } else if (maj_stat == GSS_S_CONTINUE_NEEDED) {
@@ -2017,6 +2038,12 @@ MODRET set_gssoptions(cmd_rec *cmd) {
        } else if (!strcasecmp(cmd->argv[i], "NoChannelBinding")) {
             opts |= GSS_OPT_ALLOW_FW_NAT;
             pr_log_debug(DEBUG3, "GSSAPI GSSOption NoChannelBinding set");
+       } else if (!strcasecmp(cmd->argv[i], "RequireSequenceProtection")) {
+            opts |= GSS_OPT_REQUIRE_SEQ_PROT;
+            pr_log_debug(DEBUG3, "GSSAPI GSSOption RequireSequenceProtection set");
+       } else if (!strcasecmp(cmd->argv[i], "RequireReplayProtection")) {
+            opts |= GSS_OPT_REQUIRE_REP_PROT;
+            pr_log_debug(DEBUG3, "GSSAPI GSSOption RequireReplayProtection set");
        } else
             CONF_ERROR(cmd, pstrcat(cmd->tmp_pool, ": unknown GSSOption: '",
                                 cmd->argv[i], "'", NULL));

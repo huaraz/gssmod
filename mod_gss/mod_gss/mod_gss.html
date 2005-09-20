@@ -93,8 +93,11 @@ optional behavior of <CODE>mod_gss</CODE>.
 
   AllowFWCCC - Allows PORT and PASV only as clear commands for stateful firewalls. Needs special client patch.
 
-  AllowFWNAT - Allows No Channel Binding to support Network Address Translation. Needs special client patch.
-  NoChannelBinding - Allows No Channel Binding to support Network Address Translation. Needs special client patch.</PRE>
+  AllowFWNAT - Allows No Channel Binding to support Network Address Translation. May need special client patch.
+  NoChannelBinding - Allows No Channel Binding to support Network Address Translation. May need special client patch.
+  RequireSequenceProtection - Require sequence protection set on gss encrypted packets
+  RequireReplayProtection - Require replay protection set on gss encrypted packets
+</PRE>
 <HR>
 <H2><A NAME="GSSRequired"></A>GSSRequired</H2>
 <P><STRONG>Syntax:</STRONG> GSSRequired <EM>on|off|ctrl|data</EM><BR><STRONG>Default:</STRONG>
