@@ -845,8 +845,8 @@ Optional Features:
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
   --enable-mit		  enable use of MIT package (default=yes)
   --enable-heimdal	  enable use of Heimdal package (default=no)
-  --enable-seam=src	  enable use of SEAM(Solaris) package (default=no)
   --enable-nas 		  enable use of NAS(AIX) package (default=no)
+  --enable-seam=src	  enable use of SEAM(Solaris) package (default=no)
 
 Some influential environment variables:
   CC          C compiler command
@@ -1308,12 +1308,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 enable_arg="no"
-
-# Check whether --enable-mit or --disable-mit was given.
-if test "${enable_mit+set}" = set; then
-  enableval="$enable_mit"
-
-    if test "x$enableval" != "xno" ; then
+check_mit() {
 
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_INIT_CREDS_PASSWORD 1
@@ -1321,14 +1316,8 @@ _ACEOF
 
        ac_gss_libs="-lgssapi_krb5 -ldes425 -lkrb5 -lk5crypto -lcom_err"
        enable_arg="mit"
-    fi
-fi;
-
-# Check whether --enable-heimdal or --disable-heimdal was given.
-if test "${enable_heimdal+set}" = set; then
-  enableval="$enable_heimdal"
-
-    if test "x$enableval" != "xno" ; then
+}
+check_heimdal(){
 
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_HEIMDAL_KERBEROS 1
@@ -1341,10 +1330,28 @@ _ACEOF
 
        ac_gss_libs="-lgssapi -lkrb5 -lcom_err -lasn1 -lroken";
        enable_arg="heimdal"
-    fi
-fi;
+}
+check_nas(){
 
-ac_ext=c
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_NAS_KERBEROS 1
+_ACEOF
+
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_INIT_CREDS_PASSWORD 1
+_ACEOF
+
+       ac_gss_libs="-L\/usr\/lib -lksvc -lgssapi_krb5 -lkrb5";
+       enable_arg="nas"
+}
+check_seam(){
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_SEAM_KERBEROS 1
+_ACEOF
+
+       ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
@@ -2275,7 +2282,134 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-ac_ext=c
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+#include <gssapi/gssapi.h>
+int
+main ()
+{
+gss_int32 gint;
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext
+if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
+  (eval $ac_compile) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_c_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest.$ac_objext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_GSS_INT32 1
+_ACEOF
+
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+fi
+rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
+       echo "$as_me:$LINENO: checking for __gss_userok in -lgss" >&5
+echo $ECHO_N "checking for __gss_userok in -lgss... $ECHO_C" >&6
+if test "${ac_cv_lib_gss___gss_userok+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lgss  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char __gss_userok ();
+int
+main ()
+{
+__gss_userok ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_c_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_lib_gss___gss_userok=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_cv_lib_gss___gss_userok=no
+fi
+rm -f conftest.err conftest.$ac_objext \
+      conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+echo "$as_me:$LINENO: result: $ac_cv_lib_gss___gss_userok" >&5
+echo "${ECHO_T}$ac_cv_lib_gss___gss_userok" >&6
+if test $ac_cv_lib_gss___gss_userok = yes; then
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE___GSS_USEROK 1
+_ACEOF
+
+fi
+
+       if test "x$ac_cv_lib_gss___gss_userok" == "xno" ; then
+          if test "x$enableval" != "xyes" ; then
+             SRC=$enableval
+          else
+             SRC="/usr/src"
+          fi
+          CPPFLAGS="-I$SRC/uts/common/gssapi/mechs/krb5/include -I$SRC/lib/gss_mechs/mech_krb5/include"
+          ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
@@ -2763,90 +2897,6 @@ fi
 done
 
 
-# Check whether --enable-seam or --disable-seam was given.
-if test "${enable_seam+set}" = set; then
-  enableval="$enable_seam"
-
-    if test "x$enableval" != "xno" ; then
-       echo "$as_me:$LINENO: checking for __gss_userok in -lgss" >&5
-echo $ECHO_N "checking for __gss_userok in -lgss... $ECHO_C" >&6
-if test "${ac_cv_lib_gss___gss_userok+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lgss  $LIBS"
-cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-
-/* Override any gcc2 internal prototype to avoid an error.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-/* We use char because int might match the return type of a gcc2
-   builtin and then its argument prototype would still apply.  */
-char __gss_userok ();
-int
-main ()
-{
-__gss_userok ();
-  ;
-  return 0;
-}
-_ACEOF
-rm -f conftest.$ac_objext conftest$ac_exeext
-if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
-  (eval $ac_link) 2>conftest.er1
-  ac_status=$?
-  grep -v '^ *+' conftest.er1 >conftest.err
-  rm -f conftest.er1
-  cat conftest.err >&5
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } &&
-	 { ac_try='test -z "$ac_c_werror_flag"
-			 || test ! -s conftest.err'
-  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
-  (eval $ac_try) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); }; } &&
-	 { ac_try='test -s conftest$ac_exeext'
-  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
-  (eval $ac_try) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); }; }; then
-  ac_cv_lib_gss___gss_userok=yes
-else
-  echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-ac_cv_lib_gss___gss_userok=no
-fi
-rm -f conftest.err conftest.$ac_objext \
-      conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-echo "$as_me:$LINENO: result: $ac_cv_lib_gss___gss_userok" >&5
-echo "${ECHO_T}$ac_cv_lib_gss___gss_userok" >&6
-if test $ac_cv_lib_gss___gss_userok = yes; then
-
-cat >>confdefs.h <<\_ACEOF
-#define HAVE___GSS_USEROK 1
-_ACEOF
-
-fi
-
-       if test "x$ac_cv_lib_gss___gss_userok" == "xno" ; then
-          if test "x$enableval" != "xyes" ; then
-             SRC=$enableval
-          else
-             SRC="/usr/src"
-          fi
-          CPPFLAGS="-I$SRC/uts/common/gssapi/mechs/krb5/include -I$SRC/lib/gss_mechs/mech_krb5/include"
 
 
 for ac_header in krb5.h com_err.h
@@ -3005,66 +3055,12 @@ done
              echo " ## to proftpd configure command                                                                           ##"
              echo " ## ------------------------------------------------------------------------------------------------------ ##"
           fi
-       fi
-
-cat >>confdefs.h <<\_ACEOF
-#define HAVE_SEAM_KERBEROS 1
-_ACEOF
-
-       cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-#include <gssapi/gssapi.h>
-int
-main ()
-{
-gss_int32 gint;
-  ;
-  return 0;
-}
-_ACEOF
-rm -f conftest.$ac_objext
-if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
-  (eval $ac_compile) 2>conftest.er1
-  ac_status=$?
-  grep -v '^ *+' conftest.er1 >conftest.err
-  rm -f conftest.er1
-  cat conftest.err >&5
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } &&
-	 { ac_try='test -z "$ac_c_werror_flag"
-			 || test ! -s conftest.err'
-  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
-  (eval $ac_try) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); }; } &&
-	 { ac_try='test -s conftest.$ac_objext'
-  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
-  (eval $ac_try) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); }; }; then
-
-cat >>confdefs.h <<\_ACEOF
-#define HAVE_GSS_INT32 1
-_ACEOF
-
-else
-  echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-fi
-rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
-       if test -e /usr/lib/gss/do/mech_krb5.so ; then
-          ac_gss_libs="-lgss -R\/usr\/lib\/gss\/do -Wl,\/usr\/lib\/gss\/do\/mech_krb5.so";
-          ln -s /usr/lib/gss/do/mech_krb5.so /tmp/libmech_krb5.so;
-          LDFLAGS_sav=$LDFLAGS;
-          LDFLAGS="-L/tmp";
-          echo "$as_me:$LINENO: checking for krb5_get_init_creds_password in -lmech_krb5" >&5
+          if test -e /usr/lib/gss/do/mech_krb5.so ; then
+            ac_gss_libs="-lgss -R\/usr\/lib\/gss\/do -Wl,\/usr\/lib\/gss\/do\/mech_krb5.so";
+            ln -s /usr/lib/gss/do/mech_krb5.so /tmp/libmech_krb5.so;
+            LDFLAGS_sav=$LDFLAGS;
+            LDFLAGS="-L/tmp";
+            echo "$as_me:$LINENO: checking for krb5_get_init_creds_password in -lmech_krb5" >&5
 echo $ECHO_N "checking for krb5_get_init_creds_password in -lmech_krb5... $ECHO_C" >&6
 if test "${ac_cv_lib_mech_krb5_krb5_get_init_creds_password+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
@@ -3136,14 +3132,14 @@ _ACEOF
 
 fi
 
-          LDFLAGS=$LDFLAGS_sav
-          rm /tmp/libmech_krb5.so
-       elif test -e /usr/lib/gss/gl/mech_krb5.so ; then
-          ac_gss_libs="-lgss -R\/usr\/lib\/gss\/gl -Wl,\/usr\/lib\/gss\/gl\/mech_krb5.so";
-          ln -s /usr/lib/gss/gl/mech_krb5.so /tmp/libmech_krb5.so;
-          LDFLAGS_sav=$LDFLAGS;
-          LDFLAGS="-L/tmp";
-          echo "$as_me:$LINENO: checking for krb5_get_init_creds_password in -lmech_krb5" >&5
+            LDFLAGS=$LDFLAGS_sav
+            rm /tmp/libmech_krb5.so
+         elif test -e /usr/lib/gss/gl/mech_krb5.so ; then
+            ac_gss_libs="-lgss -R\/usr\/lib\/gss\/gl -Wl,\/usr\/lib\/gss\/gl\/mech_krb5.so";
+            ln -s /usr/lib/gss/gl/mech_krb5.so /tmp/libmech_krb5.so;
+            LDFLAGS_sav=$LDFLAGS;
+            LDFLAGS="-L/tmp";
+            echo "$as_me:$LINENO: checking for krb5_get_init_creds_password in -lmech_krb5" >&5
 echo $ECHO_N "checking for krb5_get_init_creds_password in -lmech_krb5... $ECHO_C" >&6
 if test "${ac_cv_lib_mech_krb5_krb5_get_init_creds_password+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
@@ -3215,89 +3211,135 @@ _ACEOF
 
 fi
 
-          LDFLAGS=$LDFLAGS_sav
-          rm /tmp/libmech_krb5.so
+            LDFLAGS=$LDFLAGS_sav
+            rm /tmp/libmech_krb5.so
+         else
+            ac_gss_libs="-lgss -R\/usr\/lib\/gss -Wl,\/usr\/lib\/gss\/mech_krb5.so";
+            ln -s /usr/lib/gss/mech_krb5.so /tmp/libmech_krb5.so;
+            LDFLAGS_sav=$LDFLAGS;
+            LDFLAGS="-L/tmp";
+            echo "$as_me:$LINENO: checking for krb5_get_init_creds_password in -lmech_krb5" >&5
+echo $ECHO_N "checking for krb5_get_init_creds_password in -lmech_krb5... $ECHO_C" >&6
+if test "${ac_cv_lib_mech_krb5_krb5_get_init_creds_password+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lmech_krb5  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char krb5_get_init_creds_password ();
+int
+main ()
+{
+krb5_get_init_creds_password ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_c_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_lib_mech_krb5_krb5_get_init_creds_password=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_cv_lib_mech_krb5_krb5_get_init_creds_password=no
+fi
+rm -f conftest.err conftest.$ac_objext \
+      conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+echo "$as_me:$LINENO: result: $ac_cv_lib_mech_krb5_krb5_get_init_creds_password" >&5
+echo "${ECHO_T}$ac_cv_lib_mech_krb5_krb5_get_init_creds_password" >&6
+if test $ac_cv_lib_mech_krb5_krb5_get_init_creds_password = yes; then
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_INIT_CREDS_PASSWORD_UNUSED 1
+_ACEOF
+
+fi
+
+            LDFLAGS=$LDFLAGS_sav
+            rm /tmp/libmech_krb5.so
+         fi
        else
-          ac_gss_libs="-lgss -R\/usr\/lib\/gss -Wl,\/usr\/lib\/gss\/mech_krb5.so";
-          ln -s /usr/lib/gss/mech_krb5.so /tmp/libmech_krb5.so;
-          LDFLAGS_sav=$LDFLAGS;
-          LDFLAGS="-L/tmp";
-          echo "$as_me:$LINENO: checking for krb5_get_init_creds_password in -lmech_krb5" >&5
-echo $ECHO_N "checking for krb5_get_init_creds_password in -lmech_krb5... $ECHO_C" >&6
-if test "${ac_cv_lib_mech_krb5_krb5_get_init_creds_password+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lmech_krb5  $LIBS"
-cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-
-/* Override any gcc2 internal prototype to avoid an error.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-/* We use char because int might match the return type of a gcc2
-   builtin and then its argument prototype would still apply.  */
-char krb5_get_init_creds_password ();
-int
-main ()
-{
-krb5_get_init_creds_password ();
-  ;
-  return 0;
-}
-_ACEOF
-rm -f conftest.$ac_objext conftest$ac_exeext
-if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
-  (eval $ac_link) 2>conftest.er1
-  ac_status=$?
-  grep -v '^ *+' conftest.er1 >conftest.err
-  rm -f conftest.er1
-  cat conftest.err >&5
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } &&
-	 { ac_try='test -z "$ac_c_werror_flag"
-			 || test ! -s conftest.err'
-  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
-  (eval $ac_try) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); }; } &&
-	 { ac_try='test -s conftest$ac_exeext'
-  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
-  (eval $ac_try) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); }; }; then
-  ac_cv_lib_mech_krb5_krb5_get_init_creds_password=yes
-else
-  echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-ac_cv_lib_mech_krb5_krb5_get_init_creds_password=no
-fi
-rm -f conftest.err conftest.$ac_objext \
-      conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-echo "$as_me:$LINENO: result: $ac_cv_lib_mech_krb5_krb5_get_init_creds_password" >&5
-echo "${ECHO_T}$ac_cv_lib_mech_krb5_krb5_get_init_creds_password" >&6
-if test $ac_cv_lib_mech_krb5_krb5_get_init_creds_password = yes; then
+         ac_gss_libs="-lgss";
 
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_INIT_CREDS_PASSWORD_UNUSED 1
 _ACEOF
 
-fi
-
-          LDFLAGS=$LDFLAGS_sav
-          rm /tmp/libmech_krb5.so
        fi
        enable_arg="seam"
+}
+
+sys=`uname`
+case $sys in
+           Linux) rpm -q heimdal-lib 2>&1 >/dev/null
+                  if test $? == 0 ; then
+                    check_heimdal
+                  fi
+                  ;;
+           AIX)   lslpp -L krb5.client.rte 2>&1 >/dev/null
+                  if test $? == 0 ; then
+                    check_nas
+                  fi
+                  ;;
+           SunOS) pkginfo SUNWgss 2>&1 >/dev/null
+                  if test $? == 0 ; then
+                    check_seam
+                  fi
+                  ;;
+           *) check_mit
+              ;;
+esac
+
+# Check whether --enable-mit or --disable-mit was given.
+if test "${enable_mit+set}" = set; then
+  enableval="$enable_mit"
+
+    if test "x$enableval" != "xno" ; then
+       check_mit
+    fi
+fi;
+
+# Check whether --enable-heimdal or --disable-heimdal was given.
+if test "${enable_heimdal+set}" = set; then
+  enableval="$enable_heimdal"
+
+    if test "x$enableval" != "xno" ; then
+       check_heimdal
     fi
 fi;
 
@@ -3306,28 +3348,21 @@ if test "${enable_nas+set}" = set; then
   enableval="$enable_nas"
 
     if test "x$enableval" != "xno" ; then
+       check_nas
+    fi
+fi;
 
-cat >>confdefs.h <<\_ACEOF
-#define HAVE_NAS_KERBEROS 1
-_ACEOF
+# Check whether --enable-seam or --disable-seam was given.
+if test "${enable_seam+set}" = set; then
+  enableval="$enable_seam"
 
-
-cat >>confdefs.h <<\_ACEOF
-#define HAVE_INIT_CREDS_PASSWORD 1
-_ACEOF
-
-       ac_gss_libs="-L\/usr\/lib -lksvc -lgssapi_krb5 -lkrb5";
-       enable_arg="nas"
+    if test "x$enableval" != "xno" ; then
+       check_seam
     fi
 fi;
 
 if test "$enable_arg" = "no"; then
-
-cat >>confdefs.h <<\_ACEOF
-#define HAVE_INIT_CREDS_PASSWORD 1
-_ACEOF
-
-   ac_gss_libs="-lgssapi_krb5 -ldes425 -lkrb5 -lk5crypto -lcom_err"
+   check_mit
 fi
 
 
@@ -4252,6 +4287,10 @@ if test "$no_create" != yes; then
   $ac_cs_success || { (exit 1); exit 1; }
 fi
 
+
+echo "configure: ## ----------------------##"
+echo "configure: ## Select $enable_arg"
+echo "configure: ## ----------------------##"
 
 echo "configure: updating mod_gss.h"
 sed -e "s/|MAIL|/"$PACKAGE_BUGREPORT"/" mod_gss.h > .mod_gss.h.tmp

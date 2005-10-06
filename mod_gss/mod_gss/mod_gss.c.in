@@ -116,7 +116,7 @@ static void log_gss_error(OM_uint32 maj_stat, OM_uint32 min_stat, char *s);
 static ssize_t looping_read(int fd, register char *buf,register int len);
 static ssize_t looping_write(int fd, register const char *buf, int len);
 static int gss_dispatch(char *buf);
-#ifndef HAVE____GSS_USEROK
+#ifndef HAVE___GSS_USEROK
 static krb5_error_code kpass(char *name, char *pass);
 #endif
 static void gss_switch_keytab(char *name,int flag);
@@ -2559,7 +2559,7 @@ static int gss_dispatch(char *buf)
 
     return 0;   
 }
-#ifndef HAVE____GSS_USEROK
+#ifndef HAVE___GSS_USEROK
 /* check Kerberos 5  password
  */
 static krb5_error_code kpass(char *name, char *passwd)
