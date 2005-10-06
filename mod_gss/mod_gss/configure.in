@@ -22,7 +22,7 @@ dnl Define MIT libraries
 AC_ARG_ENABLE(mit,
   [  --enable-mit		  enable use of MIT package (default=yes) ],
   [
-    if test "$enableeval" != "no" ; then
+    if test "x$enableval" != "xno" ; then
        AC_DEFINE(HAVE_INIT_CREDS_PASSWORD,1,[Define krb5_get_init_creds_password])
        ac_gss_libs="-lgssapi_krb5 -ldes425 -lkrb5 -lk5crypto -lcom_err"
        enable_arg="mit"
@@ -32,7 +32,7 @@ dnl Define Heimdal libraries
 AC_ARG_ENABLE(heimdal,
   [  --enable-heimdal	  enable use of Heimdal package (default=no) ],
   [
-    if test "$enableeval" != "no" ; then
+    if test "x$enableval" != "xno" ; then
        AC_DEFINE(HAVE_HEIMDAL_KERBEROS,1,[Define Heimdal Kerberos])
        AC_DEFINE(HAVE_INIT_CREDS_PASSWORD,1,[Define krb5_get_init_creds_password])
        ac_gss_libs="-lgssapi -lkrb5 -lcom_err -lasn1 -lroken";
@@ -41,9 +41,16 @@ AC_ARG_ENABLE(heimdal,
 
 dnl Define SEAM libraries
 AC_ARG_ENABLE(seam,
-  [  --enable-seam		  enable use of SEAM(Solaris) package (default=no) ],
+  [  --enable-seam[=src]	  enable use of SEAM(Solaris) package (default=no) ],
   [
-    if test "$enableeval" != "no" ; then
+    if test "x$enableval" != x"no" ; then
+       if test "x$enableval" != x"yes" ; then
+          SRC=$enableval
+       else
+          SRC="/usr/src/"
+       fi
+       CPPFLAGS="-I$SRC/uts/common/gssapi/mechs/krb5/include -I$SRC/lib/gss_mechs/mech_krb5/include"
+       AC_CHECK_HEADERS(krb5.h com_err.h)
        AC_DEFINE(HAVE_SEAM_KERBEROS,1,[Define SEAM Kerberos])
        AC_TRY_COMPILE([#include <gssapi/gssapi.h>],
        [gss_int32 gint;],
@@ -80,7 +87,7 @@ dnl Define NAS libraries
 AC_ARG_ENABLE(nas,
   [  --enable-nas 		  enable use of NAS(AIX) package (default=no) ],
   [
-    if test "$enableeval" != "no" ; then
+    if test "x$enableval" != "xno" ; then
        AC_DEFINE(HAVE_NAS_KERBEROS,1,[Define NAS Kerberos])
        AC_DEFINE(HAVE_INIT_CREDS_PASSWORD,1,[Define krb5_get_init_creds_password])
        ac_gss_libs="-L\/usr\/lib -lksvc -lgssapi_krb5 -lkrb5";
@@ -147,8 +154,29 @@ AH_BOTTOM([#include "conf.h"
 
 #ifdef HAVE_KRB5_H
 /* still testing this for OpenSolaris
-#include "/usr/src/uts/common/gssapi/mechs/krb5/include/krb5.h"
+Source includes are located in:
+/usr/src/uts/common/gssapi/mechs/krb5/include/
+and
+/usr/src/lib/gss_mechs/mech_krb5/include
 */
+#include <krb5.h>
+#ifdef HAVE_COM_ERR_H
+#include <com_err.h>
+#else
+#if defined(__STDC__) || defined(__cplusplus) || defined(_MSDOS) || defined(_WIN32) || defined(macintosh)
+#define ET_P(x) x
+#else
+#define ET_P(x) ()
+#endif /* __STDC__ */
+#ifndef KRB5_CALLCONV
+#define KRB5_CALLCONV
+#define KRB5_DLLIMP
+#endif
+#ifndef FAR
+#define FAR
+#endif
+KRB5_DLLIMP extern const char FAR * KRB5_CALLCONV error_message ET_P((errcode_t));
+#endif
 #else
 /* Seam doesn't have krb5.h so define all here. Assume SEAM is based on MIT sources */
 #define KRB5KDC_ERR_CLIENT_REVOKED               (-1765328366L)
