@@ -43,14 +43,24 @@ dnl Define SEAM libraries
 AC_ARG_ENABLE(seam,
   [  --enable-seam[=src]	  enable use of SEAM(Solaris) package (default=no) ],
   [
-    if test "x$enableval" != x"no" ; then
-       if test "x$enableval" != x"yes" ; then
-          SRC=$enableval
-       else
-          SRC="/usr/src/"
+    if test "x$enableval" != "xno" ; then
+       AC_CHECK_LIB(gss,__gss_userok,AC_DEFINE(HAVE___GSS_USEROK,1,[Define __gss_userok]),)
+       if test "x$ac_cv_lib_gss___gss_userok" == "xno" ; then
+          if test "x$enableval" != "xyes" ; then
+             SRC=$enableval
+          else
+             SRC="/usr/src"
+          fi
+          CPPFLAGS="-I$SRC/uts/common/gssapi/mechs/krb5/include -I$SRC/lib/gss_mechs/mech_krb5/include"
+          AC_CHECK_HEADERS(krb5.h com_err.h)
+          if test "x$ac_cv_header_krb5_h" != "xno" ; then
+             echo " ## ------------------------------------------------------------------------------------------------------ ##"
+             echo " ## Add                                                                                                    ##" 
+             echo " ## --with-includes=$SRC/uts/common/gssapi/mechs/krb5/include:$SRC/lib/gss_mechs/mech_krb5/include ##"
+             echo " ## to proftpd configure command                                                                           ##"
+             echo " ## ------------------------------------------------------------------------------------------------------ ##"
+          fi
        fi
-       CPPFLAGS="-I$SRC/uts/common/gssapi/mechs/krb5/include -I$SRC/lib/gss_mechs/mech_krb5/include"
-       AC_CHECK_HEADERS(krb5.h com_err.h)
        AC_DEFINE(HAVE_SEAM_KERBEROS,1,[Define SEAM Kerberos])
        AC_TRY_COMPILE([#include <gssapi/gssapi.h>],
        [gss_int32 gint;],
@@ -178,6 +188,7 @@ and
 KRB5_DLLIMP extern const char FAR * KRB5_CALLCONV error_message ET_P((errcode_t));
 #endif
 #else
+#ifndef HAVE___GSS_USEROK
 /* Seam doesn't have krb5.h so define all here. Assume SEAM is based on MIT sources */
 #define KRB5KDC_ERR_CLIENT_REVOKED               (-1765328366L)
 #define KRB5KDC_ERR_C_PRINCIPAL_UNKNOWN          (-1765328378L)
@@ -326,6 +337,7 @@ krb5_error_code KRB5_CALLCONV krb5_parse_name
                    krb5_const char *,
                    krb5_principal * ));
 
+#endif /*HAVE___GSS_USEROK */
 #endif /*HAVE_KRB5_H */
 #else /*MIT*/
 #include <gssapi/gssapi.h>

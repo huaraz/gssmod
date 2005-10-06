@@ -74,6 +74,7 @@ static gss_ctx_id_t  gcontext=GSS_C_NO_CONTEXT;
 static unsigned int  maxbuf, actualbuf;
 static unsigned char *ucbuf;
 static gss_buffer_desc client_name,server_name;
+static gss_name_t      client = GSS_C_NO_NAME;
    
 /* mod_gss session flags */
 #define GSS_SESS_AUTH_OK		0x0001
@@ -115,7 +116,9 @@ static void log_gss_error(OM_uint32 maj_stat, OM_uint32 min_stat, char *s);
 static ssize_t looping_read(int fd, register char *buf,register int len);
 static ssize_t looping_write(int fd, register const char *buf, int len);
 static int gss_dispatch(char *buf);
+#ifndef HAVE____GSS_USEROK
 static krb5_error_code kpass(char *name, char *pass);
+#endif
 static void gss_switch_keytab(char *name,int flag);
 
 static int gss_openlog(server_rec *s);
@@ -712,6 +715,33 @@ static int gss_openlog(server_rec *s) {
  *   cmd->argv[1]: cleartext password
  */
 MODRET gss_authenticate(cmd_rec *cmd) {
+#ifdef HAVE___GSS_USEROK
+    OM_uint32       maj_stat, min_stat;
+    int             user_ok;
+    
+    if (!client_name.value) {
+        if (gss_flags & GSS_SESS_ADAT_OK ) {
+           gss_log("GSSAPI Client name not set, but ADAT successful");
+           return ERROR_INT(cmd,PR_AUTH_ERROR);
+        } else {
+           gss_log("GSSAPI Client name not set and ADAT not successful. Use other methods to authenticate.");
+           return DECLINED(cmd);
+        }
+    }
+
+    PRIVS_ROOT
+    maj_stat = __gss_userok(&min_stat, client,
+                            cmd->argv[0], &user_ok);
+    PRIVS_RELINQUISH
+    if (maj_stat== GSS_S_COMPLETE) {
+        if (user_ok) {
+            gss_log("GSSAPI User %s is authorized as %s.", (char *) client_name.value,cmd->argv[0]);
+            return mod_create_data(cmd, (void *) PR_AUTH_RFC2228_OK);
+        }
+    }
+    gss_log("GSSAPI User %s is not authorized. Use other methods to authenticate.", cmd->argv[0]);
+    return DECLINED(cmd);
+#else
     krb5_boolean k5ret;
     krb5_context kc;
     krb5_principal p;
@@ -786,6 +816,7 @@ MODRET gss_authenticate(cmd_rec *cmd) {
     }
     gss_log("GSSAPI User %s is not authorized. Use other methods to authenticate.", cmd->argv[0]);
     return DECLINED(cmd);
+#endif
 }
 /* This function does the main authentication work, and is called in the
  * normal course of events:
@@ -793,6 +824,33 @@ MODRET gss_authenticate(cmd_rec *cmd) {
  *   cmd->argv[0]: user name
  */
 MODRET gss_auth_requires_pass(cmd_rec *cmd) {
+#ifdef HAVE___GSS_USEROK
+    OM_uint32       maj_stat, min_stat;
+    int             user_ok;
+
+    if (!client_name.value) {
+        if (gss_flags & GSS_SESS_ADAT_OK ) {
+           gss_log("GSSAPI Client name not set, but ADAT successful");
+           return ERROR_INT(cmd,PR_AUTH_ERROR);
+        } else {
+           gss_log("GSSAPI Client name not set and ADAT not successful. Use other methods to authenticate.");
+           return DECLINED(cmd);
+        }
+    }
+
+    PRIVS_ROOT
+    maj_stat = __gss_userok(&min_stat, client,
+                            cmd->argv[0], &user_ok);
+    PRIVS_RELINQUISH
+    if (maj_stat== GSS_S_COMPLETE) {
+        if (user_ok) {
+            gss_log("GSSAPI User %s is authorized as %s.", (char *) client_name.value,cmd->argv[0]);
+            return mod_create_data(cmd, (void *) PR_AUTH_RFC2228_OK);
+        }
+    }
+    gss_log("GSSAPI User %s is not authorized. Use other methods to authenticate.", cmd->argv[0]);
+    return DECLINED(cmd);
+#else
     krb5_boolean k5ret;
     krb5_context kc;
     krb5_principal p;
@@ -843,6 +901,7 @@ MODRET gss_auth_requires_pass(cmd_rec *cmd) {
     }
     gss_log("GSSAPI User %s is not authorized as %s. Use other methods to authenticate.", (char *) client_name.value,cmd->argv[0]);
     return DECLINED(cmd);
+#endif
 }
 /* This function does the main authentication work, and is called in the
  * normal course of events:
@@ -852,6 +911,33 @@ MODRET gss_auth_requires_pass(cmd_rec *cmd) {
  *   cmd->argv[2]: cleartext password
  */
 MODRET gss_auth_check(cmd_rec *cmd) {
+#ifdef HAVE___GSS_USEROK
+    OM_uint32       maj_stat, min_stat;
+    int             user_ok;
+
+    if (!client_name.value) {
+        if (gss_flags & GSS_SESS_ADAT_OK ) {
+           gss_log("GSSAPI Client name not set, but ADAT successful");
+           return ERROR_INT(cmd,PR_AUTH_ERROR);
+        } else {
+           gss_log("GSSAPI Client name not set and ADAT not successful. Use other methods to authenticate.");
+           return DECLINED(cmd);
+        }
+    }
+
+    PRIVS_ROOT
+    maj_stat = __gss_userok(&min_stat, client,
+                            cmd->argv[1], &user_ok);
+    PRIVS_RELINQUISH
+    if (maj_stat== GSS_S_COMPLETE) {
+        if (user_ok) {
+            gss_log("GSSAPI User %s is authorized as %s.", (char *) client_name.value,cmd->argv[1]);
+            return mod_create_data(cmd, (void *) PR_AUTH_RFC2228_OK);
+        }
+    }
+    gss_log("GSSAPI User %s is not authorized. Use other methods to authenticate.", cmd->argv[1]);
+    return DECLINED(cmd);
+#else
     krb5_boolean k5ret;
     krb5_context kc;
     krb5_principal p;
@@ -927,7 +1013,7 @@ MODRET gss_auth_check(cmd_rec *cmd) {
     }
     gss_log("GSSAPI User %s is not authorized. Use other methods to authenticate.", cmd->argv[1]);
     return DECLINED(cmd);
-
+#endif
 }
 
 
@@ -1380,7 +1466,6 @@ MODRET gss_adat(cmd_rec *cmd) {
 
     gss_buffer_desc tok, out_tok, name_buf;
     gss_name_t      server;
-    gss_name_t      client;
     gss_cred_id_t   server_creds;
     gss_OID         mechid;
     OM_uint32 acquire_maj=0, acquire_min;
@@ -2474,6 +2559,7 @@ static int gss_dispatch(char *buf)
 
     return 0;   
 }
+#ifndef HAVE____GSS_USEROK
 /* check Kerberos 5  password
  */
 static krb5_error_code kpass(char *name, char *passwd)
@@ -2542,11 +2628,11 @@ static krb5_error_code kpass(char *name, char *passwd)
         krb5_free_context(kc);
 	return 0;
 #else
-
         return 1;
 #endif
 
 }
+#endif
 /* Set/Unset keytab name
 */
 void gss_switch_keytab(char *keytab_file, int sflag){
