@@ -415,9 +415,9 @@ void unsetenv(char *env_name) {
 ])
 AC_OUTPUT()
 
-echo "configure: ## ----------------------##"
-echo "configure: ## Select $enable_arg"
-echo "configure: ## ----------------------##"
+echo "configure: ## -----------------------------##"
+echo "configure: ## $enable_arg" has been selected
+echo "configure: ## -----------------------------##"
 
 echo "configure: updating mod_gss.h"
 sed -e "s/|MAIL|/"$PACKAGE_BUGREPORT"/" mod_gss.h > .mod_gss.h.tmp
