@@ -729,10 +729,12 @@ MODRET gss_authenticate(cmd_rec *cmd) {
         }
     }
 
+    pr_signals_block();
     PRIVS_ROOT
     maj_stat = __gss_userok(&min_stat, client,
                             cmd->argv[0], &user_ok);
     PRIVS_RELINQUISH
+    pr_signals_unblock();
     if (maj_stat== GSS_S_COMPLETE) {
         if (user_ok) {
             gss_log("GSSAPI User %s is authorized as %s.", (char *) client_name.value,cmd->argv[0]);
@@ -925,10 +927,12 @@ MODRET gss_auth_check(cmd_rec *cmd) {
         }
     }
 
+    pr_signals_block();
     PRIVS_ROOT
     maj_stat = __gss_userok(&min_stat, client,
                             cmd->argv[1], &user_ok);
     PRIVS_RELINQUISH
+    pr_signals_unblock();
     if (maj_stat== GSS_S_COMPLETE) {
         if (user_ok) {
             gss_log("GSSAPI User %s is authorized as %s.", (char *) client_name.value,cmd->argv[1]);
