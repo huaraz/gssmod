@@ -3304,27 +3304,6 @@ _ACEOF
        enable_arg="seam"
 }
 
-sys=`uname`
-case $sys in
-           Linux) rpm -q heimdal-lib 2>&1 >/dev/null
-                  if test $? == 0 ; then
-                    check_heimdal
-                  fi
-                  ;;
-           AIX)   lslpp -L krb5.client.rte 2>&1 >/dev/null
-                  if test $? == 0 ; then
-                    check_nas
-                  fi
-                  ;;
-           SunOS) pkginfo SUNWgss 2>&1 >/dev/null
-                  if test $? == 0 ; then
-                    check_seam
-                  fi
-                  ;;
-           *) check_mit
-              ;;
-esac
-
 # Check whether --enable-mit or --disable-mit was given.
 if test "${enable_mit+set}" = set; then
   enableval="$enable_mit"
@@ -3362,7 +3341,28 @@ if test "${enable_seam+set}" = set; then
 fi;
 
 if test "$enable_arg" = "no"; then
-   check_mit
+
+    sys=`uname`
+  case $sys in
+           Linux) rpm -q heimdal-lib 2>&1 >/dev/null
+                  if test $? == 0 ; then
+                    check_heimdal
+                  fi
+                  ;;
+           AIX)   lslpp -L krb5.client.rte 2>&1 >/dev/null
+                  if test $? == 0 ; then
+                    check_nas
+                  fi
+                  ;;
+           SunOS) pkginfo SUNWgss 2>&1 >/dev/null
+                  if test $? == 0 ; then
+                    check_seam
+                  fi
+                  ;;
+           *) check_mit
+              ;;
+  esac
+
 fi
 
 

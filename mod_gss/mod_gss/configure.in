@@ -87,28 +87,6 @@ check_seam(){
        enable_arg="seam"
 }
 
-dnl Autodetect system
-sys=`uname`
-case $sys in
-           Linux) rpm -q heimdal-lib 2>&1 >/dev/null
-                  if test $? == 0 ; then
-                    check_heimdal
-                  fi 
-                  ;;
-           AIX)   lslpp -L krb5.client.rte 2>&1 >/dev/null
-                  if test $? == 0 ; then
-                    check_nas
-                  fi
-                  ;;
-           SunOS) pkginfo SUNWgss 2>&1 >/dev/null
-                  if test $? == 0 ; then
-                    check_seam
-                  fi
-                  ;;
-           *) check_mit
-              ;;
-esac
-
 dnl Define MIT libraries
 AC_ARG_ENABLE(mit,
   [  --enable-mit		  enable use of MIT package (default=yes) ],
@@ -141,9 +119,31 @@ AC_ARG_ENABLE(seam,
        check_seam
     fi ])
 
-dnl Define MIT as default 
+dnl Define system default
 if test "$enable_arg" = "no"; then
-   check_mit
+
+  dnl Autodetect system
+  sys=`uname`
+  case $sys in
+           Linux) rpm -q heimdal-lib 2>&1 >/dev/null
+                  if test $? == 0 ; then
+                    check_heimdal
+                  fi 
+                  ;;
+           AIX)   lslpp -L krb5.client.rte 2>&1 >/dev/null
+                  if test $? == 0 ; then
+                    check_nas
+                  fi
+                  ;;
+           SunOS) pkginfo SUNWgss 2>&1 >/dev/null
+                  if test $? == 0 ; then
+                    check_seam
+                  fi
+                  ;;
+           *) check_mit
+              ;;
+  esac
+
 fi
 
 AC_CHECK_FUNCS(unsetenv)
@@ -394,9 +394,6 @@ const char *KRB5_CALLCONV error_message(long code) {
 #define GSS_C_AF_INET6 24
 #endif
 
-#define MOD_GSS_VERSION         PACKAGE_NAME"/"PACKAGE_VERSION
-#define C_FWCCC   "FWCCC"       /* FW support PORT/EPORT/PASV/EPASV in clear */
-
 extern session_t session;
 extern xaset_t *server_list;
 
@@ -411,6 +408,47 @@ void unsetenv(char *env_name) {
   } for (; *cc != NULL; cc++) *cc=cc[1];
 }
 #endif
+
+/* gss module definitions and variables */
+
+#define MOD_GSS_VERSION         PACKAGE_NAME"/"PACKAGE_VERSION
+#define C_FWCCC   "FWCCC"       /* FW support PORT/EPORT/PASV/EPASV in clear */
+
+/* mod_gss session flags */
+#define GSS_SESS_AUTH_OK                0x0001
+#define GSS_SESS_ADAT_OK                0x0002
+#define GSS_SESS_PBSZ_OK                0x0004
+#define GSS_SESS_DATA_OPEN              0x0010
+#define GSS_SESS_DATA_ERROR             0x0020
+#define GSS_SESS_DATA_READ_ERROR        0x0040
+#define GSS_SESS_DISPATCH               0x0100
+#define GSS_SESS_CCC                    0x0200
+#define GSS_SESS_FWCCC                  0x0400
+#define GSS_SESS_INT_SUP                0x1000
+#define GSS_SESS_CONF_SUP               0x2000
+#define GSS_AUTH_AUTHORITATIVE          0x4000
+
+#define GSS_SESS_PROT_C                 0x0000
+#define GSS_SESS_PROT_S                 0x0001
+#define GSS_SESS_PROT_P                 0x0002
+#define GSS_SESS_PROT_E                 0x0004
+
+/* mod_gss option flags*/
+#define GSS_OPT_ALLOW_CCC               0x0001
+#define GSS_OPT_ALLOW_FW_CCC            0x0002
+#define GSS_OPT_ALLOW_FW_NAT            0x0004
+#define GSS_OPT_REQUIRE_SEQ_PROT        0x0010
+#define GSS_OPT_REQUIRE_REP_PROT        0x0020
+
+static unsigned char gss_engine = FALSE;
+static unsigned long gss_flags = 0UL, gss_prot_flags = 0UL, gss_opts = 0UL;
+static int           gss_logfd = -1;
+static char          *gss_logname = NULL;
+static unsigned char gss_required_on_ctrl = FALSE;
+static unsigned char gss_required_on_data = FALSE;
+static gss_ctx_id_t  gcontext=GSS_C_NO_CONTEXT;
+static gss_buffer_desc client_name,server_name;
+static gss_name_t      client = GSS_C_NO_NAME;
 
 ])
 AC_OUTPUT()
