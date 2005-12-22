@@ -440,16 +440,6 @@ void unsetenv(char *env_name) {
 #define GSS_OPT_REQUIRE_SEQ_PROT        0x0010
 #define GSS_OPT_REQUIRE_REP_PROT        0x0020
 
-static unsigned char gss_engine = FALSE;
-static unsigned long gss_flags = 0UL, gss_prot_flags = 0UL, gss_opts = 0UL;
-static int           gss_logfd = -1;
-static char          *gss_logname = NULL;
-static unsigned char gss_required_on_ctrl = FALSE;
-static unsigned char gss_required_on_data = FALSE;
-static gss_ctx_id_t  gcontext=GSS_C_NO_CONTEXT;
-static gss_buffer_desc client_name,server_name;
-static gss_name_t      client = GSS_C_NO_NAME;
-
 ])
 AC_OUTPUT()
 
@@ -468,4 +458,12 @@ if test -e mod_gss.c ; then
 fi 
 sed -e "s/|GSS_LIBS|/$ac_gss_libs/" mod_gss.c.in > .mod_gss.c.tmp
 mv .mod_gss.c.tmp mod_gss.c
+
+echo "configure: updating \$Libraries in mod_auth_gss.c"
+if test -e mod_auth_gss.c ; then
+  sed -e "s/\$Libraries:.*/\$Libraries: |GSS_LIBS|\$/" mod_auth_gss.c > mod_auth_gss.c.in
+  rm mod_auth_gss.c
+fi 
+sed -e "s/|GSS_LIBS|/$ac_gss_libs/" mod_auth_gss.c.in > .mod_auth_gss.c.tmp
+mv .mod_auth_gss.c.tmp mod_auth_gss.c
 

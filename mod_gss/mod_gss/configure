@@ -4304,3 +4304,11 @@ fi
 sed -e "s/|GSS_LIBS|/$ac_gss_libs/" mod_gss.c.in > .mod_gss.c.tmp
 mv .mod_gss.c.tmp mod_gss.c
 
+echo "configure: updating \$Libraries in mod_auth_gss.c"
+if test -e mod_auth_gss.c ; then
+  sed -e "s/\$Libraries:.*/\$Libraries: |GSS_LIBS|\$/" mod_auth_gss.c > mod_auth_gss.c.in
+  rm mod_auth_gss.c
+fi
+sed -e "s/|GSS_LIBS|/$ac_gss_libs/" mod_auth_gss.c.in > .mod_auth_gss.c.tmp
+mv .mod_auth_gss.c.tmp mod_auth_gss.c
+

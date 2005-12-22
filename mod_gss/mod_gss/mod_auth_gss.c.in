@@ -1,0 +1,378 @@
+/*
+ * mod_auth_gss - an RFC2228 GSSAPI auth module for ProFTPD
+ *
+ * Copyright (c) 2002-2005 M Moeller <markus_moeller@compuserve.com>
+ * All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307, USA.
+ *
+ * As a special exemption, M Moeller gives permission to link this program
+ * with MIT, Heimdal or other GSS/Kerberos libraries, and distribute
+ * the resulting executable, without including the source code for
+ * for the Libraries in the source distribution.
+ *
+ *  --- DO NOT DELETE BELOW THIS LINE ----
+ *  $Libraries: |GSS_LIBS|$
+ *
+ *  $MIT-Libraries: -lgssapi_krb5 -ldes425 -lkrb5 -lk5crypto -lcom_err$
+ *  $HEIMDAL-Libraries: -lgssapi -lkrb5 -lcom_err -lasn1 -lroken$
+ *  $SEAM-Libraries: -lgss -R/usr/lib/gss/(gl|do/) -Wl,/usr/lib/gss/(gl|do/)mech_krb5.so$
+ *  $NAS-Libraries: -L/usr/lib -lksvc -lgssapi_krb5 -lkrb5$
+ * 
+ * $Id$
+ * $Source$
+ * $Author$
+ * $Date$
+ */
+
+#include "mod_gss.h"
+extern unsigned char gss_engine;
+extern unsigned long gss_flags;
+extern int gss_logfd;
+extern char *gss_logname;
+extern gss_buffer_desc client_name;
+
+module auth_gss_module;
+
+#define MOD_GSS_AUTH_VERSION "mod_auth_gss/0.9"
+   
+static int gss_log(const char *fmt, ...) {
+    char buf[PR_TUNABLE_BUFFER_SIZE] = {'\0'};
+    char *mbuf;
+    time_t timestamp = time(NULL);
+    struct tm *t = NULL;
+    va_list msg;
+
+    /* Sanity check */
+    if (!gss_logname) {
+ 
+	return 0;
+    }
+
+    if (!strcasecmp(gss_logname, "syslog")) {
+        va_start(msg, fmt);
+        vsnprintf(buf, sizeof(buf), fmt, msg);
+        va_end(msg);
+        buf[sizeof(buf)-1] = '\0';
+        pr_log_pri(PR_LOG_NOTICE,buf);
+	return 0;
+    }
+	  
+
+    t = localtime(&timestamp);
+
+    /* Prepend the timestamp */
+    strftime(buf, sizeof(buf), "%b %d %H:%M:%S ", t);
+    buf[sizeof(buf)-1] = '\0';
+
+    /* Prepend a small header */
+    snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), MOD_GSS_AUTH_VERSION
+	     "[%u]: ", (unsigned int) getpid());
+    buf[sizeof(buf)-1] = '\0';
+    mbuf = buf + strlen(buf);
+
+    /* Affix the message */
+    va_start(msg, fmt);
+    vsnprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), fmt, msg);
+    va_end(msg);
+
+    buf[strlen(buf)] = '\n';
+    buf[sizeof(buf)-1] = '\0';
+
+    pr_log_pri(PR_LOG_NOTICE,mbuf);
+    if (write(gss_logfd, buf, strlen(buf)) < 0)
+	return -1;
+
+    return 0;
+}
+
+/* Authentication handlers
+*/
+/* This function does the main authentication work, and is called in the
+ * normal course of events:
+ *
+ *   cmd->argv[0]: user name
+ *   cmd->argv[1]: cleartext password
+ */
+MODRET auth_gss_authenticate(cmd_rec *cmd) {
+    krb5_context kc;
+    krb5_principal p;
+    krb5_error_code kerr;
+#ifdef HAVE_HEIMDAL_KERBEROS
+    PrincipalName *pn;
+#endif
+    char *princ_name;
+
+    if (!gss_engine)
+	return DECLINED(cmd);
+
+    /* only allow Kerberos 5 authentication if GSSAPI was used */
+    if ( !(gss_flags & GSS_SESS_AUTH_OK) )
+	return DECLINED(cmd);
+
+    kerr = krb5_init_context(&kc);
+    if (kerr) {
+        gss_log("GSSAPI-AUTH Could not initialise krb5 context (%s)",error_message(kerr));
+        return ERROR_INT(cmd,PR_AUTH_ERROR);
+    }
+    
+    if (!client_name.value) {
+        if (gss_flags & GSS_SESS_ADAT_OK ) {
+           gss_log("GSSAPI-AUTH Client name not set, but ADAT successful");
+           return ERROR_INT(cmd,PR_AUTH_ERROR);
+        } else {
+           gss_log("GSSAPI-AUTH Client name not set and ADAT not successful. Use other methods to authenticate.");       
+           return DECLINED(cmd);
+	} 
+    }
+
+    kerr = krb5_parse_name(kc, client_name.value, &p);
+    if (kerr) { 
+        gss_log("GSSAPI-AUTH Could not parse krb5 name (%s).",error_message(kerr));
+        krb5_free_context(kc);
+        return ERROR_INT(cmd,PR_AUTH_ERROR);
+    }
+
+    /* compare authnid vs authzid UPENN example */
+#ifdef HAVE_HEIMDAL_KERBEROS
+    kerr = krb5_principal2principalname(pn,p);
+    if (kerr) { 
+        gss_log("GSSAPI-AUTH Could not parse krb5 name (%s).",error_message(kerr));
+        krb5_free_context(kc);
+        return ERROR_INT(cmd,PR_AUTH_ERROR);
+    }
+    /* might need to check pn->name_string.len */
+    princ_name = pn->name_string.val[0];
+#else
+    princ_name = krb5_princ_name(kc,p)->data;
+#endif
+    gss_log("GSSAPI-UPENN User client_name.value: %s cmd->argv[0]: %s.", (char *) client_name.value,cmd->argv[0]);
+    if(strcmp(princ_name,cmd->argv[0]) == 0) {
+ 	gss_log("GSSAPI-UPENN User %s is authorized as %s.", (char *) client_name.value,cmd->argv[0]);
+ 	krb5_free_principal(kc, p);
+ 	return mod_create_data(cmd, (void *) PR_AUTH_RFC2228_OK);
+    }		
+
+    krb5_free_principal(kc, p);
+    gss_log("GSSAPI-AUTH User %s is not authorized. Use other methods to authenticate.", cmd->argv[0]);
+    return DECLINED(cmd);
+}
+/* This function does the main authentication work, and is called in the
+ * normal course of events:
+ *
+ *   cmd->argv[0]: user name
+ */
+MODRET auth_gss_requires_pass(cmd_rec *cmd) {
+    krb5_context kc;
+    krb5_principal p;
+    krb5_error_code kerr;
+#ifdef HAVE_HEIMDAL_KERBEROS
+    PrincipalName *pn;
+#endif
+    char *princ_name;
+
+    if (!gss_engine)
+	return DECLINED(cmd);
+
+    /* only allow Kerberos 5 authentication if GSSAPI was used */
+    if ( !(gss_flags & GSS_SESS_AUTH_OK) )
+	return DECLINED(cmd);
+
+    kerr = krb5_init_context(&kc);
+    if (kerr) {
+        gss_log("GSSAPI-AUTH Could not initialise krb5 context (%s)",error_message(kerr));
+        return ERROR_INT(cmd,PR_AUTH_ERROR);
+    }
+    
+    if (!client_name.value) {
+        if (gss_flags & GSS_SESS_ADAT_OK ) {
+           gss_log("GSSAPI-AUTH Client name not set, but ADAT successful");
+           return ERROR_INT(cmd,PR_AUTH_ERROR);
+        } else {
+           gss_log("GSSAPI-AUTH Client name not set and ADAT not successful. Use other methods to authenticate.");       
+           return DECLINED(cmd);
+	} 
+    }
+
+    kerr = krb5_parse_name(kc, client_name.value, &p);
+    if (kerr) { 
+        gss_log("GSSAPI-AUTH Could not parse krb5 name (%s).",error_message(kerr));
+        krb5_free_context(kc);
+        return ERROR_INT(cmd,PR_AUTH_ERROR);
+    }
+
+    /* compare authnid vs authzid UPENN example */
+#ifdef HAVE_HEIMDAL_KERBEROS
+    kerr = krb5_principal2principalname(pn,p);
+    if (kerr) {
+        gss_log("GSSAPI-UPENN Could not parse krb5 name (%s).",error_message(kerr));
+        krb5_free_context(kc);
+        return ERROR_INT(cmd,PR_AUTH_ERROR);
+    }
+    /* might need to check pn->name_string.len */
+    princ_name = pn->name_string.val[0];
+#else
+    princ_name = krb5_princ_name(kc,p)->data;
+#endif
+    gss_log("GSSAPI-UPENN User client_name.value: %s cmd->argv[0]: %s.", (char *) client_name.value,cmd->argv[0]);
+    if(strcmp(princ_name,cmd->argv[0]) == 0) {
+ 	gss_log("GSSAPI-UPENN User %s is authorized as %s.", (char *) client_name.value,cmd->argv[0]);
+ 	krb5_free_principal(kc, p);
+ 	return mod_create_data(cmd, (void *) PR_AUTH_RFC2228_OK);
+    }
+		
+    krb5_free_principal(kc, p);
+    gss_log("GSSAPI-AUTH User %s is not authorized. Use other methods to authenticate.", cmd->argv[0]);
+    return DECLINED(cmd);
+}
+/* This function does the main authentication work, and is called in the
+ * normal course of events:
+ *
+ *   cmd->argv[0]: hashed password
+ *   cmd->argv[1]: user name
+ *   cmd->argv[2]: cleartext password
+ */
+MODRET auth_gss_check(cmd_rec *cmd) {
+    krb5_context kc;
+    krb5_principal p;
+    krb5_error_code kerr;
+#ifdef HAVE_HEIMDAL_KERBEROS
+    PrincipalName *pn;
+#endif
+    char *princ_name;
+
+    if (!gss_engine)
+	return DECLINED(cmd);
+
+    /* only allow Kerberos 5 authentication if GSSAPI was used */
+    if ( !(gss_flags & GSS_SESS_AUTH_OK) )
+	return DECLINED(cmd);
+    
+
+    kerr = krb5_init_context(&kc);
+    if (kerr) {
+        gss_log("GSSAPI-AUTH Could not initialise krb5 context (%s).",error_message(kerr));
+        return ERROR_INT(cmd,PR_AUTH_ERROR);
+    }
+
+    if (!client_name.value) {
+        if (gss_flags & GSS_SESS_ADAT_OK ) {
+           gss_log("GSSAPI-AUTH Client name not set, but ADAT successful");
+	   return ERROR_INT(cmd,PR_AUTH_ERROR);
+        } else {
+           gss_log("GSSAPI-AUTH Client name not set and ADAT not successful. Use other methods to authenticate.");
+           return DECLINED(cmd);
+	}
+    }
+
+    kerr = krb5_parse_name(kc, client_name.value, &p);
+    if (kerr) { 
+        gss_log("GSSAPI-AUTH Could not parse krb5 name (%s).",error_message(kerr));
+        krb5_free_context(kc);
+        return ERROR_INT(cmd,PR_AUTH_ERROR);
+    }
+
+    /* compare authnid vs authzid UPENN example */
+#ifdef HAVE_HEIMDAL_KERBEROS
+    kerr = krb5_principal2principalname(pn,p);
+    if (kerr) {
+        gss_log("GSSAPI-UPENN Could not parse krb5 name (%s).",error_message(kerr));
+        krb5_free_context(kc);
+        return ERROR_INT(cmd,PR_AUTH_ERROR);
+    }
+    /* might need to check pn->name_string.len */
+    princ_name = pn->name_string.val[0];
+#else
+    princ_name = krb5_princ_name(kc,p)->data;
+#endif
+    gss_log("GSSAPI-UPENN User client_name.value: %s cmd->argv[1]: %s.", (char *) client_name.value,cmd->argv[1]);
+    if(strcmp(princ_name,cmd->argv[1]) == 0) {
+ 	gss_log("GSSAPI-UPENN User %s is authorized as %s.", (char *) client_name.value,cmd->argv[1]);
+ 	krb5_free_principal(kc, p);
+ 	return mod_create_data(cmd, (void *) PR_AUTH_RFC2228_OK);
+    }
+		
+    krb5_free_principal(kc, p);
+    gss_log("GSSAPIi-AUTH User %s is not authorized. Use other methods to authenticate.", cmd->argv[1]);
+    return DECLINED(cmd);
+}
+
+
+/* Initialization routines
+ */
+
+static int auth_gss_init(void) {
+
+    if (!gss_engine)
+	return 0;
+
+    /* Make sure the version of proftpd is as necessary. */
+    if (PROFTPD_VERSION_NUMBER < 0x0001030001) {
+        pr_log_pri(LOG_ERR, MOD_GSS_AUTH_VERSION " requires proftpd 1.3.0rc1 and later");
+        exit(1);
+    }
+    return 0;
+}
+
+static int auth_gss_sess_init(void) {
+
+    return 0;
+}
+
+/* Module API tables
+ */
+static conftable auth_gss_conftab[] = {
+    { NULL , NULL, NULL}
+};
+
+static cmdtable auth_gss_cmdtab[] = {
+    { 0,	NULL }
+};
+
+static authtable auth_gss_authtab[] = {
+/* authenticate a user */
+    { 0, "auth",	auth_gss_authenticate },
+/* check password */
+    { 0, "check",	auth_gss_check },
+    { 0, "requires_pass",	auth_gss_requires_pass},
+    { 0, NULL }
+};
+
+module auth_gss_module = {
+
+    /* Always NULL */
+    NULL, NULL,
+
+    /* Module API version */
+    0x20,
+
+    /* Module name */
+    "auth_gss",
+
+    /* Module configuration handler table */
+    auth_gss_conftab,
+
+    /* Module command handler table */
+    auth_gss_cmdtab,
+
+    /* Module authentication handler table */
+    auth_gss_authtab,
+
+    /* Module initialization (global)*/
+    auth_gss_init,
+
+    /* Session initialization (child)*/
+    auth_gss_sess_init
+};

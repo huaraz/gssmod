@@ -21,7 +21,7 @@
  * As a special exemption, M Moeller gives permission to link this program
  * with MIT, Heimdal or other GSS/Kerberos libraries, and distribute
  * the resulting executable, without including the source code for
- * for the Libraries in the source distribution.
+ * the Libraries in the source distribution.
  *
  *  --- DO NOT DELETE BELOW THIS LINE ----
  *  $Libraries: |GSS_LIBS|$
@@ -58,6 +58,17 @@
 #include "mod_gss.h"
 
 module gss_module;
+
+/* Module variables maybe used externaly */
+unsigned char gss_engine = FALSE;
+unsigned long gss_flags = 0UL, gss_prot_flags = 0UL, gss_opts = 0UL;
+int           gss_logfd = -1;
+char          *gss_logname = NULL;
+unsigned char gss_required_on_ctrl = FALSE;
+unsigned char gss_required_on_data = FALSE;
+gss_ctx_id_t  gcontext=GSS_C_NO_CONTEXT;
+gss_buffer_desc client_name,server_name;
+gss_name_t      client = GSS_C_NO_NAME;
 
 /* Module variables */
 static char *radixN = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
