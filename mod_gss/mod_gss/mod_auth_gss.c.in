@@ -46,8 +46,6 @@ extern gss_buffer_desc client_name;
 
 module auth_gss_module;
 
-#define MOD_GSS_AUTH_VERSION "mod_auth_gss/0.9"
-   
 static int gss_log(const char *fmt, ...) {
     char buf[PR_TUNABLE_BUFFER_SIZE] = {'\0'};
     char *mbuf;
@@ -78,7 +76,7 @@ static int gss_log(const char *fmt, ...) {
     buf[sizeof(buf)-1] = '\0';
 
     /* Prepend a small header */
-    snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), MOD_GSS_AUTH_VERSION
+    snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), MOD_AUTH_GSS_VERSION
 	     "[%u]: ", (unsigned int) getpid());
     buf[sizeof(buf)-1] = '\0';
     mbuf = buf + strlen(buf);

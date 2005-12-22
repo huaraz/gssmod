@@ -412,6 +412,7 @@ void unsetenv(char *env_name) {
 /* gss module definitions and variables */
 
 #define MOD_GSS_VERSION         PACKAGE_NAME"/"PACKAGE_VERSION
+#define MOD_AUTH_GSS_VERSION    "mod_auth_gss/"PACKAGE_VERSION
 #define C_FWCCC   "FWCCC"       /* FW support PORT/EPORT/PASV/EPASV in clear */
 
 /* mod_gss session flags */
