@@ -1,488 +1,278 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
-<html xmlns:v="urn:schemas-microsoft-com:vml"
-xmlns:o="urn:schemas-microsoft-com:office:office"
-xmlns:w="urn:schemas-microsoft-com:office:word"
-xmlns="http://www.w3.org/TR/REC-html40">
+<!-- $Id$ -->
+<!-- $Source$ -->
 
+<html>
 <head>
-<meta http-equiv=Content-Type content="text/html; charset=windows-1252">
-<meta name=ProgId content=Word.Document>
-<meta name=Generator content="Microsoft Word 9">
-<meta name=Originator content="Microsoft Word 9">
-<link rel=File-List href="./mod_gss_n_files/filelist.xml">
-<link rel=Edit-Time-Data href="./mod_gss_n_files/editdata.mso">
-<!--[if !mso]>
-<style>
-v\:* {behavior:url(#default#VML);}
-o\:* {behavior:url(#default#VML);}
-w\:* {behavior:url(#default#VML);}
-.shape {behavior:url(#default#VML);}
-</style>
-<![endif]-->
 <title>ProFTPD module mod_gss</title>
-<!--[if gte mso 9]><xml>
- <o:DocumentProperties>
-  <o:Author>Markus</o:Author>
-  <o:LastAuthor>Markus</o:LastAuthor>
-  <o:Revision>14</o:Revision>
-  <o:TotalTime>63</o:TotalTime>
-  <o:Created>2005-10-08T17:30:00Z</o:Created>
-  <o:LastSaved>2005-10-08T18:30:00Z</o:LastSaved>
-  <o:Pages>4</o:Pages>
-  <o:Words>913</o:Words>
-  <o:Characters>5208</o:Characters>
-  <o:Company>Home</o:Company>
-  <o:Lines>43</o:Lines>
-  <o:Paragraphs>10</o:Paragraphs>
-  <o:CharactersWithSpaces>6395</o:CharactersWithSpaces>
-  <o:Version>9.6926</o:Version>
- </o:DocumentProperties>
-</xml><![endif]-->
-<style>
-<!--
- /* Font Definitions */
-@font-face
-	{font-family:Wingdings;
-	panose-1:5 0 0 0 0 0 0 0 0 0;
-	mso-font-charset:2;
-	mso-generic-font-family:auto;
-	mso-font-pitch:variable;
-	mso-font-signature:0 268435456 0 0 -2147483648 0;}
- /* Style Definitions */
-p.MsoNormal, li.MsoNormal, div.MsoNormal
-	{mso-style-parent:"";
-	margin:0cm;
-	margin-bottom:.0001pt;
-	mso-pagination:widow-orphan;
-	font-size:12.0pt;
-	font-family:"Times New Roman";
-	mso-fareast-font-family:"Times New Roman";}
-p
-	{font-size:12.0pt;
-	font-family:"Times New Roman";
-	mso-fareast-font-family:"Times New Roman";}
-code
-	{mso-ascii-font-family:"Courier New";
-	mso-fareast-font-family:"Courier New";
-	mso-hansi-font-family:"Courier New";
-	mso-bidi-font-family:"Courier New";}
-pre
-	{margin:0cm;
-	margin-bottom:.0001pt;
-	font-size:10.0pt;
-	font-family:"Courier New";
-	mso-fareast-font-family:"Courier New";}
-@page Section1
-	{size:595.3pt 841.9pt;
-	margin:72.0pt 90.0pt 72.0pt 90.0pt;
-	mso-header-margin:35.4pt;
-	mso-footer-margin:35.4pt;
-	mso-paper-source:0;}
-div.Section1
-	{page:Section1;}
- /* List Definitions */
-@list l0
-	{mso-list-id:1667245357;
-	mso-list-type:hybrid;
-	mso-list-template-ids:-869517658 -900579054 -695289932 418159792 -1449223290 -750644976 -67098226 -1671155782 2075709724 -899271904;}
-@list l0:level1
-	{mso-level-number-format:bullet;
-	mso-level-text:\F0B7;
-	mso-level-tab-stop:36.0pt;
-	mso-level-number-position:left;
-	text-indent:-18.0pt;
-	mso-ansi-font-size:10.0pt;
-	font-family:Symbol;}
-ol
-	{margin-bottom:0cm;}
-ul
-	{margin-bottom:0cm;}
--->
-</style>
-<!--[if gte mso 9]><xml>
- <o:shapedefaults v:ext="edit" spidmax="1027"/>
-</xml><![endif]--><!--[if gte mso 9]><xml>
- <o:shapelayout v:ext="edit">
-  <o:idmap v:ext="edit" data="1"/>
- </o:shapelayout></xml><![endif]-->
-<meta name=CREATED content="20040121;19294154">
-<meta name=CHANGED content="20040121;19305149">
-<!-- $Id$ --><!-- $Source$ -->
 </head>
 
-<body bgcolor=white lang=EN-GB link=blue vlink=blue style='tab-interval:36.0pt'>
+<body bgcolor=white>
 
-<div class=Section1>
+<hr><br>
+<center>
+<h2><b>ProFTPD module <code>mod_gss</code></b></h2>
+</center>
+<hr><br>
 
-<div style='border:none;border-bottom:double gray .75pt;padding:0cm 0cm 0cm 0cm'>
+This module is contained in the <code>mod_gss.c</code> file for ProFTPD 1.2 or higher,
+and is not compiled by default.  Installation instructions are discussed <a href="#Installation">here</a>.
 
-<p style='margin-bottom:12.0pt;border:none;mso-border-bottom-alt:double gray .75pt;
-padding:0cm;mso-padding-alt:0cm 0cm 0cm 0cm'><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
-
-</div>
-
-<p style='margin-bottom:12.0pt'><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
-
-<h2 align=center style='text-align:center'>ProFTPD module <code><span
-style='font-size:14.0pt;mso-bidi-font-size:10.0pt;font-family:"Courier New"'>mod_gss</span></code></h2>
-
-
-<div class=MsoNormal align=center style='text-align:center'>
-
-<hr size=2 width="100%" align=center>
-
-</div>
-
-
-<p><br>
-This module is contained in the <code><span style='font-size:10.0pt;font-family:
-"Courier New"'>mod_gss.c</span></code> file for ProFTPD, and is not compiled by
-default. Installation instructions are discussed <a href="#Installation">here</a>.
-</p>
-
-<p>The project is hosted at <a href="http://sourceforge.net/projects/gssmod/">Sourceforge.net
-</a>and the most current version of <code><span style='font-size:10.0pt;
-font-family:"Courier New"'>mod_gss</span></code> can be found at: </p>
-
-<pre style='margin-bottom:14.2pt'><span style="mso-spacerun: yes">  </span><a
-href="http://prdownloads.sourceforge.net/gssmod/">http://prdownloads.sourceforge.net/gssmod/</a></pre>
-
-<p>and the latest CVS code can be found at </p>
-
-<pre style='margin-bottom:14.2pt'><span style="mso-spacerun: yes">  </span><a
-href="http://sourceforge.net/cvs/?group_id=70951">http://sourceforge.net/cvs/</a></pre>
-
-<p>Please report bugs to <a
-href="http://sourceforge.net/tracker/?atid=529593&amp;group_id=70951&amp;func=browse">GSS
-module for proftpd: Bugs </a><br>
-Please report feature requests to <a
-href="http://sourceforge.net/tracker/?atid=529596&amp;group_id=70951&amp;func=browse">GSS
-module for proftpd: Feature Requests</a> <br>
-Please send patches to <a
-href="http://sourceforge.net/tracker/?atid=529595&amp;group_id=70951&amp;func=browse">GSS
-module for proftpd: Patches</a> </p>
+<p>
+The project is hosted at <a href="http://sourceforge.net/projects/gssmod/"> Sourceforge.net </a> and the most current version of <code>mod_gss</code> can be found at:
+<pre>
+  <a href="http://prdownloads.sourceforge.net/gssmod/">http://prdownloads.sourceforge.net/gssmod/</a>
+</pre>
+<p>
+<p>
+Please report bugs to <a href="http://sourceforge.net/tracker/?atid=529593&group_id=70951&func=browse"> GSS module for proftpd: Bugs </a> <br>
+Please report feature requests to <a href="http://sourceforge.net/tracker/?atid=529596&group_id=70951&func=browse"> GSS module for proftpd: Feature Requests</a> <br>
+Please send patches to <a href="http://sourceforge.net/tracker/?atid=529595&group_id=70951&func=browse"> GSS module for proftpd: Patches</a> <br>
 
 <h2>Author</h2>
-
-<p>Contact M Möller &lt;markus_moeller <i>at</i> compuserve.com&gt; with any
-questions, concerns, or suggestions regarding this module. </p>
+<p>
+Contact M M&ouml;ller &lt;markus_moeller <i>at</i> compuserve.com&gt; with any
+questions, concerns, or suggestions regarding this module.
+<p>
 
 <h2>Directives</h2>
+<ul>
+  <li><a href="#GSSEngine">GSSEngine</a>
+  <li><a href="#GSSLog">GSSLog</a>
+  <li><a href="#GSSOptions">GSSOptions</a>
+  <li><a href="#GSSRequired">GSSRequired</a>
+  <li><a href="#GSSKeytab">GSSKeytab</a>
+</ul>
 
-<p style='margin-bottom:0cm;margin-left:36.0pt;margin-bottom:.0001pt;
-text-indent:-18.0pt;mso-list:l0 level1 lfo1;tab-stops:list 36.0pt'><![if !supportLists]><span
-style='font-size:10.0pt;mso-bidi-font-size:12.0pt;font-family:Symbol'>·<span
-style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span><![endif]><a href="#GSSEngine">GSSEngine</a> </p>
-
-<p style='margin-bottom:0cm;margin-left:36.0pt;margin-bottom:.0001pt;
-text-indent:-18.0pt;mso-list:l0 level1 lfo1;tab-stops:list 36.0pt'><![if !supportLists]><span
-style='font-size:10.0pt;mso-bidi-font-size:12.0pt;font-family:Symbol'>·<span
-style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span><![endif]><a href="#GSSLog">GSSLog</a> </p>
-
-<p style='margin-bottom:0cm;margin-left:36.0pt;margin-bottom:.0001pt;
-text-indent:-18.0pt;mso-list:l0 level1 lfo1;tab-stops:list 36.0pt'><![if !supportLists]><span
-style='font-size:10.0pt;mso-bidi-font-size:12.0pt;font-family:Symbol'>·<span
-style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span><![endif]><a href="#GSSOptions">GSSOptions</a> </p>
-
-<p style='margin-bottom:0cm;margin-left:36.0pt;margin-bottom:.0001pt;
-text-indent:-18.0pt;mso-list:l0 level1 lfo1;tab-stops:list 36.0pt'><![if !supportLists]><span
-style='font-size:10.0pt;mso-bidi-font-size:12.0pt;font-family:Symbol'>·<span
-style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span><![endif]><a href="#GSSRequired">GSSRequired</a> </p>
-
-<p style='margin-left:36.0pt;text-indent:-18.0pt;mso-list:l0 level1 lfo1;
-tab-stops:list 36.0pt'><![if !supportLists]><span style='font-size:10.0pt;
-mso-bidi-font-size:12.0pt;font-family:Symbol'>·<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span><![endif]><a href="#GSSKeytab">GSSKeytab</a> </p>
-
-
-<div class=MsoNormal align=center style='text-align:center'>
-
-<hr size=2 width="100%" align=center>
-
-</div>
-
-
-<h2><a name=GSSEngine></a>GSSEngine</h2>
-
-<p><strong>Syntax:</strong> GSSEngine <em>on|off</em><br>
+<p>
+<hr>
+<h2><a name="GSSEngine">GSSEngine</a></h2>
+<strong>Syntax:</strong> GSSEngine <em>on|off</em><br>
 <strong>Default:</strong> None<br>
-<strong>Context:</strong> server config, <code><span style='font-size:10.0pt;
-font-family:"Courier New"'>&lt;VirtualHost&gt;</span></code>, <code><span
-style='font-size:10.0pt;font-family:"Courier New"'>&lt;Global&gt;</span></code><br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
 <strong>Module:</strong> mod_gss<br>
-<strong>Compatibility:</strong> 1.2.8 and later </p>
+<strong>Compatibility:</strong> 1.2.8 and later
 
-<p>The <code><span style='font-size:10.0pt;font-family:"Courier New"'>GSSEngine</span></code>
-directive toggles the use of the GSS protocol engine (<i>e.g.</i> <code><span
-style='font-size:10.0pt;font-family:"Courier New"'>mod_gss</span></code>). This
-is usually used inside a <code><span style='font-size:10.0pt;font-family:"Courier New"'>&lt;VirtualHost&gt;</span></code>
-section to enable GSS sessions for a particular virtual host. By default <code><span
-style='font-size:10.0pt;font-family:"Courier New"'>mod_gss</span></code> is
-disabled for both the main server and all configured virtual hosts. </p>
+<p>
+The <code>GSSEngine</code> directive toggles the use of the GSS protocol
+engine (<i>e.g.</i> <code>mod_gss</code>).  This is usually used inside a
+<code>&lt;VirtualHost&gt;</code> section to enable GSS sessions for a
+particular virtual host. By default <code>mod_gss</code> is disabled for both
+the main server and all configured virtual hosts. 
 
-
-<div class=MsoNormal align=center style='text-align:center'>
-
-<hr size=2 width="100%" align=center>
-
-</div>
-
-
-<h2><a name=GSSLog></a>GSSLog</h2>
-
-<p><strong>Syntax:</strong> GSSLog <em>file</em><br>
+<p>
+<hr>
+<h2><a name="GSSLog">GSSLog</a></h2>
+<strong>Syntax:</strong> GSSLog <em>file</em><br>
 <strong>Default:</strong> None<br>
-<strong>Context:</strong> server config, <code><span style='font-size:10.0pt;
-font-family:"Courier New"'>&lt;VirtualHost&gt;</span></code>, <code><span
-style='font-size:10.0pt;font-family:"Courier New"'>&lt;Global&gt;</span></code><br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
 <strong>Module:</strong> mod_gss<br>
-<strong>Compatibility:</strong> 1.2.8 and later </p>
+<strong>Compatibility:</strong> 1.2.8 and later
 
-<p>The <code><span style='font-size:10.0pt;font-family:"Courier New"'>GSSLog</span></code>
-directive is used to specify a log file for <code><span style='font-size:10.0pt;
-font-family:"Courier New"'>mod_gss</span></code>'s reporting on a per-server
-basis. The <em>file</em> parameter given must be the full path to the file to
-use for logging. If <em>syslog</em> is used as <em>file</em> then logging is
-send to syslog. </p>
+<p>
+The <code>GSSLog</code> directive is used to specify a log file for
+<code>mod_gss</code>'s reporting on a per-server basis.  The <em>file</em>
+parameter given must be the full path to the file to use for
+logging. If <em>syslog</em> is used as <em>file</em> then logging is
+send to syslog.
 
-
-<div class=MsoNormal align=center style='text-align:center'>
-
-<hr size=2 width="100%" align=center>
-
-</div>
-
-
-<h2><a name=GSSOptions></a>GSSOptions</h2>
-
-<p><strong>Syntax:</strong> GSSOptions <em>opt1 ...</em><br>
+<p>
+<hr>
+<h2><a name="GSSOptions">GSSOptions</a></h2>
+<strong>Syntax:</strong> GSSOptions <em>opt1 ...</em><br>
 <strong>Default:</strong> None<br>
-<strong>Context:</strong> server config, <code><span style='font-size:10.0pt;
-font-family:"Courier New"'>&lt;VirtualHost&gt;</span></code>, <code><span
-style='font-size:10.0pt;font-family:"Courier New"'>&lt;Global&gt;</span></code><br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
 <strong>Module:</strong> mod_gss<br>
-<strong>Compatibility:</strong> 1.2.8 and later </p>
+<strong>Compatibility:</strong> 1.2.8 and later
 
-<p>The <code><span style='font-size:10.0pt;font-family:"Courier New"'>GSSOptions</span></code>
-directive is used to configure various optional behaviours of <code><span
-style='font-size:10.0pt;font-family:"Courier New"'>mod_gss</span></code>. </p>
+<p>
+The <code>GSSOptions</code> directive is used to configure various optional
+behavior of <code>mod_gss</code>.
 
-<p>Example: </p>
+<p>
+Example:
+<pre>
+  AllowCCC - Allows CCC commands. 
 
-<pre><span style="mso-spacerun: yes">  </span>AllowCCC - Allows CCC commands. </pre><pre><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></pre><pre><span style="mso-spacerun: yes">  </span>AllowFWCCC - Allows PORT and PASV only as clear commands for stateful firewalls. Needs special client patch.</pre><pre><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></pre><pre><span style="mso-spacerun: yes">  </span>AllowFWNAT - Allows No Channel Binding to support Network Address Translation. May need special client patch.</pre><pre><span style="mso-spacerun: yes">  </span>NoChannelBinding - Allows No Channel Binding to support Network Address Translation. May need special client patch.</pre><pre><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></pre><pre><span style="mso-spacerun: yes">  </span>RequireSequenceProtection - Require sequence protection set on GSS encrypted packets</pre><pre><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></pre><pre><span style="mso-spacerun: yes">  </span>RequireReplayProtection - Require replay protection set on GSS encrypted packets</pre>
+  AllowFWCCC - Allows PORT and PASV only as clear commands for stateful firewalls. Needs special client patch.
 
-<div class=MsoNormal align=center style='text-align:center'>
+  AllowFWNAT - Allows No Channel Binding to support Network Address Translation. Needs special client patch.
+  NoChannelBinding - Allows No Channel Binding to support Network Address Translation. Needs special client patch.
 
-<hr size=2 width="100%" align=center>
+  RequireSequenceProtection - Require sequence protection set on GSS encrypted packets
 
-</div>
+  RequireReplayProtection - Require replay protection set on GSS encrypted packets
+</pre>
 
-
-<h2><a name=GSSRequired></a>GSSRequired</h2>
-
-<p><strong>Syntax:</strong> GSSRequired <em>on|off|ctrl|data</em><br>
+<p>
+<hr>
+<h2><a name="GSSRequired">GSSRequired</a></h2>
+<strong>Syntax:</strong> GSSRequired <em>on|off|ctrl|data</em><br>
 <strong>Default:</strong> None<br>
-<strong>Context:</strong> server config, <code><span style='font-size:10.0pt;
-font-family:"Courier New"'>&lt;VirtualHost&gt;</span></code>, <code><span
-style='font-size:10.0pt;font-family:"Courier New"'>&lt;Global&gt;</span></code><br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
 <strong>Module:</strong> mod_gss<br>
-<strong>Compatibility:</strong> 1.2.8 and later </p>
+<strong>Compatibility:</strong> 1.2.8 and later
 
-<p>The <code><span style='font-size:10.0pt;font-family:"Courier New"'>GSSRequired</span></code>
-directive is used to define a basic security policy, one that dictates whether
-the control channel, or data channel, or both, of an FTP session must occur
-over GSS. </p>
+<p>
+The <code>GSSRequired</code> directive is used to define a basic security
+policy, one that dictates whether the control channel, or data channel, or
+both, of an FTP session must occur over GSS.
 
-<p>The <em>on</em> parameter enables GSS requirements on both control and data
-channels; <em>off</em> disables the requirements on both channels. Use <em>ctrl</em>
-and <em>data</em> to require GSS on either channel individually. </p>
+<p>
+The <em>on</em> parameter enables GSS requirements on both control and
+data channels; <em>off</em> disables the requirements on both channels.
+Use <em>ctrl</em> and <em>data</em> to require GSS on either channel
+individually.
 
-<p>Example: </p>
+<p>
+Example:
+<pre>
+  # Require GSS on the control channel, so that passwords are not sent
+  # in the clear.
+  GSSRequired ctrl
 
-<pre><span style="mso-spacerun: yes">  </span># Require GSS on the control channel, so that passwords are not sent</pre><pre><span style="mso-spacerun: yes">  </span># in the clear.</pre><pre><span style="mso-spacerun: yes">  </span>GSSRequired ctrl</pre><pre><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></pre><pre><span style="mso-spacerun: yes">  </span># Require GSS on both channels.</pre><pre><span style="mso-spacerun: yes">  </span>GSSRequired on</pre>
+  # Require GSS on both channels.
+  GSSRequired on
+</pre>
 
-<div class=MsoNormal align=center style='text-align:center'>
-
-<hr size=2 width="100%" align=center>
-
-</div>
-
-
-<h2><a name=GSSKeytab></a>GSSKeytab</h2>
-
-<p><strong>Syntax:</strong> GSSKeytab <em>file</em><br>
+<p>
+<hr>
+<h2><a name="GSSKeytab">GSSKeytab</a></h2>
+<strong>Syntax:</strong> GSSKeytab <em>file</em><br>
 <strong>Default:</strong> None<br>
-<strong>Context:</strong> server config, <code><span style='font-size:10.0pt;
-font-family:"Courier New"'>&lt;VirtualHost&gt;</span></code>, <code><span
-style='font-size:10.0pt;font-family:"Courier New"'>&lt;Global&gt;</span></code><br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
 <strong>Module:</strong> mod_gss<br>
-<strong>Compatibility:</strong> 1.2.8 and later </p>
+<strong>Compatibility:</strong> 1.2.8 and later
 
-<p>The <code><span style='font-size:10.0pt;font-family:"Courier New"'>GSSKeytab</span></code>
-directive is used to specify a Kerberos5 keytab file for <code><span
-style='font-size:10.0pt;font-family:"Courier New"'>mod_gss</span></code>'s
-Kerberos5 service key on a per-server basis. The <em>file</em> parameter given
-must be the full path to the file. </p>
+<p>
+The <code>GSSKeytab</code> directive is used to specify a Kerberos5 keytab file for
+<code>mod_gss</code>'s Kerberos5 service key on a per-server basis.  The <em>file</em>
+parameter given must be the full path to the file.
 
+<p>
+<hr><br>
+<h2><a name="Usage">Usage</a></h2>
+Much of the documentation for the GSSAPI applies to this module:
+<pre>
+  <a href="http://docs-pdf.sun.com/816-1331/816-1331.pdf">http://docs-pdf.sun.com/816-1331/816-1331.pdf </a>
+</pre>
 
-<div class=MsoNormal align=center style='text-align:center'>
-
-<hr size=2 width="100%" align=center>
-
-</div>
-
-
-<p style='margin-bottom:12.0pt'><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
-
-<h2><a name=Usage></a>Usage</h2>
-
-<p>Much of the documentation for the GSSAPI applies to this module: </p>
-
-<pre style='margin-bottom:14.2pt'><span style="mso-spacerun: yes">  </span><a
-href="http://docs-pdf.sun.com/816-1331/816-1331.pdf">http://docs-pdf.sun.com/816-1331/816-1331.pdf </a></pre>
-
-<p>The Kerberos documentation, and its <a
-href="http://www.nrl.navy.mil/CCS/people/kenh/kerberos-faq.html">FAQ</a>, are
-recommended as well: </p>
-
-<pre style='margin-bottom:14.2pt'><span style="mso-spacerun: yes">  </span><a
-href="http://web.mit.edu/kerberos/www/">http://web.mit.edu/kerberos/www/</a></pre>
-
-<p>A copy of RFC2228 describing <em>FTP Security Extensions</em> and of RFC1509
-describing <em>Generic Security Service API : C-bindings</em> is included with
-the source code for this module. </p>
+<p>
+The Kerberos documentation, and its
+<a
+href="http://www.nrl.navy.mil/CCS/people/kenh/kerberos-faq.html">FAQ</a>,
+are recommended as well:
+<pre>
+  <a href="http://web.mit.edu/kerberos/www/">http://web.mit.edu/kerberos/www/</a>
+</pre>
 
 
-<div class=MsoNormal align=center style='text-align:center'>
-
-<hr size=2 width="100%" align=center>
-
-</div>
 
 
-<p style='margin-bottom:12.0pt'><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
-
-<h2><a name=Installation></a>Installation</h2>
-
-<p>To install <code><span style='font-size:10.0pt;font-family:"Courier New"'>mod_gss.c</span></code>,
-follow these instructions. After unpacking the tarball, run the <code><span
-style='font-size:10.0pt;font-family:"Courier New"'>configure</span></code>
-script: </p>
-
-<pre><span style="mso-spacerun: yes">  </span>cd mod_gss</pre><pre><span style="mso-spacerun: yes">  </span>./configure</pre>
-
-<p>configure will try to detect the supported GSS/Kerberos libraries
-automatically.</p>
-
-<p>If you wish <code><span style='font-size:10.0pt;font-family:"Courier New"'>mod_gss</span></code>
-to use MIT GSS/Kerberos5, you'll want to use <code><span style='font-size:10.0pt;
-font-family:"Courier New"'>configure</span></code>'s <code><span
-style='font-size:10.0pt;font-family:"Courier New"'>--enable-mit</span></code>
-option. (default if auto detect fails)<br>
-If you wish <code><span style='font-size:10.0pt;font-family:"Courier New"'>mod_gss</span></code>
-to use Heimdal GSS/Kerberos5, you'll want to use <code><span style='font-size:
-10.0pt;font-family:"Courier New"'>configure</span></code>'s <code><span
-style='font-size:10.0pt;font-family:"Courier New"'>--enable-heimdal</span></code>
-option.<br>
-If you wish <code><span style='font-size:10.0pt;font-family:"Courier New"'>mod_gss</span></code>
-to use Sun SEAM GSS/Kerberos5, you'll want to use <code><span style='font-size:
-10.0pt;font-family:"Courier New"'>configure</span></code>'s <code><span
-style='font-size:10.0pt;font-family:"Courier New"'>--enable-seam</span></code>
-option.<br>
-If you wish <code><span style='font-size:10.0pt;font-family:"Courier New"'>mod_gss</span></code>
-to use IBM NAS GSS/Kerberos5, you'll want to use <code><span style='font-size:
-10.0pt;font-family:"Courier New"'>configure</span></code>'s <code><span
-style='font-size:10.0pt;font-family:"Courier New"'>--enable-nas</span></code>
-option. </p>
-
-<p>Now, copy after unpacking the latest proftpd source code the <code><span
-style='font-size:10.0pt;font-family:"Courier New"'>mod_gss.h</span></code> file
-into: </p>
-
-<pre style='margin-bottom:14.2pt'><span style="mso-spacerun: yes">  </span><i>proftpd-dir</i>/include/</pre>
-
-<p>and the <code><span style='font-size:10.0pt;font-family:"Courier New"'>mod_gss.c</span></code>
-file into: </p>
-
-<pre style='margin-bottom:14.2pt'><span style="mso-spacerun: yes">  </span><i>proftpd-dir</i>/contrib/</pre>
-
-<p>Then follow the normal steps for using third-party modules in proftpd: </p>
-
-<pre><span style="mso-spacerun: yes">  </span>./configure --with-modules=mod_gss</pre><pre><span style="mso-spacerun: yes">  </span>make</pre><pre><span style="mso-spacerun: yes">  </span>make install</pre>
-
-<p>You may need to specify the location of the GSS/Kerberos5 header and library
-files in your <code><span style='font-size:10.0pt;font-family:"Courier New"'>configure</span></code>
-command, <i>e.g.</i>: </p>
-
-<pre><span style="mso-spacerun: yes"> </span>./configure --with-modules=mod_gss \</pre><pre><span style="mso-spacerun: yes">    </span>--with-includes=/usr/local/include \</pre><pre><span style="mso-spacerun: yes">    </span>--with-libraries=/usr/local/lib</pre>
-
-<p>To be able to use GSS/Kerberos5 add the following line to the configuration
-file. </p>
-
-<pre style='margin-bottom:14.2pt'><span style="mso-spacerun: yes"> </span>CommandBufferSize<span style="mso-spacerun: yes">    </span>1023</pre>
-
-<p>If the Kerberos5 credential cache is bigger than 1023 bytes (<i>e.g.</i> if
-active directory is used as kdc) compile proftpd with --enable-buffer-size=<em>max
-cache size </em></p>
 
 
-<div class=MsoNormal align=center style='text-align:center'>
+<p>
+A copy of RFC2228 describing <em>FTP Security Extensions</em> and of RFC1509
+describing <em>Generic Security Service API : C-bindings</em> is
+included with the source code for this module.
 
-<hr size=2 width="100%" align=center>
+<p>
+<hr><br>
+<h2><a name="Installation">Installation</a></h2>
+To install <code>mod_gss.c</code>, follow these instructions.  After unpacking
+the tarball, run the <code>configure</code> script:
+<pre>
+  cd mod_gss
+  ./configure
+</pre>
 
-</div>
+<code>configure</code> will try to detect the supported GSS/Kerberos libraries automatically.
+<p>
+<pre>
+If you wish <code>mod_gss</code> to use MIT GSS/Kerberos5, you'll want to use configure's --enable-mit option. (default if auto detect fails)
+If you wish <code>mod_gss</code> to use Heimdal GSS/Kerberos5, you'll want to use configure's --enable-heimdal option.
+If you wish <code>mod_gss</code> to use Sun SEAM GSS/Kerberos5, you'll want to use configure's --enable-seam option.
+If you wish <code>mod_gss</code> to use IBM NAS GSS/Kerberos5, you'll want to use configure's --enable-nas option. 
+</pre>
+<p>
+Now, copy after unpacking the latest proftpd-1.2 or higher source code the <code>mod_gss.h</code> file into:
+<pre>
+  <i>proftpd-dir</i>/include/
+</pre>
+and the <code>mod_gss.c</code> file into:
+<pre>
+  <i>proftpd-dir</i>/contrib/
+</pre>
+<p>
+Then follow the normal steps for 
+using third-party modules in proftpd: 
+<pre>
+  ./configure --with-modules=mod_gss
+  make
+  make install
+</pre>or starting with proftpd 1.3
+<pre>
+  ./configure --enable-dso --with-shared=mod_gss 
+  make
+  make install
+</pre>
 
+You may need to specify the location of the GSS/Kerberos5 header and library files
+in your <code>configure</code> command, <i>e.g.</i>:
+<pre>
+ ./configure --with-modules=mod_gss \
+    --with-includes=/usr/local/include \
+    --with-libraries=/usr/local/lib
+</pre>or starting with proftpd 1.3
+<pre>
+  ./configure --enable-dso --with-shared=mod_gss \
+    --with-includes=/usr/local/include \
+    --with-libraries=/usr/local/lib
+</pre>
+<p>
+To be able to use GSS/Kerberos5 add the following line to the
+configuration file.
+<pre>
+ CommandBufferSize    1023
+</pre>
 
-<p><i><br>
-<em>Author: $Author$</em><br>
-<em>Last Updated: $Date$</em></i></p>
+<p>
+If the Kerberos5 credential cache is bigger than 1023 bytes compile
+proftpd with --enable-buffer-size=<em>max cache size<em>
 
+<p>
+<hr><br>
+Author: <i>$Author$</i><br>
+Last Updated: <i>$Date$</i><br>
 
-<div class=MsoNormal align=center style='text-align:center'>
+<br><hr>
 
-<hr size=2 width="100%" align=center>
+<font size=2><b><i>
+&copy; Copyright 2002-2006 M M&ouml;ller<br>
+ All Rights Reserved<br>
+</i></b></font>
 
-</div>
-
-
-<p style='margin-bottom:0cm;margin-bottom:.0001pt'><em><b><span
-style='font-size:10.0pt'>© Copyright 2002-2005 M Möller</span></b></em><b><i><span
-style='font-size:10.0pt'><br>
-<em>All Rights Reserved</em></span></i></b></p>
-
-
-<div class=MsoNormal align=center style='text-align:center'>
-
-<hr size=2 width="100%" align=center>
-
-</div>
-
-
-<p style='margin-bottom:0cm;margin-bottom:.0001pt'><![if !supportEmptyParas]>&nbsp;<![endif]><o:p></o:p></p>
-
-<p align=center style='margin-bottom:0cm;margin-bottom:.0001pt;text-align:center'><em><a
-href="http://sourceforge.net/"><span style='text-decoration:none;text-underline:
-none'><img border=0 width=210 height=62 id="_x0000_i1036"
-src="http://sourceforge.net/sflogo.php?group_id=70951&amp;type=5"
-alt="SourceForge.net Logo" NAME=Graphic1 align=BOTTOM></span></a><!-- Begin Nedstat Basic code --><!-- Title: ProFTPD module mod_gss --><!-- URL: http://gssmod.sourceforge.net --></em><em><span
-style='font-style:normal'><script language="JavaScript"  src="http://m1.nedstatbasic.net/basic.js">
-</script></span><script language="JavaScript">
+<hr><br>
+<center>
+<A href="http://sourceforge.net"> <IMG src="http://sourceforge.net/sflogo.php?group_id=70951&amp;type=5" width="210" height="62" border="0" alt="SourceForge.net Logo"></A> 
+<!-- Begin Nedstat Basic code -->
+<!-- Title: ProFTPD module mod_gss -->
+<!-- URL: http://gssmod.sourceforge.net -->
+<script language="JavaScript" src="http://m1.nedstatbasic.net/basic.js">
+</script>
+<script language="JavaScript">
 <!--
   nedstatbasic("ACDUGwzeL2vzniAMJdUmtnbmaNlw", 0);
 // -->
-</script><noscript><a
-href="http://v1.nedstatbasic.net/stats?ACDUGwzeL2vzniAMJdUmtnbmaNlw"
-target="_blank"><span style='text-decoration:none;text-underline:none'><img
-border=0 width=18 height=18 id="_x0000_i1039"
+</script>
+<noscript>
+<a target="_blank" href="http://v1.nedstatbasic.net/stats?ACDUGwzeL2vzniAMJdUmtnbmaNlw"><img
 src="http://m1.nedstatbasic.net/n?id=ACDUGwzeL2vzniAMJdUmtnbmaNlw"
-NAME=Graphic2 align=BOTTOM></span></a></noscript><!-- End Nedstat Basic code --></em></p>
+border="0" nosave width="18" height="18"></a>
+</noscript>
+<!-- End Nedstat Basic code -->
+</center>
 
-</div>
 
 </body>
-
 </html>
+
