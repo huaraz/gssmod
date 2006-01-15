@@ -419,9 +419,9 @@ void unsetenv(char *env_name) {
 #define GSS_SESS_AUTH_OK                0x0001
 #define GSS_SESS_ADAT_OK                0x0002
 #define GSS_SESS_PBSZ_OK                0x0004
-#define GSS_SESS_DATA_WRITE             0x0010
-#define GSS_SESS_DATA_ERROR             0x0020
-#define GSS_SESS_DATA_READ_ERROR        0x0040
+#define GSS_SESS_DATA_WRITE		0x0010
+#define GSS_SESS_DATA_WRITE_OK		0x0020
+#define GSS_SESS_DATA_READ_OK		0x0040
 #define GSS_SESS_DISPATCH               0x0100
 #define GSS_SESS_CCC                    0x0200
 #define GSS_SESS_FWCCC                  0x0400

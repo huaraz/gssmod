@@ -271,7 +271,6 @@ static int gss_netio_write_cb(pr_netio_stream_t *nstrm, char *buf,size_t buflen)
 	 */
 	pr_response_add_err(R_550, "%s", mesg);
 	gss_log("GSSAPI %s", mesg);
-        gss_flags |= GSS_SESS_DATA_ERROR;
         errno = EIO;
         return -1;
     }
@@ -279,6 +278,10 @@ static int gss_netio_write_cb(pr_netio_stream_t *nstrm, char *buf,size_t buflen)
     if ( ! gss_prot_flags ) {
 	return looping_write(nstrm->strm_fd,buf,buflen);
     }
+
+    gss_flags |= GSS_SESS_DATA_WRITE;
+    gss_flags &= ~GSS_SESS_DATA_WRITE_OK;
+
     /*
     Check if protected buffer length will be less then maxbuf !!
     */
@@ -290,7 +293,6 @@ static int gss_netio_write_cb(pr_netio_stream_t *nstrm, char *buf,size_t buflen)
     if (maj_stat != GSS_S_COMPLETE) {
 	reply_gss_error(R_535,maj_stat,min_stat,"Could not determine max wrap size");
 	gss_release_buffer(&min_stat,GSS_C_NO_BUFFER);
-        gss_flags |= GSS_SESS_DATA_ERROR;
         errno = EIO;
 	return -1;
     }
@@ -313,7 +315,7 @@ static int gss_netio_write_cb(pr_netio_stream_t *nstrm, char *buf,size_t buflen)
         p=p+total_count;
     }
 
-    gss_flags |= GSS_SESS_DATA_WRITE;
+    gss_flags |= GSS_SESS_DATA_WRITE_OK;
     return buflen;  
 }
 
@@ -350,6 +352,8 @@ static int gss_netio_read_cb(pr_netio_stream_t *nstrm, char *buf,
     if ( ! gss_prot_flags ) {
         return looping_read(nstrm->strm_fd, buf, buflen);
     }
+
+    gss_flags &= ~GSS_SESS_DATA_READ_OK;
 
     /* after successful ADAT and PBSZ/PROT commands we read protected data channel 
        1) read in whole encoded block until ucbuf is full 
@@ -418,7 +422,7 @@ static int gss_netio_read_cb(pr_netio_stream_t *nstrm, char *buf,
         if (  msg_buf.length == 0 ){
             /* last encoded empty block */
     	    gss_release_buffer(&min_stat, &msg_buf);
-            gss_flags &= ~GSS_SESS_DATA_READ_ERROR;
+            gss_flags |= GSS_SESS_DATA_READ_OK;
 	    return 0;
         }
         /* copy decrypted message to dec_buf */
@@ -445,30 +449,32 @@ static int gss_netio_read_cb(pr_netio_stream_t *nstrm, char *buf,
 
 static void gss_netio_abort_cb(pr_netio_stream_t *nstrm) {
     nstrm->strm_flags |= PR_NETIO_SESS_ABORT;
-    if ( nstrm->strm_type == PR_NETIO_STRM_DATA && (gss_flags & GSS_SESS_DATA_WRITE) ) {
-    	gss_flags |= GSS_SESS_DATA_ERROR;
+    if ( nstrm->strm_type == PR_NETIO_STRM_DATA ) {
+        if (nstrm->strm_mode == PR_NETIO_IO_RD) 
+    		gss_flags &= ~GSS_SESS_DATA_READ_OK;
+        if (nstrm->strm_mode == PR_NETIO_IO_WR) 
+      		gss_flags &= ~GSS_SESS_DATA_WRITE_OK;
     }
 }
 
 static int gss_netio_shutdown_cb(pr_netio_stream_t *nstrm, int how) {
     ssize_t count=0; 
 
-    if ( nstrm->strm_type == PR_NETIO_STRM_DATA && (gss_flags & GSS_SESS_DATA_WRITE) && gss_prot_flags )  { 
-        if ( ! (gss_flags & GSS_SESS_DATA_ERROR) )  { 
-            if (nstrm->strm_mode == PR_NETIO_IO_WR) {
+    if ( nstrm->strm_type == PR_NETIO_STRM_DATA ) {
+        if (nstrm->strm_mode == PR_NETIO_IO_WR) {
+	    if ( ! (gss_flags & GSS_SESS_DATA_WRITE_OK) ) {
+                gss_log("GSSAPI Could not write end of protection stream");
+            } else if ( (gss_flags & GSS_SESS_DATA_WRITE) && gss_prot_flags )  { 
             	count = gss_write(nstrm,"",0);
             	if ( count ) 
                     gss_log("GSSAPI Could not write end of protection stream");
-	    } else if ( gss_flags & GSS_SESS_DATA_READ_ERROR) { 
+	    } 
+            gss_flags |= GSS_SESS_DATA_WRITE_OK;
+        } else if (nstrm->strm_mode == PR_NETIO_IO_RD) {
+            if ( ! (gss_flags & GSS_SESS_DATA_READ_OK) ) 
                 gss_log("GSSAPI Could not read end of protection stream");
-	    }
-        } else {
-            if (nstrm->strm_mode == PR_NETIO_IO_WR)
-                gss_log("GSSAPI ABORT Could not write end of protection stream");
-            else 
-                gss_log("GSSAPI ABORT Could not read end of protection stream");
+            gss_flags |= GSS_SESS_DATA_READ_OK;
         }
-        gss_flags &= ~GSS_SESS_DATA_WRITE;
     }
 
     return shutdown(nstrm->strm_fd, how);
@@ -479,9 +485,12 @@ static int gss_netio_close_cb(pr_netio_stream_t *nstrm) {
 
     if (nstrm->strm_data) {
 
-	if (nstrm->strm_type == PR_NETIO_STRM_DATA) 
-	    gss_data_rd_nstrm->strm_data = gss_data_wr_nstrm->strm_data =
-		nstrm->strm_data = NULL;
+	if (nstrm->strm_type == PR_NETIO_STRM_DATA) {
+	    	gss_data_rd_nstrm->strm_data = gss_data_wr_nstrm->strm_data = nstrm->strm_data = NULL;
+    	        gss_flags &= ~GSS_SESS_DATA_WRITE;
+                gss_flags &= ~GSS_SESS_DATA_READ_OK;
+                gss_flags &= ~GSS_SESS_DATA_WRITE_OK;
+	}
     }
 
     res = close(nstrm->strm_fd);
@@ -499,12 +508,13 @@ static pr_netio_stream_t *gss_netio_open_cb(pr_netio_stream_t *nstrm, int fd,
     if (nstrm->strm_type == PR_NETIO_STRM_DATA) {
 	if (nstrm->strm_mode == PR_NETIO_IO_RD) {
 	    gss_data_rd_nstrm = nstrm;
-            gss_flags |= GSS_SESS_DATA_READ_ERROR;
+            gss_flags |= GSS_SESS_DATA_READ_OK;
         }
 
 	if (nstrm->strm_mode == PR_NETIO_IO_WR) {
 	    gss_data_wr_nstrm = nstrm;
-            gss_flags &= ~GSS_SESS_DATA_ERROR;
+    	    gss_flags &= ~GSS_SESS_DATA_WRITE;
+            gss_flags |= GSS_SESS_DATA_WRITE_OK;
         }
     }
 
@@ -543,6 +553,19 @@ static pr_netio_stream_t *gss_netio_reopen_cb(pr_netio_stream_t *nstrm, int fd,
     nstrm->strm_fd = fd;
     nstrm->strm_mode = mode;
 
+   /* Cache a pointer to this stream. */
+    if (nstrm->strm_type == PR_NETIO_STRM_DATA) {
+	if (nstrm->strm_mode == PR_NETIO_IO_RD) {
+	    gss_data_rd_nstrm = nstrm;
+            gss_flags |= GSS_SESS_DATA_READ_OK;
+        }
+
+	if (nstrm->strm_mode == PR_NETIO_IO_WR) {
+	    gss_data_wr_nstrm = nstrm;
+            gss_flags &= ~GSS_SESS_DATA_WRITE;
+            gss_flags |= GSS_SESS_DATA_WRITE_OK;
+        }
+    }
     /* NOTE: a no-op? */
     return nstrm;
 }
