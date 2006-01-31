@@ -312,7 +312,7 @@ static int gss_netio_write_cb(pr_netio_stream_t *nstrm, char *buf,size_t buflen)
             }
 	}       
         total_count = buflen - total_count > max_buf_size ? total_count + max_buf_size : buflen;
-        p=p+total_count;
+        p=p+count;
     }
 
     gss_flags |= GSS_SESS_DATA_WRITE_OK;
