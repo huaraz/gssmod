@@ -46,12 +46,12 @@ check_seam(){
           else
              SRC="/usr/src"
           fi
-          CPPFLAGS="-I$SRC/uts/common/gssapi/mechs/krb5/include -I$SRC/lib/gss_mechs/mech_krb5/include"
+          CPPFLAGS="-I/usr/include/kerberosv5 -I$SRC/uts/common/gssapi/mechs/krb5/include -I$SRC/lib/gss_mechs/mech_krb5/include"
           AC_CHECK_HEADERS(krb5.h com_err.h)
           if test "x$ac_cv_header_krb5_h" != "xno" ; then
              echo " ## ------------------------------------------------------------------------------------------------------ ##"
              echo " ## Add                                                                                                    ##" 
-             echo " ## --with-includes=$SRC/uts/common/gssapi/mechs/krb5/include:$SRC/lib/gss_mechs/mech_krb5/include ##"
+             echo " ## --with-includes=/usr/include/kerberosv5:$SRC/uts/common/gssapi/mechs/krb5/include:$SRC/lib/gss_mechs/mech_krb5/include ##"
              echo " ## to proftpd configure command                                                                           ##"
              echo " ## ------------------------------------------------------------------------------------------------------ ##"
           fi
