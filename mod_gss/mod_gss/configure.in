@@ -16,16 +16,62 @@ dnl Process this file with autoconf to produce a configure script.
 
 AC_INIT([mod_gss],[1.3.0],[markus_moeller@compuserve.com])
 
+AC_TRY_COMPILE([int main()
+  { 
+     return; 
+  } 
+])
+
+sys=`uname`
+case $sys in
+         Linux) w_flag="-Wl,-R "
+                w_flag_2=""
+		;;
+         AIX) w_flag="-Wl,-blibpath:"
+              w_flag_2=":/usr/lib:/lib"
+              ;;
+         SunOS) w_flag="-R "
+                w_flag_2=""
+                  ;;
+         *) w_flag="-Wl,-rpath "
+            w_flag_2=""
+            ;;
+esac
+
 enable_arg="no"
 check_mit() {
        AC_DEFINE(HAVE_INIT_CREDS_PASSWORD,1,[Define krb5_get_init_creds_password])
        ac_gss_libs="-lgssapi_krb5 -ldes425 -lkrb5 -lk5crypto -lcom_err"
+       case $sys in
+	        Linux) ac_libdir=`rpm -q -l  krb5 | grep "libgssapi_krb5" |  sed -e 's/\/libgssapi_krb5.*//' | head -1`
+                       ac_includedir=`rpm -q -l krb5-devel | grep krb5.h$ | sed -e 's/\/krb5.h//'`
+                       if test "x$ac_includedir" != "x" ; then
+                          CPPFLAGS="$CPPFLAGS -I$ac_includedir"
+                       fi
+                       if test "x$ac_libdir" != "x" ; then
+                         ac_gss_libs="-L$ac_libdir -Wl,-R$ac_libdir $ac_gss_libs"
+                       fi
+                       ;;
+                *) ;;
+       esac
        enable_arg="mit"
 }
 check_heimdal(){
        AC_DEFINE(HAVE_HEIMDAL_KERBEROS,1,[Define Heimdal Kerberos])
        AC_DEFINE(HAVE_INIT_CREDS_PASSWORD,1,[Define krb5_get_init_creds_password])
        ac_gss_libs="-lgssapi -lkrb5 -lcom_err -lasn1 -lroken";
+       case $sys in
+                Linux) ac_libdir=`rpm -q -l  heimdal-devel | grep "libroken" |  sed -e 's/\/libroken.*//' | head -1`
+                       ac_includedir=`rpm -q -l heimdal-devel | grep krb5.h$ | sed -e 's/\/krb5.h//'`
+                       if test "x$ac_includedir" != "x" ; then
+                          CPPFLAGS="$CPPFLAGS -I$ac_includedir"
+                       fi
+                       if test "x$ac_libdir" != "x" ; then
+                          ac_gss_libs="-L$ac_libdir -Wl,-R$ac_libdir $ac_gss_libs"
+                       fi
+                       ;;
+                *) ;;
+       esac
        enable_arg="heimdal"
 }
 check_nas(){
@@ -47,6 +93,7 @@ check_seam(){
              SRC="/usr/src"
           fi
           CPPFLAGS="-I/usr/include/kerberosv5 -I$SRC/uts/common/gssapi/mechs/krb5/include -I$SRC/lib/gss_mechs/mech_krb5/include"
+          ac_includedir="/usr/include/kerberosv5"
           AC_CHECK_HEADERS(krb5.h com_err.h)
           if test "x$ac_cv_header_krb5_h" != "xno" ; then
              echo " ## ------------------------------------------------------------------------------------------------------ ##"
@@ -121,29 +168,27 @@ AC_ARG_ENABLE(seam,
 
 dnl Define system default
 if test "$enable_arg" = "no"; then
-
   dnl Autodetect system
-  sys=`uname`
   case $sys in
            Linux) rpm -q heimdal-lib 2>&1 >/dev/null
                   if test $? == 0 ; then
                     check_heimdal
-                  else
-                    check_mit
+		  else 
+		    check_mit
                   fi 
                   ;;
            AIX)   lslpp -L krb5.client.rte 2>&1 >/dev/null
                   if test $? == 0 ; then
                     check_nas
-                  else
-                    check_mit
+		  else 
+		    check_mit
                   fi
                   ;;
            SunOS) pkginfo SUNWgss 2>&1 >/dev/null
                   if test $? == 0 ; then
                     check_seam
-                  else
-                    check_mit
+		  else 
+		    check_mit
                   fi
                   ;;
            *) check_mit
@@ -152,7 +197,38 @@ if test "$enable_arg" = "no"; then
 
 fi
 
+eval ac_include="$includedir" 
+t_include=`echo $ac_include | grep NONE`
+if test "x$t_include" == "x"; then
+  CPPFLAGS="$CPPFLAGS -I$ac_include"
+fi
+eval ac_lib="$libdir"
+t_lib=`echo $ac_lib | grep NONE`
+if test "x$t_lib" == "x"; then
+  ac_gss_libs="-L$ac_lib $w_flag$ac_lib $w_flag_2 $ac_gss_libs"
+fi
+
 AC_CHECK_FUNCS(unsetenv)
+old_LIBS=$LIBS
+LIBS=$ac_gss_libs
+AC_CACHE_CHECK([for MEMORY: keytab support],ac_cv_have_memory_keytab,[
+  AC_TRY_RUN([
+#include<krb5.h>
+  main()
+  {
+    krb5_context context;
+    krb5_keytab keytab;
+
+    krb5_init_context(&context);
+    return krb5_kt_resolve(context, "MEMORY:foo", &keytab);
+  }],
+  ac_cv_have_memory_keytab=yes,
+  ac_cv_have_memory_keytab=no)])
+if test x"$ac_cv_have_memory_keytab" = x"yes"; then
+  AC_DEFINE(HAVE_MEMORY_KEYTAB,1, [Whether the MEMORY:-keytab is supported])
+fi
+LIBS=$old_LIBS
+
 AC_CONFIG_HEADER(mod_gss.h)
 AH_TOP([/*
  * mod_gss - an RFC2228 GSSAPI module for ProFTPD
@@ -450,8 +526,23 @@ void unsetenv(char *env_name) {
 ])
 AC_OUTPUT()
 
+if test "x$ac_includedir" != "x"; then
+   pr_includes="--with-includes=$ac_includedir"
+fi 
+if test "x$t_include" == "x" -a "x$pr_includes" != "x"; then
+   pr_includes="$pr_includes:$ac_include"
+elif test "x$t_include" == "x" -a "x$pr_includes" == "x"; then
+   pr_includes="--with-includes=$ac_include"
+fi 
 echo "configure: ## -----------------------------##"
-echo "configure: ## $enable_arg" has been selected
+echo "configure: ##"
+echo "configure: ## $enable_arg has been selected"
+if test "x$pr_includes" != "x"; then
+echo "configure: ##"
+echo "configure: ## Please add $pr_includes" 
+echo "configure: ## to proftpd's configure"
+fi
+echo "configure: ##"
 echo "configure: ## -----------------------------##"
 
 echo "configure: updating mod_gss.h"
@@ -460,17 +551,17 @@ mv .mod_gss.h.tmp mod_gss.h
 
 echo "configure: updating \$Libraries in mod_gss.c"
 if test -e mod_gss.c ; then
-  sed -e "s/\$Libraries:.*/\$Libraries: |GSS_LIBS|\$/" mod_gss.c > mod_gss.c.in
+  sed -e "s!\$Libraries:.*!\$Libraries: |GSS_LIBS|\$!" mod_gss.c > mod_gss.c.in
   rm mod_gss.c
 fi 
-sed -e "s/|GSS_LIBS|/$ac_gss_libs/" mod_gss.c.in > .mod_gss.c.tmp
+sed -e "s!|GSS_LIBS|!$ac_gss_libs!" mod_gss.c.in > .mod_gss.c.tmp
 mv .mod_gss.c.tmp mod_gss.c
 
 echo "configure: updating \$Libraries in mod_auth_gss.c"
 if test -e mod_auth_gss.c ; then
-  sed -e "s/\$Libraries:.*/\$Libraries: |GSS_LIBS|\$/" mod_auth_gss.c > mod_auth_gss.c.in
+  sed -e "s!\$Libraries:.*!\$Libraries: |GSS_LIBS|\$!" mod_auth_gss.c > mod_auth_gss.c.in
   rm mod_auth_gss.c
 fi 
-sed -e "s/|GSS_LIBS|/$ac_gss_libs/" mod_auth_gss.c.in > .mod_auth_gss.c.tmp
+sed -e "s!|GSS_LIBS|!$ac_gss_libs!" mod_auth_gss.c.in > .mod_auth_gss.c.tmp
 mv .mod_auth_gss.c.tmp mod_auth_gss.c
 

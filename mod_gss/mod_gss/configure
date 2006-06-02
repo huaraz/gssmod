@@ -1307,51 +1307,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 
-enable_arg="no"
-check_mit() {
-
-cat >>confdefs.h <<\_ACEOF
-#define HAVE_INIT_CREDS_PASSWORD 1
-_ACEOF
-
-       ac_gss_libs="-lgssapi_krb5 -ldes425 -lkrb5 -lk5crypto -lcom_err"
-       enable_arg="mit"
-}
-check_heimdal(){
-
-cat >>confdefs.h <<\_ACEOF
-#define HAVE_HEIMDAL_KERBEROS 1
-_ACEOF
-
-
-cat >>confdefs.h <<\_ACEOF
-#define HAVE_INIT_CREDS_PASSWORD 1
-_ACEOF
-
-       ac_gss_libs="-lgssapi -lkrb5 -lcom_err -lasn1 -lroken";
-       enable_arg="heimdal"
-}
-check_nas(){
-
-cat >>confdefs.h <<\_ACEOF
-#define HAVE_NAS_KERBEROS 1
-_ACEOF
-
-
-cat >>confdefs.h <<\_ACEOF
-#define HAVE_INIT_CREDS_PASSWORD 1
-_ACEOF
-
-       ac_gss_libs="-L\/usr\/lib -lksvc -lgssapi_krb5 -lkrb5";
-       enable_arg="nas"
-}
-check_seam(){
-
-cat >>confdefs.h <<\_ACEOF
-#define HAVE_SEAM_KERBEROS 1
-_ACEOF
-
-       ac_ext=c
+ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
@@ -2288,6 +2244,139 @@ _ACEOF
 cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
+int main()
+  {
+     return;
+  }
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext
+if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
+  (eval $ac_compile) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_c_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest.$ac_objext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  :
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+fi
+rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
+
+sys=`uname`
+case $sys in
+         Linux) w_flag="-Wl,-R "
+                w_flag_2=""
+		;;
+         AIX) w_flag="-Wl,-blibpath:"
+              w_flag_2=":/usr/lib:/lib"
+              ;;
+         SunOS) w_flag="-R "
+                w_flag_2=""
+                  ;;
+         *) w_flag="-Wl,-rpath "
+            w_flag_2=""
+            ;;
+esac
+
+enable_arg="no"
+check_mit() {
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_INIT_CREDS_PASSWORD 1
+_ACEOF
+
+       ac_gss_libs="-lgssapi_krb5 -ldes425 -lkrb5 -lk5crypto -lcom_err"
+       case $sys in
+	        Linux) ac_libdir=`rpm -q -l  krb5 | grep "libgssapi_krb5" |  sed -e 's/\/libgssapi_krb5.*//' | head -1`
+                       ac_includedir=`rpm -q -l krb5-devel | grep krb5.h$ | sed -e 's/\/krb5.h//'`
+                       if test "x$ac_includedir" != "x" ; then
+                          CPPFLAGS="$CPPFLAGS -I$ac_includedir"
+                       fi
+                       if test "x$ac_libdir" != "x" ; then
+                         ac_gss_libs="-L$ac_libdir -Wl,-R$ac_libdir $ac_gss_libs"
+                       fi
+                       ;;
+                *) ;;
+       esac
+       enable_arg="mit"
+}
+check_heimdal(){
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_HEIMDAL_KERBEROS 1
+_ACEOF
+
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_INIT_CREDS_PASSWORD 1
+_ACEOF
+
+       ac_gss_libs="-lgssapi -lkrb5 -lcom_err -lasn1 -lroken";
+       case $sys in
+                Linux) ac_libdir=`rpm -q -l  heimdal-devel | grep "libroken" |  sed -e 's/\/libroken.*//' | head -1`
+                       ac_includedir=`rpm -q -l heimdal-devel | grep krb5.h$ | sed -e 's/\/krb5.h//'`
+                       if test "x$ac_includedir" != "x" ; then
+                          CPPFLAGS="$CPPFLAGS -I$ac_includedir"
+                       fi
+                       if test "x$ac_libdir" != "x" ; then
+                          ac_gss_libs="-L$ac_libdir -Wl,-R$ac_libdir $ac_gss_libs"
+                       fi
+                       ;;
+                *) ;;
+       esac
+       enable_arg="heimdal"
+}
+check_nas(){
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_NAS_KERBEROS 1
+_ACEOF
+
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_INIT_CREDS_PASSWORD 1
+_ACEOF
+
+       ac_gss_libs="-L\/usr\/lib -lksvc -lgssapi_krb5 -lkrb5";
+       enable_arg="nas"
+}
+check_seam(){
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_SEAM_KERBEROS 1
+_ACEOF
+
+       cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
 #include <gssapi/gssapi.h>
 int
 main ()
@@ -2409,6 +2498,7 @@ fi
              SRC="/usr/src"
           fi
           CPPFLAGS="-I/usr/include/kerberosv5 -I$SRC/uts/common/gssapi/mechs/krb5/include -I$SRC/lib/gss_mechs/mech_krb5/include"
+          ac_includedir="/usr/include/kerberosv5"
           ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
@@ -3341,34 +3431,43 @@ if test "${enable_seam+set}" = set; then
 fi;
 
 if test "$enable_arg" = "no"; then
-
-    sys=`uname`
-  case $sys in
+    case $sys in
            Linux) rpm -q heimdal-lib 2>&1 >/dev/null
                   if test $? == 0 ; then
                     check_heimdal
-                  else
-                    check_mit
+		  else
+		    check_mit
                   fi
                   ;;
            AIX)   lslpp -L krb5.client.rte 2>&1 >/dev/null
                   if test $? == 0 ; then
                     check_nas
-                  else
-                    check_mit
+		  else
+		    check_mit
                   fi
                   ;;
            SunOS) pkginfo SUNWgss 2>&1 >/dev/null
                   if test $? == 0 ; then
                     check_seam
-                  else
-                    check_mit
+		  else
+		    check_mit
                   fi
                   ;;
            *) check_mit
               ;;
   esac
 
+fi
+
+eval ac_include="$includedir"
+t_include=`echo $ac_include | grep NONE`
+if test "x$t_include" == "x"; then
+  CPPFLAGS="$CPPFLAGS -I$ac_include"
+fi
+eval ac_lib="$libdir"
+t_lib=`echo $ac_lib | grep NONE`
+if test "x$t_lib" == "x"; then
+  ac_gss_libs="-L$ac_lib $w_flag$ac_lib $w_flag_2 $ac_gss_libs"
 fi
 
 
@@ -3472,6 +3571,72 @@ _ACEOF
 
 fi
 done
+
+old_LIBS=$LIBS
+LIBS=$ac_gss_libs
+echo "$as_me:$LINENO: checking for MEMORY: keytab support" >&5
+echo $ECHO_N "checking for MEMORY: keytab support... $ECHO_C" >&6
+if test "${ac_cv_have_memory_keytab+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+
+  if test "$cross_compiling" = yes; then
+  { { echo "$as_me:$LINENO: error: cannot run test program while cross compiling
+See \`config.log' for more details." >&5
+echo "$as_me: error: cannot run test program while cross compiling
+See \`config.log' for more details." >&2;}
+   { (exit 1); exit 1; }; }
+else
+  cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+#include<krb5.h>
+  main()
+  {
+    krb5_context context;
+    krb5_keytab keytab;
+
+    krb5_init_context(&context);
+    return krb5_kt_resolve(context, "MEMORY:foo", &keytab);
+  }
+_ACEOF
+rm -f conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && { ac_try='./conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_have_memory_keytab=yes
+else
+  echo "$as_me: program exited with status $ac_status" >&5
+echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+( exit $ac_status )
+ac_cv_have_memory_keytab=no
+fi
+rm -f core *.core gmon.out bb.out conftest$ac_exeext conftest.$ac_objext conftest.$ac_ext
+fi
+fi
+echo "$as_me:$LINENO: result: $ac_cv_have_memory_keytab" >&5
+echo "${ECHO_T}$ac_cv_have_memory_keytab" >&6
+if test x"$ac_cv_have_memory_keytab" = x"yes"; then
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_MEMORY_KEYTAB 1
+_ACEOF
+
+fi
+LIBS=$old_LIBS
 
           ac_config_headers="$ac_config_headers mod_gss.h"
 
@@ -4294,8 +4459,23 @@ if test "$no_create" != yes; then
 fi
 
 
+if test "x$ac_includedir" != "x"; then
+   pr_includes="--with-includes=$ac_includedir"
+fi
+if test "x$t_include" == "x" -a "x$pr_includes" != "x"; then
+   pr_includes="$pr_includes:$ac_include"
+elif test "x$t_include" == "x" -a "x$pr_includes" == "x"; then
+   pr_includes="--with-includes=$ac_include"
+fi
 echo "configure: ## -----------------------------##"
-echo "configure: ## $enable_arg" has been selected
+echo "configure: ##"
+echo "configure: ## $enable_arg has been selected"
+if test "x$pr_includes" != "x"; then
+echo "configure: ##"
+echo "configure: ## Please add $pr_includes"
+echo "configure: ## to proftpd's configure"
+fi
+echo "configure: ##"
 echo "configure: ## -----------------------------##"
 
 echo "configure: updating mod_gss.h"
@@ -4304,17 +4484,17 @@ mv .mod_gss.h.tmp mod_gss.h
 
 echo "configure: updating \$Libraries in mod_gss.c"
 if test -e mod_gss.c ; then
-  sed -e "s/\$Libraries:.*/\$Libraries: |GSS_LIBS|\$/" mod_gss.c > mod_gss.c.in
+  sed -e "s!\$Libraries:.*!\$Libraries: |GSS_LIBS|\$!" mod_gss.c > mod_gss.c.in
   rm mod_gss.c
 fi
-sed -e "s/|GSS_LIBS|/$ac_gss_libs/" mod_gss.c.in > .mod_gss.c.tmp
+sed -e "s!|GSS_LIBS|!$ac_gss_libs!" mod_gss.c.in > .mod_gss.c.tmp
 mv .mod_gss.c.tmp mod_gss.c
 
 echo "configure: updating \$Libraries in mod_auth_gss.c"
 if test -e mod_auth_gss.c ; then
-  sed -e "s/\$Libraries:.*/\$Libraries: |GSS_LIBS|\$/" mod_auth_gss.c > mod_auth_gss.c.in
+  sed -e "s!\$Libraries:.*!\$Libraries: |GSS_LIBS|\$!" mod_auth_gss.c > mod_auth_gss.c.in
   rm mod_auth_gss.c
 fi
-sed -e "s/|GSS_LIBS|/$ac_gss_libs/" mod_auth_gss.c.in > .mod_auth_gss.c.tmp
+sed -e "s!|GSS_LIBS|!$ac_gss_libs!" mod_auth_gss.c.in > .mod_auth_gss.c.tmp
 mv .mod_auth_gss.c.tmp mod_auth_gss.c
 
