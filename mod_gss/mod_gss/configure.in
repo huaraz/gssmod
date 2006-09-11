@@ -268,7 +268,7 @@ AH_BOTTOM([#include "conf.h"
 #ifdef HAVE_HEIMDAL_KERBEROS
 #include <gssapi.h>
 #include <krb5.h>
-#define error_message(code) krb5_get_err_text(NULL,code)
+#define error_message(code) krb5_get_err_text(kc,code)
 #define gss_nt_service_name GSS_C_NT_HOSTBASED_SERVICE
 #define gss_int32 int32_t
 #else
