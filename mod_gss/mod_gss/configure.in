@@ -44,7 +44,7 @@ check_mit() {
        ac_gss_libs="-lgssapi_krb5 -ldes425 -lkrb5 -lk5crypto -lcom_err"
        case $sys in
 	        Linux) ac_libdir=`rpm -q -l  krb5 | grep "libgssapi_krb5" |  sed -e 's/\/libgssapi_krb5.*//' | head -1`
-                       ac_includedir=`rpm -q -l krb5-devel | grep krb5.h$ | sed -e 's/\/krb5.h//'`
+                       ac_includedir=`rpm -q -l krb5-devel | grep /krb5.h$ | sed -e 's/\/krb5.h//'`
                        if test "x$ac_includedir" != "x" ; then
                           CPPFLAGS="$CPPFLAGS -I$ac_includedir"
                        fi
