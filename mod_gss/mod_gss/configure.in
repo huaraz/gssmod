@@ -62,7 +62,7 @@ check_heimdal(){
        ac_gss_libs="-lgssapi -lkrb5 -lcom_err -lasn1 -lroken";
        case $sys in
                 Linux) ac_libdir=`rpm -q -l  heimdal-devel | grep "libroken" |  sed -e 's/\/libroken.*//' | head -1`
-                       ac_includedir=`rpm -q -l heimdal-devel | grep krb5.h$ | sed -e 's/\/krb5.h//'`
+                       ac_includedir=`rpm -q -l heimdal-devel | grep /krb5.h$ | sed -e 's/\/krb5.h//'`
                        if test "x$ac_includedir" != "x" ; then
                           CPPFLAGS="$CPPFLAGS -I$ac_includedir"
                        fi
