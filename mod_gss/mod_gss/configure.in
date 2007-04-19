@@ -22,6 +22,7 @@ AC_TRY_COMPILE([int main()
   } 
 ])
 
+SPARCV9=""
 sys=`uname`
 case $sys in
          Linux) w_flag="-Wl,-R "
@@ -110,6 +111,14 @@ check_nas(){
        ac_gss_libs="-L\/usr\/lib -lksvc -lgssapi_krb5 -lkrb5";
        enable_arg="nas"
 }
+
+check_seam_64(){
+       SPARCV9s="/sparcv9"
+       SPARCV9es="\/sparcv9"
+       check_seam
+       enable_arg="seam64"
+}
+
 check_seam(){
        AC_DEFINE(HAVE_SEAM_KERBEROS,1,[Define SEAM Kerberos])
        AC_TRY_COMPILE([#include <gssapi/gssapi.h>],
@@ -132,25 +141,25 @@ check_seam(){
              echo " ## to proftpd configure command                                                                           ##"
              echo " ## ------------------------------------------------------------------------------------------------------ ##"
           fi
-          if test -e /usr/lib/gss/do/mech_krb5.so ; then
-            ac_gss_libs="-lgss -R\/usr\/lib\/gss\/do -Wl,\/usr\/lib\/gss\/do\/mech_krb5.so";
-            ln -s /usr/lib/gss/do/mech_krb5.so /tmp/libmech_krb5.so;
+          if test -e /usr/lib/gss/do${SPARCV9s}/mech_krb5.so ; then
+            ac_gss_libs="-lgss -R\/usr\/lib\/gss\/do${SPARCV9s} -Wl,\/usr\/lib\/gss\/do${SPARCV9es}\/mech_krb5.so";
+            ln -s /usr/lib/gss/do${SPARCV9s}/mech_krb5.so /tmp/libmech_krb5.so;
             LDFLAGS_sav=$LDFLAGS;
             LDFLAGS="-L/tmp"; 
             AC_CHECK_LIB(mech_krb5,krb5_get_init_creds_password,AC_DEFINE(HAVE_INIT_CREDS_PASSWORD_UNUSED,1,[Define krb5_get_init_creds_password]),)
             LDFLAGS=$LDFLAGS_sav
             rm /tmp/libmech_krb5.so
-         elif test -e /usr/lib/gss/gl/mech_krb5.so ; then
-            ac_gss_libs="-lgss -R\/usr\/lib\/gss\/gl -Wl,\/usr\/lib\/gss\/gl\/mech_krb5.so";
-            ln -s /usr/lib/gss/gl/mech_krb5.so /tmp/libmech_krb5.so;
+         elif test -e /usr/lib/gss/gl${SPARCV9s}/mech_krb5.so ; then
+            ac_gss_libs="-lgss -R\/usr\/lib\/gss\/gl${SPARCV9s} -Wl,\/usr\/lib\/gss\/gl${SPARCV9es}\/mech_krb5.so";
+            ln -s /usr/lib/gss/gl${SPARCV9s}/mech_krb5.so /tmp/libmech_krb5.so;
             LDFLAGS_sav=$LDFLAGS;
             LDFLAGS="-L/tmp"; 
             AC_CHECK_LIB(mech_krb5,krb5_get_init_creds_password,AC_DEFINE(HAVE_INIT_CREDS_PASSWORD_UNUSED,1,[Define krb5_get_init_creds_password]),)
             LDFLAGS=$LDFLAGS_sav
             rm /tmp/libmech_krb5.so
          else
-            ac_gss_libs="-lgss -R\/usr\/lib\/gss -Wl,\/usr\/lib\/gss\/mech_krb5.so";
-            ln -s /usr/lib/gss/mech_krb5.so /tmp/libmech_krb5.so;
+            ac_gss_libs="-lgss -R\/usr\/lib\/gss${SPARCV9s} -Wl,\/usr\/lib\/gss${SPARCV9es}\/mech_krb5.so";
+            ln -s /usr/lib/gss${SPARCV9s}/mech_krb5.so /tmp/libmech_krb5.so;
             LDFLAGS_sav=$LDFLAGS;
             LDFLAGS="-L/tmp"; 
             AC_CHECK_LIB(mech_krb5,krb5_get_init_creds_password,AC_DEFINE(HAVE_INIT_CREDS_PASSWORD_UNUSED,1,[Define krb5_get_init_creds_password]),)
@@ -194,6 +203,14 @@ AC_ARG_ENABLE(seam,
   [
     if test "x$enableval" != "xno" ; then
        check_seam
+    fi ])
+
+dnl Define SEAM libraries
+AC_ARG_ENABLE(seam-64,
+  [  --enable-seam-64[=SRC]	  enable use of 64bit SEAM(Solaris) package (default=no) ],
+  [
+    if test "x$enableval" != "xno" ; then
+       check_seam_64
     fi ])
 
 dnl Define system default
