@@ -2537,9 +2537,9 @@ fi
           else
              SRC="/usr/src"
           fi
-          CPPFLAGS="-I/usr/include/kerberosv5 -I$SRC/uts/common/gssapi/mechs/krb5/include -I$SRC/lib/gss_mechs/mech_krb5/include"
-          ac_includedir="/usr/include/kerberosv5"
-          ac_ext=c
+          INCLUDES="-I/usr/include/kerberosv5 -I$SRC/uts/common/gssapi/mechs/krb5/include -I$SRC/lib/gss_mechs/mech_krb5/include"
+          for CPPFLAGS in $INCLUDES ; do
+             ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
@@ -3178,13 +3178,11 @@ fi
 
 done
 
-          if test "x$ac_cv_header_krb5_h" != "xno" ; then
-             echo " ## ------------------------------------------------------------------------------------------------------ ##"
-             echo " ## Add                                                                                                    ##"
-             echo " ## --with-includes=/usr/include/kerberosv5:$SRC/uts/common/gssapi/mechs/krb5/include:$SRC/lib/gss_mechs/mech_krb5/include ##"
-             echo " ## to proftpd configure command                                                                           ##"
-             echo " ## ------------------------------------------------------------------------------------------------------ ##"
-          fi
+             if test "x$ac_cv_header_krb5_h" != "xno" ; then
+                ac_includedir=`echo $CPPFLAGS | sed -e 's/^-I//'`
+                break
+             fi
+          done
           if test -e /usr/lib/gss/do${SPARCV9s}/mech_krb5.so ; then
             ac_gss_libs="-lgss -R\/usr\/lib\/gss\/do${SPARCV9s} -Wl,\/usr\/lib\/gss\/do${SPARCV9es}\/mech_krb5.so";
             ln -s /usr/lib/gss/do${SPARCV9s}/mech_krb5.so /tmp/libmech_krb5.so;

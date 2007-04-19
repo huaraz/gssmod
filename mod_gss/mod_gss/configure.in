@@ -131,16 +131,14 @@ check_seam(){
           else
              SRC="/usr/src"
           fi
-          CPPFLAGS="-I/usr/include/kerberosv5 -I$SRC/uts/common/gssapi/mechs/krb5/include -I$SRC/lib/gss_mechs/mech_krb5/include"
-          ac_includedir="/usr/include/kerberosv5"
-          AC_CHECK_HEADERS(krb5.h com_err.h)
-          if test "x$ac_cv_header_krb5_h" != "xno" ; then
-             echo " ## ------------------------------------------------------------------------------------------------------ ##"
-             echo " ## Add                                                                                                    ##" 
-             echo " ## --with-includes=/usr/include/kerberosv5:$SRC/uts/common/gssapi/mechs/krb5/include:$SRC/lib/gss_mechs/mech_krb5/include ##"
-             echo " ## to proftpd configure command                                                                           ##"
-             echo " ## ------------------------------------------------------------------------------------------------------ ##"
-          fi
+          INCLUDES="-I/usr/include/kerberosv5 -I$SRC/uts/common/gssapi/mechs/krb5/include -I$SRC/lib/gss_mechs/mech_krb5/include"
+          for CPPFLAGS in $INCLUDES ; do
+             AC_CHECK_HEADERS(krb5.h com_err.h)
+             if test "x$ac_cv_header_krb5_h" != "xno" ; then
+                ac_includedir=`echo $CPPFLAGS | sed -e 's/^-I//'`
+                break
+             fi
+          done
           if test -e /usr/lib/gss/do${SPARCV9s}/mech_krb5.so ; then
             ac_gss_libs="-lgss -R\/usr\/lib\/gss\/do${SPARCV9s} -Wl,\/usr\/lib\/gss\/do${SPARCV9es}\/mech_krb5.so";
             ln -s /usr/lib/gss/do${SPARCV9s}/mech_krb5.so /tmp/libmech_krb5.so;
@@ -333,6 +331,8 @@ Source includes are located in:
 /usr/src/uts/common/gssapi/mechs/krb5/include/
 and
 /usr/src/lib/gss_mechs/mech_krb5/include
+or
+/usr/include/kerberosv5
 */
 #include <krb5.h>
 #ifdef HAVE_COM_ERR_H
