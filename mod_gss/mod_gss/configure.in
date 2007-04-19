@@ -43,7 +43,7 @@ check_mit() {
        AC_DEFINE(HAVE_INIT_CREDS_PASSWORD,1,[Define krb5_get_init_creds_password])
        ac_gss_libs="-lgssapi_krb5 -ldes425 -lkrb5 -lk5crypto -lcom_err $LIBS"
        case $sys in
-	        Linux) if test "x$enableval" != "xyes" ; then
+	        Linux) if test "x$enableval" != "xyes" -a "x$enableval" != "x" ; then
                          ac_libdir=$enableval/lib
                          ac_includedir=$enableval/include
                          if ! test -e $ac_libdir/libgssapi_krb5.a -a ! -e $ac_libdir/libgssapi_krb5.so ; then
@@ -76,7 +76,7 @@ check_heimdal(){
        AC_DEFINE(HAVE_INIT_CREDS_PASSWORD,1,[Define krb5_get_init_creds_password])
        ac_gss_libs="-lgssapi -lkrb5 -lcom_err -lasn1 -lroken $LIBS";
        case $sys in
-	        Linux) if test "x$enableval" != "xyes" ; then
+	        Linux) if test "x$enableval" != "xyes" -a "x$enableval" != "x" ; then
                          ac_libdir=$enableval/lib
                          ac_includedir=$enableval/include
                          if ! test -e $ac_libdir/libroken.a -a ! -e $ac_libdir/libroken.so ; then
@@ -117,7 +117,7 @@ check_seam(){
        AC_DEFINE(HAVE_GSS_INT32,1,[Define gss_int32]),)
        AC_CHECK_LIB(gss,__gss_userok,AC_DEFINE(HAVE___GSS_USEROK,1,[Define __gss_userok]),)
        if test "x$ac_cv_lib_gss___gss_userok" == "xno" ; then
-          if test "x$enableval" != "xyes" ; then
+          if test "x$enableval" != "xyes" -a "x$enableval" != "x" ; then
              SRC=$enableval
           else
              SRC="/usr/src"
@@ -556,7 +556,7 @@ void unsetenv(char *env_name) {
 ])
 AC_OUTPUT()
 
-if test "x$ac_includedir" != "x"; then
+if test "x$ac_includedir" != "x" -a "x$ac_includedir" != "x/usr/include" ; then
    pr_includes="--with-includes=$ac_includedir"
 fi 
 if test "x$t_include" == "x" -a "x$pr_includes" != "x"; then
