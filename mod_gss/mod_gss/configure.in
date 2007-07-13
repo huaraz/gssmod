@@ -68,7 +68,21 @@ check_mit() {
                          ac_gss_libs="-L$ac_libdir -Wl,-R$ac_libdir $ac_gss_libs"
                        fi
                        ;;
-                *) ;;
+                *) if test "x$enableval" != "xyes" -a "x$enableval" != "x" ; then
+                     ac_libdir=$enableval/lib
+                     ac_includedir=$enableval/include
+                     if test ! -e $ac_libdir/libgssapi_krb5.a -a ! -e $ac_libdir/libgssapi_krb5.so ; then
+                       echo "configure: ##"
+                       echo "configure: ## Invalid lib directory $ac_libdir"
+                       echo "configure: ##"
+                     fi
+                     if ! test -e $ac_includedir/krb5.h ; then
+                       echo "configure: ##"
+                       echo "configure: ## Invalid include directory $ac_includedir"
+                       echo "configure: ##"
+                     fi
+                   fi
+                   ;;
        esac
        enable_arg="mit"
 }
@@ -80,7 +94,7 @@ check_heimdal(){
 	        Linux) if test "x$enableval" != "xyes" -a "x$enableval" != "x" ; then
                          ac_libdir=$enableval/lib
                          ac_includedir=$enableval/include
-                         if ! test -e $ac_libdir/libroken.a -a ! -e $ac_libdir/libroken.so ; then
+                         if test ! -e $ac_libdir/libroken.a -a ! -e $ac_libdir/libroken.so ; then
                            echo "configure: ##"
                            echo "configure: ## Invalid lib directory $ac_libdir"
                            echo "configure: ##"
@@ -101,7 +115,21 @@ check_heimdal(){
                           ac_gss_libs="-L$ac_libdir -Wl,-R$ac_libdir $ac_gss_libs"
                        fi
                        ;;
-                *) ;;
+                *) if test "x$enableval" != "xyes" -a "x$enableval" != "x" ; then
+                     ac_libdir=$enableval/lib
+                     ac_includedir=$enableval/include
+                     if test ! -e $ac_libdir/libroken.a -a ! -e $ac_libdir/libroken.so ; then
+                        echo "configure: ##"
+                        echo "configure: ## Invalid lib directory $ac_libdir"
+                        echo "configure: ##"
+                     fi
+                     if ! test -e $ac_includedir/krb5.h ; then
+                        echo "configure: ##"
+                        echo "configure: ## Invalid include directory $ac_includedir"
+                        echo "configure: ##"
+                     fi
+                   fi
+                   ;;
        esac
        enable_arg="heimdal"
 }
