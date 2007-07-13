@@ -47,7 +47,7 @@ check_mit() {
 	        Linux) if test "x$enableval" != "xyes" -a "x$enableval" != "x" ; then
                          ac_libdir=$enableval/lib
                          ac_includedir=$enableval/include
-                         if ! test -e $ac_libdir/libgssapi_krb5.a -a ! -e $ac_libdir/libgssapi_krb5.so ; then
+                         if test ! -e $ac_libdir/libgssapi_krb5.a -a ! -e $ac_libdir/libgssapi_krb5.so ; then
                            echo "configure: ##"
                            echo "configure: ## Invalid lib directory $ac_libdir"
                            echo "configure: ##"
