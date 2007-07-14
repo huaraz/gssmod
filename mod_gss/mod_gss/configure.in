@@ -314,6 +314,10 @@ if test x"$ac_cv_have_memory_keytab" = x"yes"; then
 fi
 LIBS=$old_LIBS
 
+AC_CHECK_SIZEOF(short)
+AC_CHECK_SIZEOF(int)
+AC_CHECK_SIZEOF(long)
+
 AC_CONFIG_HEADER(mod_gss.h)
 AH_TOP([/*
  * mod_gss - an RFC2228 GSSAPI module for ProFTPD
