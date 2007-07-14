@@ -65,7 +65,7 @@ check_mit() {
                          CPPFLAGS="$CPPFLAGS -I$ac_includedir"
                        fi
                        if test "x$ac_libdir" != "x" ; then
-                         ac_gss_libs="-L$ac_libdir -Wl,-R$ac_libdir $ac_gss_libs"
+                         ac_gss_libs="-L$ac_libdir $w_flag$ac_libdir$w_flag_2 $ac_gss_libs"
                        fi
                        ;;
                 *) if test "x$enableval" != "xyes" -a "x$enableval" != "x" ; then
@@ -86,7 +86,7 @@ check_mit() {
                       CPPFLAGS="$CPPFLAGS -I$ac_includedir"
                    fi
                    if test "x$ac_libdir" != "x" ; then
-                      ac_gss_libs="-L$ac_libdir -Wl,-R$ac_libdir $ac_gss_libs"
+                      ac_gss_libs="-L$ac_libdir $w_flag$ac_libdir$w_flag_2 $ac_gss_libs"
                    fi
                    ;;
        esac
@@ -118,7 +118,7 @@ check_heimdal(){
                           CPPFLAGS="$CPPFLAGS -I$ac_includedir"
                        fi
                        if test "x$ac_libdir" != "x" ; then
-                          ac_gss_libs="-L$ac_libdir -Wl,-R$ac_libdir $ac_gss_libs"
+                          ac_gss_libs="-L$ac_libdir $w_flag$ac_libdir$w_flag_2 $ac_gss_libs"
                        fi
                        ;;
                 *) if test "x$enableval" != "xyes" -a "x$enableval" != "x" ; then
@@ -139,7 +139,7 @@ check_heimdal(){
                      CPPFLAGS="$CPPFLAGS -I$ac_includedir"
                    fi
                    if test "x$ac_libdir" != "x" ; then
-                     ac_gss_libs="-L$ac_libdir -Wl,-R$ac_libdir $ac_gss_libs"
+                     ac_gss_libs="-L$ac_libdir $w_flag$ac_libdir$w_flag_2 $ac_gss_libs"
                    fi
                    ;;
        esac
