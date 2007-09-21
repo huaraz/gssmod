@@ -25,16 +25,16 @@ AC_TRY_COMPILE([int main()
 SPARCV9=""
 sys=`uname`
 case $sys in
-         Linux) w_flag="-Wl,-R "
+         Linux) w_flag="-Wl,-R"
                 w_flag_2=""
 		;;
          AIX) w_flag="-Wl,-blibpath:"
               w_flag_2=":/usr/lib:/lib"
               ;;
-         SunOS) w_flag="-R "
+         SunOS) w_flag="-R"
                 w_flag_2=""
                   ;;
-         *) w_flag="-Wl,-rpath "
+         *) w_flag="-Wl,-rpath"
             w_flag_2=""
             ;;
 esac
