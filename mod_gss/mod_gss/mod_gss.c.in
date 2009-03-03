@@ -2235,6 +2235,17 @@ MODRET set_gssrequired(cmd_rec *cmd) {
 
 /* Event handlers
  */
+#if defined(PR_SHARED_MODULE)
+static void gss_mod_unload_ev(const void *event_data, void *user_data) {
+  if (strcmp("mod_gss.c", (const char *) event_data) == 0) {
+    /* Unregister ourselves from all events. */
+    pr_event_unregister(&gss_module, NULL, NULL);
+
+    /* Unregister our NetIO handler for the control channel. */
+    pr_unregister_netio(PR_NETIO_STRM_CTRL);
+  }
+}
+#endif /* PR_SHARED_MODULE */
 
 static void gss_postparse_ev(const void *event_data, void *user_data) {
     server_rec *s = NULL;
@@ -2343,6 +2354,9 @@ static int gss_init(void) {
     pr_feat_add("CONF");
     pr_feat_add("CCC");
 
+#if defined(PR_SHARED_MODULE)
+    pr_event_register(&gss_module, "core.module-unload", gss_mod_unload_ev, NULL);
+#endif /* PR_SHARED_MODULE */
     pr_event_register(&gss_module, "core.postparse", gss_postparse_ev, NULL);
     pr_event_register(&gss_module, "core.restart", gss_restart_ev, NULL);
 
