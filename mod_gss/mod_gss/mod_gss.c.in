@@ -1407,6 +1407,7 @@ MODRET gss_auth(cmd_rec *cmd) {
         return DECLINED(cmd);
     }
 
+    pr_session_set_protocol("gssftp");
     session.rfc2228_mech = "GSSAPI";
     return HANDLED(cmd);
 }
