@@ -2724,13 +2724,13 @@ void gss_switch_keytab(char *keytab_file, int sflag){
         /* Save environment value */
         env_keytab_file = getenv("KRB5_KTNAME");
         gss_log("GSSAPI Set KRB5_KTNAME=%s",full_keytab_file);
-        putenv(pstrcat(main_server->pool, "KRB5_KTNAME=", full_keytab_file, NULL));
+        setenv("KRB5_KTNAME",full_keytab_file,1);
 #ifdef HAVE_HEIMDAL_KERBEROS
         gsskrb5_register_acceptor_identity(full_keytab_file);
 #endif
     } else if (keytab_file && !sflag) {
         gss_log("GSSAPI ReSet KRB5_KTNAME=%s",full_keytab_file);
-        putenv(pstrcat(main_server->pool, "KRB5_KTNAME=", full_keytab_file, NULL));
+        setenv("KRB5_KTNAME",full_keytab_file,1);
 #ifdef HAVE_HEIMDAL_KERBEROS
         gsskrb5_register_acceptor_identity(full_keytab_file);
 #endif

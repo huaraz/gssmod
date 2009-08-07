@@ -295,6 +295,7 @@ if test "x$t_lib" == "x"; then
 fi
 
 AC_CHECK_FUNCS(unsetenv)
+AC_CHECK_FUNCS(setenv)
 old_LIBS=$LIBS
 LIBS=$ac_gss_libs
 AC_CACHE_CHECK([for MEMORY: keytab support],ac_cv_have_memory_keytab,[
@@ -572,7 +573,7 @@ extern session_t session;
 extern xaset_t *server_list;
 
 #ifndef HAVE_UNSETENV
-void unsetenv(char *env_name) {
+int unsetenv(char *env_name) {
   extern char **environ;
   char **cc;
   int l;
@@ -580,6 +581,41 @@ void unsetenv(char *env_name) {
   for (cc=environ;*cc!=NULL;cc++) {
     if (strncmp(env_name,*cc,l)==0 && ((*cc)[l]=='='||(*cc)[l]=='\0')) break;
   } for (; *cc != NULL; cc++) *cc=cc[1];
+}
+#endif
+#ifndef HAVE_SETENV
+int setenv(const char *env_name, const char *value, int rewrite)
+{
+  extern char **environ;
+  static char **new_environ;
+  char **cc;
+  int l,f;
+
+  l=strlen(env_name);
+  f=0;
+  for (cc=environ;*cc!=NULL;cc++) {
+    if (strncmp(env_name,*cc,l)==0 && ((*cc)[l]=='='||(*cc)[l]=='\0') && rewrite) { f=1; break; };
+    if (strncmp(env_name,*cc,l)==0 && ((*cc)[l]=='='||(*cc)[l]=='\0') && !rewrite) return 0;
+  } for (; *cc != NULL; cc++) *cc=cc[1];
+  if (f) {
+    /* Reuse cleared space */
+    cc--;
+    *cc=malloc(strlen(env_name)+strlen(value)+2);
+    strcpy(*cc,env_name);
+    strcat(*cc,"=");
+    strcat(*cc,value);
+  } else {
+    /* Reclloc space */
+    int n=0;
+    for (cc=environ;*cc!=NULL;cc++) n++;
+    new_environ=realloc(new_environ,sizeof(char *)*(n+1));
+    memcpy(new_environ, environ, sizeof(char *)*n);
+    new_environ[n]=malloc(strlen(env_name)+strlen(value)+2);
+    strcpy(new_environ[n],env_name);
+    strcat(new_environ[n],"=");
+    strcat(new_environ[n],value);
+    environ=new_environ;
+  }
 }
 #endif
 
