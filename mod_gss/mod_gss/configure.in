@@ -144,6 +144,7 @@ check_heimdal(){
                    fi
                    ;;
        esac
+       AC_CHECK_HEADERS(gssapi/gssapi.h)
        enable_arg="heimdal"
 }
 check_nas(){
@@ -357,7 +358,11 @@ AH_BOTTOM([#include "conf.h"
 #endif
 
 #ifdef HAVE_HEIMDAL_KERBEROS
+#ifdef HAVE_GSSAPI_GSSAPI_H
+#include <gssapi/gssapi.h>
+#else
 #include <gssapi.h>
+#endif
 #include <krb5.h>
 #define error_message(code) krb5_get_err_text(kc,code)
 #define gss_nt_service_name GSS_C_NT_HOSTBASED_SERVICE
