@@ -1,0 +1,233 @@
+diff -r -c heimdal-1.3.3/appl/ftp/ftp/cmds.c heimdal-1.3.3_mm/appl/ftp/ftp/cmds.c
+*** heimdal-1.3.3/appl/ftp/ftp/cmds.c	2010-05-26 22:53:13.000000000 +0100
+--- heimdal-1.3.3_mm/appl/ftp/ftp/cmds.c	2010-07-03 14:06:13.000000000 +0100
+***************
+*** 966,971 ****
+--- 966,989 ----
+  }
+  
+  /*
++  * Toggle fwccc mode on server.
++  */
++ /*VARARGS*/
++ void
++ setfwccc(int argc, char **argv)
++ {
++         if (command ("FWCCC") == COMPLETE) {
++           allowfwccc = !allowfwccc;
++           printf("FWCCC mode %s.\n", onoff(allowfwccc));
++           code = allowfwccc;
++         } else {
++           allowfwccc = 0;
++           printf("We don't support FWCCC mode, sorry.\n");
++           code = -1;
++       }
++ }
++ 
++ /*
+   * Turn on interactive prompting
+   * during mget, mput, and mdelete.
+   */
+diff -r -c heimdal-1.3.3/appl/ftp/ftp/cmdtab.c heimdal-1.3.3_mm/appl/ftp/ftp/cmdtab.c
+*** heimdal-1.3.3/appl/ftp/ftp/cmdtab.c	2010-05-26 22:53:13.000000000 +0100
+--- heimdal-1.3.3_mm/appl/ftp/ftp/cmdtab.c	2010-07-03 14:07:33.000000000 +0100
+***************
+*** 104,109 ****
+--- 104,110 ----
+  char	userhelp[] =	"send new user information";
+  char	verbosehelp[] =	"toggle verbose mode";
+  
++ char    fwccchelp[] =   "toggle fwccc mode";
+  char	prothelp[] = 	"set protection level";
+  char	prothelp_c[] =	"set command protection level";
+  #if defined(KRB5)
+***************
+*** 188,193 ****
+--- 189,195 ----
+  	{ "?",		helphelp,	0,	0,	1,	help },
+  
+  	{ "protect", 	prothelp, 	0, 	1, 	0,	sec_prot },
++         { "fwccc",      fwccchelp,      0,      0,      0,      setfwccc },
+  	/* what MIT uses */
+  	{ "cprotect",	prothelp_c,	0,	1,	1,	sec_prot_command },
+  #if defined(KRB5)
+diff -r -c heimdal-1.3.3/appl/ftp/ftp/extern.h heimdal-1.3.3_mm/appl/ftp/ftp/extern.h
+*** heimdal-1.3.3/appl/ftp/ftp/extern.h	2010-05-26 22:53:13.000000000 +0100
+--- heimdal-1.3.3_mm/appl/ftp/ftp/extern.h	2010-07-03 14:08:00.000000000 +0100
+***************
+*** 150,155 ****
+--- 150,156 ----
+  void	syst (int, char **);
+  void    tvsub (struct timeval *, struct timeval *, struct timeval *);
+  void	user (int, char **);
++ void  setfwccc (int, char **);
+  
+  extern jmp_buf	abortprox;
+  extern int	abrtflag;
+diff -r -c heimdal-1.3.3/appl/ftp/ftp/ftp.c heimdal-1.3.3_mm/appl/ftp/ftp/ftp.c
+*** heimdal-1.3.3/appl/ftp/ftp/ftp.c	2010-05-26 22:53:13.000000000 +0100
+--- heimdal-1.3.3_mm/appl/ftp/ftp/ftp.c	2010-07-03 14:13:10.000000000 +0100
+***************
+*** 1242,1247 ****
+--- 1242,1248 ----
+  passive_mode (void)
+  {
+      int port;
++     int sc;
+  
+      data = socket (myctladdr->sa_family, SOCK_STREAM, 0);
+      if (data < 0) {
+***************
+*** 1250,1261 ****
+--- 1251,1267 ----
+      }
+      if (options & SO_DEBUG)
+  	socket_set_debug (data);
++     sc=sec_complete;
++     if (allowfwccc)
++       sec_complete=0;
+      if (command ("EPSV") != COMPLETE) {
+  	if (command ("PASV") != COMPLETE) {
+  	    printf ("Passive mode refused.\n");
++             sec_complete=sc;
+  	    goto bad;
+  	}
+      }
++     sec_complete=sc;
+  
+      /*
+       * Parse the reply to EPSV or PASV
+***************
+*** 1294,1299 ****
+--- 1300,1306 ----
+      int tmpno = 0;
+      socklen_t len;
+      int result;
++     int sc;
+  
+  noport:
+      data_addr->sa_family = myctladdr->sa_family;
+***************
+*** 1350,1358 ****
+--- 1357,1369 ----
+  	if (debug == 0)
+  	    verbose  = -1;
+  
++         sc=sec_complete;
++         if (allowfwccc)
++             sec_complete=0;
+  	result = command ("EPRT |%d|%s|%d|",
+  			  inet_af, addr_str,
+  			  ntohs(socket_get_port (data_addr)));
++         sec_complete=sc;
+  	verbose = overbose;
+  
+  	if (result == ERROR) {
+***************
+*** 1366,1371 ****
+--- 1377,1385 ----
+  		goto bad;
+  	    }
+  
++             sc=sec_complete;
++             if (allowfwccc)
++                 sec_complete=0;
+  	    result = command("PORT %d,%d,%d,%d,%d,%d",
+  			     (a >> 24) & 0xff,
+  			     (a >> 16) & 0xff,
+***************
+*** 1373,1378 ****
+--- 1387,1393 ----
+  			     a & 0xff,
+  			     (p >> 8) & 0xff,
+  			     p & 0xff);
++             sec_complete=sc;
+  	    if (result == ERROR && sendport == -1) {
+  		sendport = 0;
+  		tmpno = 1;
+***************
+*** 1586,1591 ****
+--- 1601,1607 ----
+      int secndflag = 0, prox_type, nfnd;
+      char *cmd2;
+      fd_set mask;
++     int sc;
+  
+      if (strcmp (cmd, "RETR"))
+  	cmd2 = "RETR";
+***************
+*** 1599,1608 ****
+--- 1615,1629 ----
+      }
+      if (curtype != prox_type)
+  	changetype (prox_type, 1);
++     sc=sec_complete;
++     if (allowfwccc)
++         sec_complete=0;
+      if (command ("PASV") != COMPLETE) {
+  	printf ("proxy server does not support third party transfers.\n");
++         sec_complete=sc;
+  	return;
+      }
++     sec_complete=sc;
+      pswitch (0);
+      if (!connected) {
+  	printf ("No primary connection\n");
+***************
+*** 1612,1621 ****
+--- 1633,1647 ----
+      }
+      if (curtype != prox_type)
+  	changetype (prox_type, 1);
++     sc=sec_complete;
++     if (allowfwccc)
++         sec_complete=0;
+      if (command ("PORT %s", pasv) != COMPLETE) {
+  	pswitch (1);
++         sec_complete=sc;
+  	return;
+      }
++     sec_complete=sc;
+      if (setjmp (ptabort))
+  	goto abort;
+      oldintr = signal (SIGINT, abortpt);
+diff -r -c heimdal-1.3.3/appl/ftp/ftp/ftp_var.h heimdal-1.3.3_mm/appl/ftp/ftp/ftp_var.h
+*** heimdal-1.3.3/appl/ftp/ftp/ftp_var.h	2010-05-26 22:53:13.000000000 +0100
+--- heimdal-1.3.3_mm/appl/ftp/ftp/ftp_var.h	2010-07-03 14:13:39.000000000 +0100
+***************
+*** 104,109 ****
+--- 104,110 ----
+  
+  extern int	options;		/* used during socket creation */
+  extern int      use_kerberos;           /* use Kerberos authentication */
++ extern int      allowfwccc;             /* send fwccc command before PORT/PASV/EPRT/EPSV command */
+  
+  /*
+   * Format of command table.
+diff -r -c heimdal-1.3.3/appl/ftp/ftp/globals.c heimdal-1.3.3_mm/appl/ftp/ftp/globals.c
+*** heimdal-1.3.3/appl/ftp/ftp/globals.c	2010-05-26 22:53:13.000000000 +0100
+--- heimdal-1.3.3_mm/appl/ftp/ftp/globals.c	2010-07-03 14:13:59.000000000 +0100
+***************
+*** 63,68 ****
+--- 63,69 ----
+  
+  int	options;		/* used during socket creation */
+  int     use_kerberos;           /* use Kerberos authentication */
++ int     allowfwccc;             /* send PORT/PASV and EPRT/EPSV commands in clear*/
+  
+  /*
+   * Format of command table.
+diff -r -c heimdal-1.3.3/appl/ftp/ftp/main.c heimdal-1.3.3_mm/appl/ftp/ftp/main.c
+*** heimdal-1.3.3/appl/ftp/ftp/main.c	2010-05-26 22:53:13.000000000 +0100
+--- heimdal-1.3.3_mm/appl/ftp/ftp/main.c	2010-07-03 14:14:27.000000000 +0100
+***************
+*** 72,77 ****
+--- 72,79 ----
+      { "encrypt", 'x', arg_flag, &doencrypt,
+        "Encrypt command and data channel if possible" },
+      { "version", 0,  arg_flag, &version_flag },
++     { "fwccc",   'c', arg_flag, &allowfwccc,
++       "Allow PORT/PASV/EPRT/EPASV commands in clear for stateful FW support with GSSAPI encryption", NULL},
+      { "help",	'h', arg_flag, &help_flag },
+  };
+  
