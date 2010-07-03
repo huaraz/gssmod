@@ -1,9 +1,9 @@
-diff -r -c krb5-1.6.1/src/appl/gssftp/ftp/cmds.c krb5-1.6.1_mm/src/appl/gssftp/ftp/cmds.c
-*** krb5-1.6.1/src/appl/gssftp/ftp/cmds.c	2006-10-12 02:18:35.000000000 +0100
---- krb5-1.6.1_mm/src/appl/gssftp/ftp/cmds.c	2007-04-22 14:39:25.000000000 +0100
+diff -r -c krb5-appl-1.0.1/gssftp/ftp/cmds.c krb5-appl-1.0.1_mm/gssftp/ftp/cmds.c
+*** krb5-appl-1.0.1/gssftp/ftp/cmds.c	2009-11-05 20:15:06.000000000 +0000
+--- krb5-appl-1.0.1_mm/gssftp/ftp/cmds.c	2010-07-03 13:13:48.000000000 +0100
 ***************
-*** 1261,1266 ****
---- 1261,1285 ----
+*** 1268,1273 ****
+--- 1268,1292 ----
   }
   
   /*
@@ -26,15 +26,15 @@ diff -r -c krb5-1.6.1/src/appl/gssftp/ftp/cmds.c krb5-1.6.1_mm/src/appl/gssftp/f
 + }
 + 
 + /*
-   * Turn on interactive prompting
-   * during mget, mput, and mdelete.
+   * Toggle metacharacter interpretation
+   * on local file names.
    */
-diff -r -c krb5-1.6.1/src/appl/gssftp/ftp/cmdtab.c krb5-1.6.1_mm/src/appl/gssftp/ftp/cmdtab.c
-*** krb5-1.6.1/src/appl/gssftp/ftp/cmdtab.c	2000-08-29 18:59:17.000000000 +0100
---- krb5-1.6.1_mm/src/appl/gssftp/ftp/cmdtab.c	2007-04-22 14:39:25.000000000 +0100
+diff -r -c krb5-appl-1.0.1/gssftp/ftp/cmdtab.c krb5-appl-1.0.1_mm/gssftp/ftp/cmdtab.c
+*** krb5-appl-1.0.1/gssftp/ftp/cmdtab.c	2009-07-08 22:22:07.000000000 +0100
+--- krb5-appl-1.0.1_mm/gssftp/ftp/cmdtab.c	2010-07-03 13:14:52.000000000 +0100
 ***************
-*** 115,120 ****
---- 115,121 ----
+*** 117,122 ****
+--- 117,123 ----
   char	umaskhelp[] =	"get (set) umask on remote side";
   char	userhelp[] =	"send new user information";
   char	verbosehelp[] =	"toggle verbose mode";
@@ -43,143 +43,143 @@ diff -r -c krb5-1.6.1/src/appl/gssftp/ftp/cmdtab.c krb5-1.6.1_mm/src/appl/gssftp
   char	setpassivehelp[] = "toggle passive transfer mode";
   #endif
 ***************
-*** 201,206 ****
---- 202,208 ----
+*** 203,208 ****
+--- 204,210 ----
   	{ "user",	userhelp,	0,	1,	1,	user },
   	{ "umask",	umaskhelp,	0,	1,	1,	do_umask },
   	{ "verbose",	verbosehelp,	0,	0,	0,	setverbose },
-+ 	{ "fwccc",      fwccchelp,      0,      0,      0,      setfwccc },
++         { "fwccc",      fwccchelp,      0,      0,      0,      setfwccc },
   	{ "?",		helphelp,	0,	0,	1,	help },
   	{ 0 },
   };
-diff -r -c krb5-1.6.1/src/appl/gssftp/ftp/ftp.c krb5-1.6.1_mm/src/appl/gssftp/ftp/ftp.c
-*** krb5-1.6.1/src/appl/gssftp/ftp/ftp.c	2006-10-15 09:43:30.000000000 +0100
---- krb5-1.6.1_mm/src/appl/gssftp/ftp/ftp.c	2007-04-22 14:39:25.000000000 +0100
+diff -r -c krb5-appl-1.0.1/gssftp/ftp/ftp.c krb5-appl-1.0.1_mm/gssftp/ftp/ftp.c
+*** krb5-appl-1.0.1/gssftp/ftp/ftp.c	2009-11-20 15:29:22.000000000 +0000
+--- krb5-appl-1.0.1_mm/gssftp/ftp/ftp.c	2010-07-03 13:20:37.000000000 +0100
 ***************
-*** 507,512 ****
---- 507,513 ----
+*** 491,496 ****
+--- 491,497 ----
   	va_list ap;
   	int r;
   	sig_t oldintr;
-+ 	char* tmpa;
++         char* tmpa;
   
   	abrtflag = 0;
   	if (debug) {
 ***************
-*** 533,539 ****
---- 534,550 ----
+*** 517,523 ****
+--- 518,534 ----
   again:	if (secure_command(in) == 0)
   		return(0);
   	cpend = 1;
-+ 	if (allowfwccc &&
-+ 	   ( !strncmp(fmt, "PORT",4) || !strncmp(fmt, "PASV",4) ) ) {
-+ 		tmpa = auth_type;
-+ 		auth_type = NULL;
-+ 	}
++         if (allowfwccc &&
++            ( !strncmp(fmt, "PORT",4) || !strncmp(fmt, "PASV",4) ) ) {
++                 tmpa = auth_type;
++                 auth_type = NULL;
++         }
   	r = getreply(!strcmp(fmt, "QUIT"));
-+ 	if (allowfwccc &&
-+ 	   ( !strncmp(fmt, "PORT",4) || !strncmp(fmt, "PASV",4) ) ) {
-+ 		auth_type = tmpa;
-+ 		tmpa=NULL;
-+ 	}
++         if (allowfwccc &&
++            ( !strncmp(fmt, "PORT",4) || !strncmp(fmt, "PASV",4) ) ) {
++                 auth_type = tmpa;
++                 tmpa=NULL;
++         }
   #ifndef NOENCRYPTION
   	if (r == 533 && clevel == PROT_P) {
   		fprintf(stderr,
 ***************
-*** 1448,1453 ****
---- 1459,1465 ----
+*** 1399,1404 ****
+--- 1410,1416 ----
   	int on = 1;
   #ifndef NO_PASSIVE_MODE
   	int a1,a2,a3,a4,p1,p2;
-+ 	int sl;
++         int sl;
   
   	if (passivemode) {
   		data = socket(AF_INET, SOCK_STREAM, 0);
 ***************
-*** 1458,1468 ****
---- 1470,1485 ----
+*** 1409,1419 ****
+--- 1421,1436 ----
   		if (options & SO_DEBUG &&
   		    setsockopt(data, SOL_SOCKET, SO_DEBUG, (char *)&on, sizeof (on)) == SOCKET_ERROR)
   			PERROR_SOCKET("ftp: setsockopt (ignored)");
-+ 		sl = clevel;
-+ 		if (allowfwccc )
-+ 			clevel = PROT_C;
++                 sl = clevel;
++                 if (allowfwccc )
++                         clevel = PROT_C;
   		if (command("PASV") != COMPLETE) {
   			printf("Passive mode refused.  Turning off passive mode.\n");
   			passivemode = 0;
-+ 			clevel = sl;
++                         clevel = sl;
   			return initconn();
   		}
-+ 		clevel = sl;
++                 clevel = sl;
   
   /*
    * What we've got at this point is a string of comma separated
 ***************
-*** 1533,1542 ****
---- 1550,1563 ----
+*** 1484,1493 ****
+--- 1501,1514 ----
   		a = (char *)&data_addr.sin_addr;
   		p = (char *)&data_addr.sin_port;
   #define	UC(b)	(((int)b)&0xff)
-+ 		sl = clevel;
-+ 		if (allowfwccc )
-+ 			clevel = PROT_C;
++                 sl = clevel;
++                 if (allowfwccc )
++                         clevel = PROT_C;
   		result =
   		    command("PORT %d,%d,%d,%d,%d,%d",
   		      UC(a[0]), UC(a[1]), UC(a[2]), UC(a[3]),
   		      UC(p[0]), UC(p[1]));
-+ 		clevel = sl;
++                 clevel = sl;
   		if (result == ERROR && sendport == -1) {
   			sendport = 0;
   			tmpno = 1;
 ***************
-*** 1777,1782 ****
---- 1798,1804 ----
+*** 1718,1723 ****
+--- 1739,1745 ----
   	int prox_type, nfnd;
   	char *volatile cmd2;
   	 fd_set mask;
-+ 	int sl;
++         int sl;
   
   	if (strcmp(cmd, "RETR"))
   		cmd2 = "RETR";
 ***************
-*** 1790,1799 ****
---- 1812,1826 ----
+*** 1731,1740 ****
+--- 1753,1767 ----
   	}
   	if (curtype != prox_type)
   		changetype(prox_type, 1);
-+ 	sl = clevel;
-+ 	if (allowfwccc)
-+ 		clevel = PROT_C;
++         sl = clevel;
++         if (allowfwccc)
++                 clevel = PROT_C;
   	if (command("PASV") != COMPLETE) {
   		printf("proxy server does not support third party transfers.\n");
-+ 		clevel = sl;
++                 clevel = sl;
   		return;
   	}
-+ 	clevel = sl;
++         clevel = sl;
   	pswitch(0);
   	if (!connected) {
   		printf("No primary connection\n");
 ***************
-*** 1803,1812 ****
---- 1830,1844 ----
+*** 1744,1753 ****
+--- 1771,1785 ----
   	}
   	if (curtype != prox_type)
   		changetype(prox_type, 1);
-+ 	sl = clevel;
-+ 	if (allowfwccc)
-+ 		clevel = PROT_C;
++         sl = clevel;
++         if (allowfwccc)
++                 clevel = PROT_C;
   	if (command("PORT %s", pasv) != COMPLETE) {
   		pswitch(1);
-+ 		clevel = sl;
++                 clevel = sl;
   		return;
   	}
-+ 	clevel = sl;
++         clevel = sl;
   	if (setjmp(ptabort))
   		goto die;
   	oldintr = signal(SIGINT, abortpt);
-diff -r -c krb5-1.6.1/src/appl/gssftp/ftp/ftp_var.h krb5-1.6.1_mm/src/appl/gssftp/ftp/ftp_var.h
-*** krb5-1.6.1/src/appl/gssftp/ftp/ftp_var.h	2003-06-16 20:02:01.000000000 +0100
---- krb5-1.6.1_mm/src/appl/gssftp/ftp/ftp_var.h	2007-04-22 14:39:25.000000000 +0100
+diff -r -c krb5-appl-1.0.1/gssftp/ftp/ftp_var.h krb5-appl-1.0.1_mm/gssftp/ftp/ftp_var.h
+*** krb5-appl-1.0.1/gssftp/ftp/ftp_var.h	2009-11-05 20:15:06.000000000 +0000
+--- krb5-appl-1.0.1_mm/gssftp/ftp/ftp_var.h	2010-07-03 13:22:00.000000000 +0100
 ***************
 *** 78,83 ****
 --- 78,84 ----
@@ -191,8 +191,8 @@ diff -r -c krb5-1.6.1/src/appl/gssftp/ftp/ftp_var.h krb5-1.6.1_mm/src/appl/gssft
   extern int	interactive;	/* interactively prompt on m* cmds */
   extern int	debug;		/* debugging level */
 ***************
-*** 204,209 ****
---- 205,211 ----
+*** 208,213 ****
+--- 209,215 ----
   void settrace (void);
   void sethash (void);
   void setverbose (void);
@@ -200,29 +200,29 @@ diff -r -c krb5-1.6.1/src/appl/gssftp/ftp/ftp_var.h krb5-1.6.1_mm/src/appl/gssft
   void setport (void);
   void setprompt (void);
   void setglob (void);
-diff -r -c krb5-1.6.1/src/appl/gssftp/ftp/main.c krb5-1.6.1_mm/src/appl/gssftp/ftp/main.c
-*** krb5-1.6.1/src/appl/gssftp/ftp/main.c	2002-11-09 01:35:21.000000000 +0000
---- krb5-1.6.1_mm/src/appl/gssftp/ftp/main.c	2007-04-22 14:39:25.000000000 +0100
+diff -r -c krb5-appl-1.0.1/gssftp/ftp/main.c krb5-appl-1.0.1_mm/gssftp/ftp/main.c
+*** krb5-appl-1.0.1/gssftp/ftp/main.c	2009-11-05 20:15:06.000000000 +0000
+--- krb5-appl-1.0.1_mm/gssftp/ftp/main.c	2010-07-03 13:22:43.000000000 +0100
 ***************
-*** 134,139 ****
---- 134,140 ----
-  #endif /* KRB5_KRB4_COMPAT */
+*** 122,127 ****
+--- 122,128 ----
+  	}
   	doglob = 1;
   	interactive = 1;
-+ 	allowfwccc = 0;
++         allowfwccc = 0;
   	autoauth = 1;
   	autologin = 1;
   	forward = 0;
 ***************
-*** 193,198 ****
---- 194,203 ----
+*** 168,173 ****
+--- 169,178 ----
   				autoencrypt = 1;
   				break;
   
-+ 			case 'c':
-+ 				allowfwccc = 1;
-+ 				break;
-+ 
++                         case 'c':
++                                 allowfwccc = 1;
++                                 break;
++  
   			default:
   			  fprintf(stderr,
   				  "ftp: %c: unknown option\n", *cp);

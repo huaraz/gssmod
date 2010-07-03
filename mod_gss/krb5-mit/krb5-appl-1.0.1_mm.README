@@ -1,0 +1,13 @@
+This patch adds a new toggle command FWCCC to the ftp client. The proftpd will with the latest 
+mod_gss module accept the new command to allow clear PORT/PASV/EPRT/EPSV commands. 
+
+Stateful firewalls need to intercept the PORT or PASV command to be able to setup their session 
+tables. The result of the FWCCC command is that the client sends the PORT/PASV command unprotected and 
+the server replies with an unprotected message.
+
+Overall this solutions is more secure then opening on the firewall a port ranges.
+
+To support NAT(Network Address Translation) with MIT the server will accept Channel Bindings 
+and no Channel Bindings when set to NO_CHANNEL_BINDINGS in the standard distribution.
+
+Markus
