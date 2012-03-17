@@ -14,341 +14,236 @@ dnl Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307, USA.
 dnl
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([mod_gss],[1.3.3],[markus_moeller@compuserve.com])
+AC_INIT([mod_gss],[1.3.4],[markus_moeller@compuserve.com])
 
 AC_TRY_COMPILE([int main()
-  { 
-     return; 
-  } 
-])
+                 {
+                  return;
+                 }	
+              ])
 
-SPARCV9=""
-sys=`uname`
-case $sys in
-         Linux) w_flag="-Wl,-R"
-                w_flag_2=""
-		;;
-         AIX) w_flag="-Wl,-blibpath:"
-              w_flag_2=":/usr/lib:/lib"
-              ;;
-         SunOS) w_flag="-R"
-                w_flag_2=""
-                  ;;
-         *) w_flag="-Wl,-rpath"
-            w_flag_2=""
-            ;;
-esac
+unset krb5confpath
+AC_ARG_WITH(krb5-config,[  --with-krb5-config=PATH specify path to krb5-config @ <: @default=detect@: >@],
+	     [if test x"$withval" != xno; then
+                 krb5confpath=$withval 
+	      fi
+	     ])
 
-enable_arg="no"
-check_mit() {
-       AC_DEFINE(HAVE_INIT_CREDS_PASSWORD,1,[Define krb5_get_init_creds_password])
-       ac_gss_libs="-lgssapi_krb5 -ldes425 -lkrb5 -lk5crypto -lcom_err $LIBS"
-       case $sys in
-	        Linux) if test "x$enableval" != "xyes" -a "x$enableval" != "x" ; then
-                         ac_libdir=$enableval/lib
-                         ac_includedir=$enableval/include
-                         if test ! -e $ac_libdir/libgssapi_krb5.a -a ! -e $ac_libdir/libgssapi_krb5.so ; then
-                           echo "configure: ##"
-                           echo "configure: ## Invalid lib directory $ac_libdir"
-                           echo "configure: ##"
-                         fi
-                         if ! test -e $ac_includedir/krb5.h ; then
-                           echo "configure: ##"
-                           echo "configure: ## Invalid include directory $ac_includedir"
-                           echo "configure: ##"
-                         fi
-                       else
-                         ac_libdir=`rpm -q -l krb5 2>/dev/null | grep "/libgssapi_krb5" |  sed -e 's/\/libgssapi_krb5.*//' | head -1`
-                         ac_includedir=`rpm -q -l krb5-devel 2>/dev/null | grep /krb5.h$ | sed -e 's/\/krb5.h//' | head -1`
-                       fi
-                       if test "x$ac_includedir" != "x" ; then
-                         CPPFLAGS="$CPPFLAGS -I$ac_includedir"
-                       fi
-                       if test "x$ac_libdir" != "x" ; then
-                         ac_gss_libs="-L$ac_libdir $w_flag$ac_libdir$w_flag_2 $ac_gss_libs"
-                       fi
-                       ;;
-                *) if test "x$enableval" != "xyes" -a "x$enableval" != "x" ; then
-                     ac_libdir=$enableval/lib
-                     ac_includedir=$enableval/include
-                     if test ! -e $ac_libdir/libgssapi_krb5.a -a ! -e $ac_libdir/libgssapi_krb5.so ; then
-                       echo "configure: ##"
-                       echo "configure: ## Invalid lib directory $ac_libdir"
-                       echo "configure: ##"
-                     fi
-                     if ! test -e $ac_includedir/krb5.h ; then
-                       echo "configure: ##"
-                       echo "configure: ## Invalid include directory $ac_includedir"
-                       echo "configure: ##"
-                     fi
-                   fi
-                   if test "x$ac_includedir" != "x" ; then
-                      CPPFLAGS="$CPPFLAGS -I$ac_includedir"
-                   fi
-                   if test "x$ac_libdir" != "x" ; then
-                      ac_gss_libs="-L$ac_libdir $w_flag$ac_libdir$w_flag_2 $ac_gss_libs"
-                   fi
-                   ;;
-       esac
-       enable_arg="mit"
-}
-check_heimdal(){
-       AC_DEFINE(HAVE_HEIMDAL_KERBEROS,1,[Define Heimdal Kerberos])
-       AC_DEFINE(HAVE_INIT_CREDS_PASSWORD,1,[Define krb5_get_init_creds_password])
-       ac_gss_libs="-lgssapi -lkrb5 -lcom_err -lasn1 -lroken $LIBS";
-       case $sys in
-	        Linux) if test "x$enableval" != "xyes" -a "x$enableval" != "x" ; then
-                         ac_libdir=$enableval/lib
-                         ac_includedir=$enableval/include
-                         if test ! -e $ac_libdir/libroken.a -a ! -e $ac_libdir/libroken.so ; then
-                           echo "configure: ##"
-                           echo "configure: ## Invalid lib directory $ac_libdir"
-                           echo "configure: ##"
-                         fi
-                         if ! test -e $ac_includedir/krb5.h ; then
-                           echo "configure: ##"
-                           echo "configure: ## Invalid include directory $ac_includedir"
-                           echo "configure: ##"
-                         fi
-                       else
-                         ac_libdir=`rpm -q -l heimdal-devel 2>/dev/null | grep "/libroken" |  sed -e 's/\/libroken.*//' | head -1`
+unset krb5fail 
+if test x"$krb5confpath" != xno; then 
+	if test x"$krb5confpath" != x; then 
+		if ! test -x "$krb5confpath"; then
+			AC_MSG_WARN([krb5-config '$krb5confpath' not executable, ignoring])
+		else
+			ac_gssapi_cflags=`$krb5confpath --cflags gssapi 2> /dev/null ` 
+			if test $? != 0; then
+				krb5fail=t
+			fi
+		       	ac_gssapi_libs=`$krb5confpath --libs gssapi 2> /dev/null ` 
+			if test $? != 0; then 
+				krb5fail=t 
+			fi 
+		fi
+	else
+		AC_CHECK_PROG(ac_krb5_config, krb5-config, yes, no) 
+		if test x"$ac_krb5_config" = xyes; then 
+			ac_gssapi_cflags=`krb5-config --cflags gssapi 2> /dev/null ` 
+			if test $? != 0; then
+				krb5fail=t
+			fi 
+			ac_gssapi_libs=`krb5-config --libs gssapi 2> /dev/null ` 
+			if test $? != 0; then 
+				krb5fail=t 
+			fi 
+		fi 
+	fi 
+fi 
 
-                         ac_includedir=`rpm -q -l heimdal-devel 2>/dev/null | grep /krb5.h$ | sed -e 's/\/krb5.h//' | head -1`
-                       fi
-                       if test "x$ac_includedir" != "x" ; then
-                          CPPFLAGS="$CPPFLAGS -I$ac_includedir"
-                       fi
-                       if test "x$ac_libdir" != "x" ; then
-                          ac_gss_libs="-L$ac_libdir $w_flag$ac_libdir$w_flag_2 $ac_gss_libs"
-                       fi
-                       ;;
-                *) if test "x$enableval" != "xyes" -a "x$enableval" != "x" ; then
-                     ac_libdir=$enableval/lib
-                     ac_includedir=$enableval/include
-                     if test ! -e $ac_libdir/libroken.a -a ! -e $ac_libdir/libroken.so ; then
-                        echo "configure: ##"
-                        echo "configure: ## Invalid lib directory $ac_libdir"
-                        echo "configure: ##"
-                     fi
-                     if ! test -e $ac_includedir/krb5.h ; then
-                        echo "configure: ##"
-                        echo "configure: ## Invalid include directory $ac_includedir"
-                        echo "configure: ##"
-                     fi
-                   fi
-                   if test "x$ac_includedir" != "x" ; then
-                     CPPFLAGS="$CPPFLAGS -I$ac_includedir"
-                   fi
-                   if test "x$ac_libdir" != "x" ; then
-                     ac_gss_libs="-L$ac_libdir $w_flag$ac_libdir$w_flag_2 $ac_gss_libs"
-                   fi
-                   ;;
-       esac
-       AC_CHECK_HEADERS(gssapi/gssapi.h)
-       enable_arg="heimdal"
-}
-check_nas(){
-       AC_DEFINE(HAVE_NAS_KERBEROS,1,[Define NAS Kerberos])
-       AC_DEFINE(HAVE_INIT_CREDS_PASSWORD,1,[Define krb5_get_init_creds_password])
-       ac_gss_libs="-L\/usr\/lib -lksvc -lgssapi_krb5 -lkrb5";
-       enable_arg="nas"
-}
-
-check_seam_64(){
-       SPARCV9s="/sparcv9"
-       SPARCV9es="\/sparcv9"
-       check_seam
-       enable_arg="seam64"
-}
-
-check_seam(){
-       AC_DEFINE(HAVE_SEAM_KERBEROS,1,[Define SEAM Kerberos])
-       AC_TRY_COMPILE([#include <gssapi/gssapi.h>],
-       [gss_int32 gint;],
-       AC_DEFINE(HAVE_GSS_INT32,1,[Define gss_int32]),)
-       AC_CHECK_LIB(gss,__gss_userok,AC_DEFINE(HAVE___GSS_USEROK,1,[Define __gss_userok]),)
-       if test "x$ac_cv_lib_gss___gss_userok" == "xno" ; then
-          if test "x$enableval" != "xyes" -a "x$enableval" != "x" ; then
-             SRC=$enableval
-          else
-             SRC="/usr/src"
-          fi
-          INCLUDES="-I/usr/include/kerberosv5 -I$SRC/uts/common/gssapi/mechs/krb5/include -I$SRC/lib/gss_mechs/mech_krb5/include"
-          for CPPFLAGS in $INCLUDES ; do
-             AC_CHECK_HEADERS(krb5.h com_err.h)
-             if test "x$ac_cv_header_krb5_h" != "xno" ; then
-                ac_includedir=`echo $CPPFLAGS | sed -e 's/^-I//'`
-                break
-             fi
-          done
-          if test -e /usr/lib/gss/do${SPARCV9s}/mech_krb5.so ; then
-            ac_gss_libs="-lgss -R\/usr\/lib\/gss\/do${SPARCV9s} -Wl,\/usr\/lib\/gss\/do${SPARCV9es}\/mech_krb5.so";
-            ln -s /usr/lib/gss/do${SPARCV9s}/mech_krb5.so /tmp/libmech_krb5.so;
-            LDFLAGS_sav=$LDFLAGS;
-            LDFLAGS="-L/tmp"; 
-            AC_CHECK_LIB(mech_krb5,krb5_get_init_creds_password,AC_DEFINE(HAVE_INIT_CREDS_PASSWORD_UNUSED,1,[Define krb5_get_init_creds_password]),)
-            LDFLAGS=$LDFLAGS_sav
-            rm /tmp/libmech_krb5.so
-         elif test -e /usr/lib/gss/gl${SPARCV9s}/mech_krb5.so ; then
-            ac_gss_libs="-lgss -R\/usr\/lib\/gss\/gl${SPARCV9s} -Wl,\/usr\/lib\/gss\/gl${SPARCV9es}\/mech_krb5.so";
-            ln -s /usr/lib/gss/gl${SPARCV9s}/mech_krb5.so /tmp/libmech_krb5.so;
-            LDFLAGS_sav=$LDFLAGS;
-            LDFLAGS="-L/tmp"; 
-            AC_CHECK_LIB(mech_krb5,krb5_get_init_creds_password,AC_DEFINE(HAVE_INIT_CREDS_PASSWORD_UNUSED,1,[Define krb5_get_init_creds_password]),)
-            LDFLAGS=$LDFLAGS_sav
-            rm /tmp/libmech_krb5.so
-         else
-            ac_gss_libs="-lgss -R\/usr\/lib\/gss${SPARCV9s} -Wl,\/usr\/lib\/gss${SPARCV9es}\/mech_krb5.so";
-            ln -s /usr/lib/gss${SPARCV9s}/mech_krb5.so /tmp/libmech_krb5.so;
-            LDFLAGS_sav=$LDFLAGS;
-            LDFLAGS="-L/tmp"; 
-            AC_CHECK_LIB(mech_krb5,krb5_get_init_creds_password,AC_DEFINE(HAVE_INIT_CREDS_PASSWORD_UNUSED,1,[Define krb5_get_init_creds_password]),)
-            LDFLAGS=$LDFLAGS_sav
-            rm /tmp/libmech_krb5.so
-         fi
-       else
-         ac_gss_libs="-lgss";
-         AC_DEFINE(HAVE_INIT_CREDS_PASSWORD_UNUSED,1,[Define krb5_get_init_creds_password])
-       fi
-       enable_arg="seam"
-}
-
-dnl Define MIT libraries
-AC_ARG_ENABLE(mit,
-  [  --enable-mit[=DIR]	  enable use of MIT package (default=yes) ],
-  [
-    if test "x$enableval" != "xno" ; then
-       check_mit
-    fi ])
-
-dnl Define Heimdal libraries
-AC_ARG_ENABLE(heimdal,
-  [  --enable-heimdal[=DIR]	  enable use of Heimdal package (default=no) ],
-  [
-    if test "x$enableval" != "xno" ; then
-       check_heimdal
-    fi ])
-
-dnl Define NAS libraries
-AC_ARG_ENABLE(nas,
-  [  --enable-nas 		  enable use of NAS(AIX) package (default=no) ],
-  [
-    if test "x$enableval" != "xno" ; then
-       check_nas
-    fi ])
-
-dnl Define SEAM libraries
-AC_ARG_ENABLE(seam,
-  [  --enable-seam[=SRC]	  enable use of SEAM(Solaris) package (default=no) ],
-  [
-    if test "x$enableval" != "xno" ; then
-       check_seam
-    fi ])
-
-dnl Define SEAM libraries
-AC_ARG_ENABLE(seam-64,
-  [  --enable-seam-64[=SRC]	  enable use of 64bit SEAM(Solaris) package (default=no) ],
-  [
-    if test "x$enableval" != "xno" ; then
-       check_seam_64
-    fi ])
-
-dnl Define system default
-if test "$enable_arg" = "no"; then
-  dnl Autodetect system
-  case $sys in
-           Linux) rpm -q heimdal-lib 2>&1 >/dev/null
-                  if test $? == 0 ; then
-                    check_heimdal
-		  else 
-		    check_mit
-                  fi 
-                  ;;
-           AIX)   lslpp -L krb5.client.rte 2>&1 >/dev/null
-                  if test $? == 0 ; then
-                    check_nas
-		  else 
-		    check_mit
-                  fi
-                  ;;
-           SunOS) pkginfo SUNWgss 2>&1 >/dev/null
-                  if test $? == 0 ; then
-                    check_seam
-		  else 
-		    check_mit
-                  fi
-                  ;;
-           *) check_mit
-              ;;
-  esac
-
+if test x"$krb5fail" = xt ; then
+	echo "No GSSAPI/Kerberos support - missing/not working krb5-config"
+	exit 0
 fi
 
-eval ac_include="$includedir" 
-t_include=`echo $ac_include | grep NONE`
-if test "x$t_include" == "x"; then
-  CPPFLAGS="$CPPFLAGS -I$ac_include"
+dnl look for gssapi headers
+AC_CHECK_HEADERS(gssapi.h gssapi/gssapi.h gssapi/gssapi_ext.h)
+AC_CHECK_HEADERS(gssapi/gssapi_krb5.h gssapi/gssapi_generic.h) 
+
+dnl look for kerberos headers
+AC_CHECK_HEADERS(krb5.h com_err.h et/com_err.h)
+ac_com_error_message=no
+AC_EGREP_HEADER(com_err.h,krb5.h,ac_com_err_krb5=yes)
+if test x"$ac_com_err_krb5" = xyes ; then
+	AC_DEFINE(HAVE_COM_ERR_IN_KRB5,1,[Define to 1 if you have com_err in krb5.h])
 fi
-eval ac_lib="$libdir"
-t_lib=`echo $ac_lib | grep NONE`
-if test "x$t_lib" == "x"; then
-  ac_gss_libs="-L$ac_lib $w_flag$ac_lib $w_flag_2 $ac_gss_libs"
+if test x"$ac_cv_header_com_err_h" = xyes ; then
+	AC_EGREP_HEADER(error_message,com_err.h,ac_com_error_message=yes)
+elif test "x$ac_cv_header_et_com_err_h" = xyes ; then
+	AC_EGREP_HEADER(error_message,et/com_err.h,ac_com_error_message=yes)
+fi
+							       
+dnl look for libs
+if test x"$ac_gssapi_libs" != x; then 
+	LIBS="${LIBS} $ac_gssapi_libs"
+else
+	AC_CHECK_LIB(crypto, main)
+	AC_CHECK_LIB(des, main)
+	AC_CHECK_LIB(crypt, main)
+	AC_CHECK_LIB(roken, main)
+	AC_CHECK_LIB(com_err, main)
+	AC_CHECK_LIB(des425, main)
+	AC_CHECK_LIB(k5crypto, main)
+	AC_CHECK_LIB(asn1, main)
+	AC_CHECK_LIB(krb5, main)
+	AC_CHECK_LIB(gssapi_krb5, main)
+	AC_CHECK_LIB(gssapi, main)
+	AC_CHECK_LIB(gss, main)
+	AC_CHECK_LIB(ksvc, main)
+
+dnl add as dependency for libdsocks 
+fi 
+if test `echo $LIBS | grep -c com_err` -ne 0 -a "x$ac_com_error_message" = xyes ; then
+	AC_CHECK_LIB(com_err,error_message,
+		     AC_DEFINE(HAVE_ERROR_MESSAGE,1,[Define to 1 if you have error_message]),)
+elif test  x"$ac_com_error_message" = xyes ; then
+	AC_CHECK_LIB(krb5,error_message,
+		     AC_DEFINE(HAVE_ERROR_MESSAGE,1,[Define to 1 if you have error_message]),)
+fi
+AC_CHECK_LIB(krb5,krb5_get_err_text,
+	     AC_DEFINE(HAVE_KRB5_GET_ERR_TEXT,1,[Define to 1 if you have krb5_get_err_text]),)
+AC_CHECK_LIB(krb5,krb5_get_error_message,
+	     AC_DEFINE(HAVE_KRB5_GET_ERROR_MESSAGE,1,[Define to 1 if you have krb5_get_error_message]),)
+AC_CHECK_LIB(gss,__gss_userok,AC_DEFINE(HAVE___GSS_USEROK,1,[Define __gss_userok]),)
+AC_CHECK_LIB(krb5,krb5_get_init_creds_password,
+	     AC_DEFINE(HAVE_INIT_CREDS_PASSWORD,1,[Define krb5_get_init_creds_password]),)
+if test x"$ac_cv_lib_krb5_krb5_get_init_creds_keytab" != xyes ; then
+	AC_CHECK_LIB(mech_krb5,krb5_get_init_creds_password,
+	     AC_DEFINE(HAVE_INIT_CREDS_PASSWORD,1,[Define krb5_get_init_creds_password]),) 
 fi
 
-AC_CHECK_FUNCS(unsetenv)
-AC_CHECK_FUNCS(setenv)
-old_LIBS=$LIBS
-LIBS=$ac_gss_libs
-AC_CACHE_CHECK([for MEMORY: keytab support],ac_cv_have_memory_keytab,[
-  AC_TRY_RUN([
-#include<krb5.h>
-  main()
-  {
-    krb5_context context;
-    krb5_keytab keytab;
+dnl do compile check
+no_krb5=t
+AC_MSG_CHECKING([for working krb5])
+AC_TRY_RUN([
+#if HAVE_KRB5_H
+#include <krb5.h>
+#endif
 
-    krb5_init_context(&context);
-    return krb5_kt_resolve(context, "MEMORY:foo", &keytab);
-  }],
-  ac_cv_have_memory_keytab=yes,
-  ac_cv_have_memory_keytab=no)])
-if test x"$ac_cv_have_memory_keytab" = x"yes"; then
-  AC_DEFINE(HAVE_MEMORY_KEYTAB,1, [Whether the MEMORY:-keytab is supported])
+int
+main(void)
+{
+	krb5_context context;
+	krb5_init_context(&context);
+	return 0;
+}
+], [unset no_krb5
+AC_DEFINE(HAVE_KRB5, 1, [KRB5 support])
+AC_MSG_RESULT(yes)],
+AC_MSG_RESULT(no))
+
+if test x"$no_krb5" = xt ; then
+	echo "No GSSAPI/Kerberos support - not working krb5"
+	exit 1
 fi
-LIBS=$old_LIBS
 
-AC_CHECK_SIZEOF(short)
-AC_CHECK_SIZEOF(int)
-AC_CHECK_SIZEOF(long)
+unset have_heimdal 
+AC_MSG_CHECKING([for heimdal])
+AC_TRY_LINK([
+#include "krb5.h"], [printf("%s\n", heimdal_version);],
+[AC_DEFINE(HAVE_HEIMDAL_KERBEROS, 1, [Heimdal kerberos implementation])
+AC_MSG_RESULT(yes) 
+have_heimdal=t],
+[AC_MSG_RESULT(no)]) 
+
+if test x"$ac_gssapi_libs" != x; then 
+	have_gssapi_krb5="`echo ${LIBS} | grep gssapi_krb5`" 
+	if test x"$have_gssapi_krb5" = x; then 
+		AC_CHECK_LIB(gssapi_krb5, gsskrb5_register_acceptor_identity, 
+			      LIBS="${LIBS} -lgssapi_krb5",) 
+	fi 
+fi 
+
+AC_TRY_COMPILE([#include <gssapi/gssapi.h>],[gss_int32 gint;],
+	       AC_DEFINE(HAVE_GSS_INT32,1,[Define gss_int32]),)
+
+dnl do compile check
+no_gssapi=t
+AC_MSG_CHECKING([for working gssapi]) 
+AC_TRY_RUN([
+#if HAVE_GSSAPI_H
+#include <gssapi.h>
+#elif HAVE_GSSAPI_GSSAPI_H
+#include <gssapi/gssapi.h>
+#endif /* HAVE_GSSAPI_H */
+#if !HAVE_HEIMDAL_KERBEROS
+#if HAVE_GSSAPI_GSSAPI_EXT_H
+#include <gssapi/gssapi_ext.h>
+#endif /* HAVE_GSSAPI_GSSAPI_EXT_H */
+#if HAVE_GSSAPI_GSSAPI_KRB5_H
+#include <gssapi/gssapi_krb5.h>
+#endif /* HAVE_GSSAPI_GSSAPI_KRB5_H */
+#if HAVE_GSSAPI_GSSAPI_GENERIC_H
+#include <gssapi/gssapi_generic.h>
+#endif /* HAVE_GSSAPI_GSSAPI_GENERIC_H */
+#endif /* HAVE_HEIMDAL_KERBEROS */
+int main(void)
+{
+	OM_uint32 val;
+	gss_OID_set set;
+	gss_create_empty_oid_set(&val, &set);
+	return 0;
+}
+], [unset no_gssapi
+ AC_MSG_RESULT(yes)],
+[AC_MSG_RESULT(no)])
+
+if test x"$no_gssapi" = xt ; then
+	echo "No GSSAPI/Kerberos support - not working gssapi"
+	exit 1
+else
+	AC_DEFINE(HAVE_GSSAPI, 1,[GSSAPI support]) 
+fi
+
+AC_CHECK_FUNCS(unsetenv setenv)
+
+for file in gssapi.h gssapi/gssapi.h gssapi/gssapi_generic.h; do
+	AC_EGREP_HEADER(gss_nt_service_name,[$file],
+	break,
+	[AC_EGREP_HEADER(gss_nt_service_name, $file, 
+			 GSS_C_NT_HOSTBASED_SERVICE,
+			[AC_DEFINE(gss_nt_service_name, GSS_C_NT_HOSTBASED_SERVICE,
+			[gss_nt_service_name replacement])
+			break;])])
+done 
 
 AC_CONFIG_HEADER(mod_gss.h)
 AH_TOP([/*
- * mod_gss - an RFC2228 GSSAPI module for ProFTPD
- *
- * Copyright (c) 2002-2007 M Moeller <|MAIL|>
- * All rights reserved.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307, USA.
- *
- * As a special exemption, M Moeller gives permission to link this program
- * with MIT, Heimdal or other GSS/Kerberos libraries, and distribute
- * the resulting executable, without including the source code for
- * the Libraries in the source distribution.
- *
- */
+* mod_gss - an RFC2228 GSSAPI module for ProFTPD
+*
+* Copyright (c) 2002-2007 M Moeller <|MAIL|>
+* All rights reserved.
+*
+* This program is free software; you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation; either version 2 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program; if not, write to the Free Software
+* Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307, USA.
+*
+* As a special exemption, M Moeller gives permission to link this program
+* with MIT, Heimdal or other GSS/Kerberos libraries, and distribute
+* the resulting executable, without including the source code for
+* the Libraries in the source distribution.
+*
+*/
 ])
+
 AH_BOTTOM([#include "conf.h"
 #include "privs.h"
 
@@ -357,218 +252,52 @@ AH_BOTTOM([#include "conf.h"
 # error "ProFTPD 1.3.0rc1 or later required"
 #endif
 
-#ifdef HAVE_HEIMDAL_KERBEROS
-#ifdef HAVE_GSSAPI_GSSAPI_H
-#include <gssapi/gssapi.h>
-#else
+#ifdef HAVE_GSSAPI_H
 #include <gssapi.h>
-#endif
-#include <krb5.h>
-#define error_message(code) krb5_get_err_text(kc,code)
-#define gss_nt_service_name GSS_C_NT_HOSTBASED_SERVICE
-#define gss_int32 int32_t
-#else
-#ifdef HAVE_SEAM_KERBEROS
+#elif HAVE_GSSAPI_GSSAPI_H
 #include <gssapi/gssapi.h>
+#endif /* HAVE_GSSAPI_H */
+
+#ifdef HAVE_HEIMDAL_KERBEROS
+#define error_message(code) krb5_get_err_text(kc,code)
+#else
+#ifdef HAVE_GSSAPI_GSSAPI_EXT_H
 #include <gssapi/gssapi_ext.h>
-#define gss_nt_service_name GSS_C_NT_HOSTBASED_SERVICE
+#endif /* HAVE_GSSAPI_GSSAPI_EXT_H */
+#ifdef HAVE_GSSAPI_GSSAPI_KRB5_H
+#include <gssapi/gssapi_krb5.h>
+#endif /* HAVE_GSSAPI_GSSAPI_KRB5_H */
+#ifdef HAVE_GSSAPI_GSSAPI_GENERIC_H
+#include <gssapi/gssapi_generic.h>
+#endif /* HAVE_GSSAPI_GSSAPI_GENERIC_H */
+#endif /* HAVE_HEIMDAL_KERBEROS */
+
 #ifndef HAVE_GSS_INT32
 #define gss_int32 int32_t
 #endif
 
 #ifdef HAVE_KRB5_H
-/* still testing this for OpenSolaris
-Source includes are located in:
-/usr/src/uts/common/gssapi/mechs/krb5/include/
-and
-/usr/src/lib/gss_mechs/mech_krb5/include
-or
-/usr/include/kerberosv5
-*/
 #include <krb5.h>
+#endif
+#ifndef HAVE_COM_ERR_IN_KRB5
 #ifdef HAVE_COM_ERR_H
 #include <com_err.h>
-#else
-#if defined(__STDC__) || defined(__cplusplus) || defined(_MSDOS) || defined(_WIN32) || defined(macintosh)
-#define ET_P(x) x
-#else
-#define ET_P(x) ()
-#endif /* __STDC__ */
-#ifndef KRB5_CALLCONV
-#define KRB5_CALLCONV
-#define KRB5_DLLIMP
-#endif
-#ifndef FAR
-#define FAR
-#endif
-KRB5_DLLIMP extern const char FAR * KRB5_CALLCONV error_message ET_P((errcode_t));
-#endif
-#else
-#ifndef HAVE___GSS_USEROK
-/* Seam doesn't have krb5.h so define all here. Assume SEAM is based on MIT sources */
-#define KRB5KDC_ERR_CLIENT_REVOKED               (-1765328366L)
-#define KRB5KDC_ERR_C_PRINCIPAL_UNKNOWN          (-1765328378L)
-#define KRB5KDC_ERR_PREAUTH_FAILED               (-1765328360L)
-
-#if (SIZEOF_INT == 4)
-typedef int             krb5_int32;
-typedef unsigned int    krb5_ui_4;
-#define VALID_INT_BITS    0x7fffffff
-#define VALID_UINT_BITS   0xffffffff
-#elif (SIZEOF_LONG == 4)
-typedef long    krb5_int32;
-typedef unsigned long   krb5_ui_4;
-#elif (SIZEOF_SHORT == 4)
-typedef short   krb5_int32;
-typedef unsigned short  krb5_ui_4;
-#else
- ?== error: undefined 32 bit type
-#endif
-
-typedef unsigned char   krb5_octet;
-typedef unsigned int    krb5_boolean;
-
-typedef krb5_int32      krb5_addrtype;
-typedef krb5_int32      krb5_enctype;
-typedef krb5_int32      krb5_authdatatype;
-typedef krb5_int32      krb5_keyusage;
-typedef krb5_int32      krb5_preauthtype;
-typedef krb5_int32      krb5_flags;
-typedef krb5_int32      krb5_timestamp;
-typedef krb5_int32      krb5_error_code;
-typedef krb5_int32      krb5_deltat;
-
-typedef krb5_error_code krb5_magic;
-
-struct  _krb5_context;
-typedef struct _krb5_context *krb5_context;
-
-typedef struct _krb5_data {
-        krb5_magic magic;
-        unsigned int length;
-        char *data;
-} krb5_data;
-
-typedef struct krb5_principal_data {
-    krb5_magic magic;
-    krb5_data realm;
-    krb5_data *data;            /* An array of strings */
-    krb5_int32 length;
-    krb5_int32 type;
-} krb5_principal_data;
-
-typedef krb5_principal_data *krb5_principal;
-
-typedef struct _krb5_ticket_times {
-    krb5_timestamp authtime;
-    krb5_timestamp starttime;
-    krb5_timestamp endtime;
-    krb5_timestamp renew_till;
-} krb5_ticket_times;
-
-typedef struct _krb5_address {
-    krb5_magic magic;
-    krb5_addrtype addrtype;
-    unsigned int length;
-    krb5_octet *contents;
-} krb5_address;
-
-typedef struct _krb5_authdata {
-    krb5_magic magic;
-    krb5_authdatatype ad_type;
-    unsigned int length;
-    krb5_octet *contents;
-} krb5_authdata;
-
-typedef struct _krb5_get_init_creds_opt {
-    krb5_flags flags;
-    krb5_deltat tkt_life;
-    krb5_deltat renew_life;
-    int forwardable;
-    int proxiable;
-    krb5_enctype *etype_list;
-    int etype_list_length;
-    krb5_address **address_list;
-    krb5_preauthtype *preauth_list;
-    int preauth_list_length;
-    krb5_data *salt;
-} krb5_get_init_creds_opt;
-
-typedef struct _krb5_prompt {
-    char *prompt;
-    int hidden;
-    krb5_data *reply;
-} krb5_prompt;
-
-#ifndef KRB5_CONFIG__
-#ifndef KRB5_CALLCONV
-#define KRB5_CALLCONV
-#define KRB5_CALLCONV_C
-#endif /* !KRB5_CALLCONV */
-#endif /* !KRB5_CONFIG__ */
-
-typedef krb5_error_code (KRB5_CALLCONV *krb5_prompter_fct)(krb5_context context,
-                                             void *data,
-                                             const char *name,
-                                             const char *banner,
-                                             int num_prompts,
-                                             krb5_prompt prompts[]);
-
-char *error_message(long code);
-
-#if defined(KRB5_NO_CONST) || (defined(__ultrix) && !defined(__GNUC__))
-#define krb5_const
-#else
-#define krb5_const const
-#endif
-
-#if (defined(__STDC__) || defined(__cplusplus) || defined(_MSDOS) || defined(_WIN32) || defined(KRB5_PROVIDE_PROTOTYPES)) && !defined(KRB5_NO_PROTOTYPES)
-#define KRB5_PROTOTYPE(x) x
-#if defined(__STDC__) || defined(__cplusplus) || defined(HAVE_STDARG_H) || defined(_MSDOS) || defined(_WIN32)
-#define KRB5_STDARG_P(x) x
-#else
-#define KRB5_STDARG_P(x) ()
-#endif /* defined(__STDC__) || defined(__cplusplus) || defined(HAVE_STDARG_H) */
-#else
-#define KRB5_PROTOTYPE(x) ()
-#define KRB5_STDARG_P(x) ()
-#endif /* STDC or PROTOTYPES */
-
-void KRB5_CALLCONV krb5_free_context 
-        KRB5_PROTOTYPE((krb5_context));
-void KRB5_CALLCONV krb5_free_principal
-        KRB5_PROTOTYPE((krb5_context, krb5_principal ));
-
-krb5_boolean KRB5_CALLCONV krb5_kuserok
-        KRB5_PROTOTYPE((krb5_context,
-                krb5_principal, const char *));
-
-krb5_error_code KRB5_CALLCONV krb5_init_context
-        KRB5_PROTOTYPE((krb5_context *));
-krb5_error_code KRB5_CALLCONV krb5_timeofday
-        KRB5_PROTOTYPE((krb5_context,
-                   krb5_int32 * ));
-krb5_error_code KRB5_CALLCONV krb5_parse_name
-        KRB5_PROTOTYPE((krb5_context,
-                   krb5_const char *,
-                   krb5_principal * ));
-
-#endif /*HAVE___GSS_USEROK */
-#endif /*HAVE_KRB5_H */
-#else /*MIT*/
-#include <gssapi/gssapi.h>
-#include <gssapi/gssapi_generic.h>
-#include <gssapi/gssapi_krb5.h>
-#ifdef HAVE_NAS_KERBEROS
-#include <ibm_svc/krb5_svc.h>
-const char *KRB5_CALLCONV error_message(long code) {
- char *msg=NULL;
- krb5_svc_get_msg(code,&msg);
- return msg;
+#elif defined(HAVE_ET_COM_ERR_H)
+#include <et/com_err.h>
+#endif /* HAVE_COM_ERR_H */
+#endif /* !HAVE_COM_ERR_IN_KRB5 */
+#if !defined(HAVE_ERROR_MESSAGE) && defined(HAVE_KRB5_GET_ERR_TEXT)
+#define error_message(code) krb5_get_err_text(kparam.context, code)
+#elif !defined(HAVE_ERROR_MESSAGE) && defined(HAVE_KRB5_GET_ERROR_MESSAGE)
+#define error_message(code) krb5_get_error_message(kparam.context, code)
+#elif !defined(HAVE_ERROR_MESSAGE)
+static char err_code[17];
+const char *KRB5_CALLCONV
+error_message(long code) {
+   snprintf(err_code, 16, "%ld", code);
+   return err_code;
 }
-#endif
-#endif
-#endif
+#endif /* !HAVE_ERROR_MESSAGE */
 
 #ifndef GSS_C_AF_INET6
 #define GSS_C_AF_INET6 24
@@ -588,6 +317,7 @@ int unsetenv(char *env_name) {
   } for (; *cc != NULL; cc++) *cc=cc[1];
 }
 #endif
+
 #ifndef HAVE_SETENV
 int setenv(const char *env_name, const char *value, int rewrite)
 {
@@ -600,31 +330,30 @@ int setenv(const char *env_name, const char *value, int rewrite)
   f=0;
   for (cc=environ;*cc!=NULL;cc++) {
     if (strncmp(env_name,*cc,l)==0 && ((*cc)[l]=='='||(*cc)[l]=='\0') && rewrite) { f=1; break; };
-    if (strncmp(env_name,*cc,l)==0 && ((*cc)[l]=='='||(*cc)[l]=='\0') && !rewrite) return 0;
-  } for (; *cc != NULL; cc++) *cc=cc[1];
-  if (f) {
-    /* Reuse cleared space */
-    cc--;
-    *cc=malloc(strlen(env_name)+strlen(value)+2);
-    strcpy(*cc,env_name);
-    strcat(*cc,"=");
-    strcat(*cc,value);
-  } else {
-    /* Reclloc space */
-    int n=0;
-    for (cc=environ;*cc!=NULL;cc++) n++;
-    new_environ=realloc(new_environ,sizeof(char *)*(n+1));
-    memcpy(new_environ, environ, sizeof(char *)*n);
-    new_environ[n]=malloc(strlen(env_name)+strlen(value)+2);
-    strcpy(new_environ[n],env_name);
-    strcat(new_environ[n],"=");
-    strcat(new_environ[n],value);
-    environ=new_environ;
-  }
+      if (strncmp(env_name,*cc,l)==0 && ((*cc)[l]=='='||(*cc)[l]=='\0') && !rewrite) return 0;
+      } for (; *cc != NULL; cc++) *cc=cc[1];
+    if (f) {
+      /* Reuse cleared space */
+      cc--;
+      *cc=malloc(strlen(env_name)+strlen(value)+2);
+      strcpy(*cc,env_name);
+      strcat(*cc,"=");
+      strcat(*cc,value);
+    } else {
+      /* Reclloc space */
+      int n=0;
+      for (cc=environ;*cc!=NULL;cc++) n++;
+        new_environ=realloc(new_environ,sizeof(char *)*(n+1));
+        memcpy(new_environ, environ, sizeof(char *)*n);
+        new_environ[n]=malloc(strlen(env_name)+strlen(value)+2);
+        strcpy(new_environ[n],env_name);
+        strcat(new_environ[n],"=");
+        strcat(new_environ[n],value);
+        environ=new_environ;
+    }
 }
 #endif
-
-/* gss module definitions and variables */
+																	   /* gss module definitions and variables */
 
 #define MOD_GSS_VERSION         PACKAGE_NAME"/"PACKAGE_VERSION
 #define MOD_AUTH_GSS_VERSION    "mod_auth_gss/"PACKAGE_VERSION
@@ -634,9 +363,9 @@ int setenv(const char *env_name, const char *value, int rewrite)
 #define GSS_SESS_AUTH_OK                0x0001
 #define GSS_SESS_ADAT_OK                0x0002
 #define GSS_SESS_PBSZ_OK                0x0004
-#define GSS_SESS_DATA_WRITE		0x0010
-#define GSS_SESS_DATA_WRITE_OK		0x0020
-#define GSS_SESS_DATA_READ_OK		0x0040
+#define GSS_SESS_DATA_WRITE             0x0010
+#define GSS_SESS_DATA_WRITE_OK          0x0020
+#define GSS_SESS_DATA_READ_OK           0x0040
 #define GSS_SESS_DISPATCH               0x0100
 #define GSS_SESS_CCC                    0x0200
 #define GSS_SESS_FWCCC                  0x0400
@@ -659,42 +388,26 @@ int setenv(const char *env_name, const char *value, int rewrite)
 ])
 AC_OUTPUT()
 
-if test "x$ac_includedir" != "x" -a "x$ac_includedir" != "x/usr/include" ; then
-   pr_includes="--with-includes=$ac_includedir"
-fi 
-if test "x$t_include" == "x" -a "x$pr_includes" != "x"; then
-   pr_includes="$pr_includes:$ac_include"
-elif test "x$t_include" == "x" -a "x$pr_includes" == "x"; then
-   pr_includes="--with-includes=$ac_include"
-fi 
-echo "configure: ## -----------------------------##"
-echo "configure: ##"
-echo "configure: ## $enable_arg has been selected"
-if test "x$pr_includes" != "x"; then
-echo "configure: ##"
-echo "configure: ## Please add $pr_includes" 
-echo "configure: ## to proftpd's configure"
-fi
-echo "configure: ##"
-echo "configure: ## -----------------------------##"
-
 echo "configure: updating mod_gss.h"
 sed -e "s/|MAIL|/"$PACKAGE_BUGREPORT"/" mod_gss.h > .mod_gss.h.tmp
 mv .mod_gss.h.tmp mod_gss.h
 
 echo "configure: updating \$Libraries in mod_gss.c"
 if test -e mod_gss.c ; then
-  sed -e "s!\$Libraries:.*!\$Libraries: |GSS_LIBS|\$!" mod_gss.c > mod_gss.c.in
-  rm mod_gss.c
-fi 
-sed -e "s!|GSS_LIBS|!$ac_gss_libs!" mod_gss.c.in > .mod_gss.c.tmp
+	sed -e "s!\$Libraries:.*!\$Libraries: |GSS_LIBS|\$!" mod_gss.c > mod_gss.c.in
+	rm mod_gss.c
+fi
+sed -e "s!|GSS_LIBS|!$LIBS!" mod_gss.c.in > .mod_gss.c.tmp
 mv .mod_gss.c.tmp mod_gss.c
 
 echo "configure: updating \$Libraries in mod_auth_gss.c"
 if test -e mod_auth_gss.c ; then
-  sed -e "s!\$Libraries:.*!\$Libraries: |GSS_LIBS|\$!" mod_auth_gss.c > mod_auth_gss.c.in
-  rm mod_auth_gss.c
-fi 
-sed -e "s!|GSS_LIBS|!$ac_gss_libs!" mod_auth_gss.c.in > .mod_auth_gss.c.tmp
+	sed -e "s!\$Libraries:.*!\$Libraries: |GSS_LIBS|\$!" mod_auth_gss.c > mod_auth_gss.c.in
+	rm mod_auth_gss.c
+fi
+sed -e "s!|GSS_LIBS|!$LIBS!" mod_auth_gss.c.in > .mod_auth_gss.c.tmp
 mv .mod_auth_gss.c.tmp mod_auth_gss.c
 
+if test x"$ac_gssapi_cflags" != x ; then
+	echo "Use CFLAGS $ac_gssapi_cflags with proftpd"
+fi
