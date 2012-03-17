@@ -5556,6 +5556,13 @@ fi
 sed -e "s!|GSS_LIBS|!$LIBS!" mod_auth_gss.c.in > .mod_auth_gss.c.tmp
 mv .mod_auth_gss.c.tmp mod_auth_gss.c
 
+if test x"$ac_gssapi_libs" != x ; then
+	_optsonly=`echo $ac_gssapi_libs | xargs -n1 | egrep -v '^-l' | xargs echo`
+	LDFLAGS="${LDFLAGS} ${_optsonly}"
+	echo "Use LDFLAGS $LDFLAGS with proftpd"
+fi
+
 if test x"$ac_gssapi_cflags" != x ; then
-	echo "Use CFLAGS $ac_gssapi_cflags with proftpd"
+	CFLAGS="${CFLAGS} $ac_gssapi_cflags"
+	echo "Use CFLAGS $CFLAGS with proftpd"
 fi

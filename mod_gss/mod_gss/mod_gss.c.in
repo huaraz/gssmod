@@ -1,7 +1,7 @@
 /*
  * mod_gss - an RFC2228 GSSAPI module for ProFTPD
  *
- * Copyright (c) 2002-2007 M Moeller <markus_moeller@compuserve.com>
+ * Copyright (c) 2002-2005 M Moeller <markus_moeller@compuserve.com>
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -1146,7 +1146,7 @@ MODRET gss_fwccc(cmd_rec *cmd) {
 
  */
 MODRET gss_dec(cmd_rec *cmd) {
-    int  error, i, length;
+    int  error, i;
     int  conf_state=1;
     char *dec_buf=NULL;
 
@@ -1190,9 +1190,10 @@ MODRET gss_dec(cmd_rec *cmd) {
 	if ( cmd->arg[i] == '\r' || cmd->arg[i] == '\n' ) cmd->arg[i] = '\0';
     } 
 
+    xmit_buf.length=strlen(cmd->arg)+1;
     /* protected string <= unprotected string */
     xmit_buf.value=pcalloc(cmd->pool,strlen(cmd->arg)+1);
-    if ((error = radix_encode((unsigned char*)cmd->arg, xmit_buf.value, &length, 1)) != 0 ) {
+    if ((error = radix_encode((unsigned char*)cmd->arg, xmit_buf.value, (int *)&xmit_buf.length, 1)) != 0 ) {
 	pr_response_add_err(R_501, "Couldn't base 64 decode argument to %s command (%s)",
 		session.sp_flags & SP_ENC ? "ENC" : 
                 session.sp_flags & SP_MIC ? "MIC" : "", radix_error(error));
@@ -1202,7 +1203,6 @@ MODRET gss_dec(cmd_rec *cmd) {
         return ERROR(cmd);
     }
 
-    xmit_buf.length = length;
     /* decrypt the message */
     maj_stat = gss_unwrap(&min_stat, gcontext, &xmit_buf,
 			  &msg_buf, &conf_state, NULL);
@@ -1407,7 +1407,6 @@ MODRET gss_auth(cmd_rec *cmd) {
         return DECLINED(cmd);
     }
 
-    pr_session_set_protocol("gssftp");
     session.rfc2228_mech = "GSSAPI";
     return HANDLED(cmd);
 }
@@ -1510,7 +1509,6 @@ MODRET gss_adat(cmd_rec *cmd) {
     int error = 0;
     int found = 0;
     int replied = 0;
-    int length;
 
     gss_buffer_desc tok, out_tok, name_buf;
     gss_name_t      server;
@@ -1591,13 +1589,11 @@ MODRET gss_adat(cmd_rec *cmd) {
     */
 
     tok.value=pcalloc(cmd->tmp_pool,strlen(cmd->arg));
-    if ((error = radix_encode((unsigned char*)cmd->arg, tok.value , &length, 1)) !=0  ) {
+    if ((error = radix_encode((unsigned char*)cmd->arg, tok.value , (int *)&tok.length, 1)) !=0  ) {
 	pr_response_add_err(R_501, "Couldn't decode ADAT (%s)",radix_error(error)); 
 	gss_log("GSSAPI Could not decode ADAT (%s)",radix_error(error));
 	return ERROR(cmd);
     }
-
-    tok.length = length;
 
     if (strlen(pr_netaddr_get_dnsstr(session.c->local_addr)) > MAXHOSTNAMELEN -1 ) {
 	gss_log("GSSAPI Hostname (%s) longer then MAXHOSTNAMELEN:%d",pr_netaddr_get_dnsstr(session.c->local_addr),MAXHOSTNAMELEN);
@@ -1671,8 +1667,7 @@ MODRET gss_adat(cmd_rec *cmd) {
 
     if (out_tok.length) {
         gbuf = pcalloc(cmd->tmp_pool,out_tok.length*4+1);
-	length = out_tok.length;
-	if ( (error = radix_encode((unsigned char*)out_tok.value, (unsigned char*)gbuf, &length, 0)) != 0 ) {
+	if ( (error = radix_encode((unsigned char*)out_tok.value, (unsigned char*)gbuf, (int *)&out_tok.length, 0)) != 0 ) {
 	    pr_response_add_err(R_535,"Couldn't encode ADAT reply (%s)",
 			     radix_error(error));
 	    gss_log("GSSAPI Could not encode ADAT reply (%s)",radix_error(error));
@@ -1681,7 +1676,6 @@ MODRET gss_adat(cmd_rec *cmd) {
 	    gss_release_name(&min_stat, &server);
             goto err;
 	}
-	out_tok.length = length;
 	if (accept_maj == GSS_S_COMPLETE) {
             gss_flags |= GSS_SESS_INT_SUP;
             gss_flags |= GSS_SESS_CONF_SUP;
@@ -2236,17 +2230,6 @@ MODRET set_gssrequired(cmd_rec *cmd) {
 
 /* Event handlers
  */
-#if defined(PR_SHARED_MODULE)
-static void gss_mod_unload_ev(const void *event_data, void *user_data) {
-  if (strcmp("mod_gss.c", (const char *) event_data) == 0) {
-    /* Unregister ourselves from all events. */
-    pr_event_unregister(&gss_module, NULL, NULL);
-
-    /* Unregister our NetIO handler for the control channel. */
-    pr_unregister_netio(PR_NETIO_STRM_CTRL);
-  }
-}
-#endif /* PR_SHARED_MODULE */
 
 static void gss_postparse_ev(const void *event_data, void *user_data) {
     server_rec *s = NULL;
@@ -2355,9 +2338,6 @@ static int gss_init(void) {
     pr_feat_add("CONF");
     pr_feat_add("CCC");
 
-#if defined(PR_SHARED_MODULE)
-    pr_event_register(&gss_module, "core.module-unload", gss_mod_unload_ev, NULL);
-#endif /* PR_SHARED_MODULE */
     pr_event_register(&gss_module, "core.postparse", gss_postparse_ev, NULL);
     pr_event_register(&gss_module, "core.restart", gss_restart_ev, NULL);
 
@@ -2507,7 +2487,7 @@ static char *gss_format_cb(pool *pool, const char *fmt, ...)
     va_list msg;
     char buf[PR_TUNABLE_BUFFER_SIZE] = {'\0'};
     int  error = 0;
-    int  conf_state, length;
+    int  conf_state;
     char *reply;
     
     gss_buffer_desc gss_in_buf, gss_out_buf;
@@ -2563,13 +2543,11 @@ static char *gss_format_cb(pool *pool, const char *fmt, ...)
     } 
     /* protected reply <= 4*unprotected reply */
     reply=pcalloc(pool, gss_out_buf.length*4+1);
-    length = gss_out_buf.length;
-    if ((error = radix_encode(gss_out_buf.value, (unsigned char*)reply, &length, 0)) != 0 ) {
+    if ((error = radix_encode(gss_out_buf.value, (unsigned char*)reply, (int *)&gss_out_buf.length, 0)) != 0 ) {
 	gss_log("Couldn't encode reply (%s)", radix_error(error));
 	gss_release_buffer(&min_stat, &gss_out_buf);
         return pstrdup(pool ,buf);
     } 
-    gss_out_buf.length = length;
     gss_release_buffer(&min_stat, &gss_out_buf);
     
     /* add response code */
@@ -2724,13 +2702,13 @@ void gss_switch_keytab(char *keytab_file, int sflag){
         /* Save environment value */
         env_keytab_file = getenv("KRB5_KTNAME");
         gss_log("GSSAPI Set KRB5_KTNAME=%s",full_keytab_file);
-        setenv("KRB5_KTNAME",full_keytab_file,1);
+        putenv(pstrcat(main_server->pool, "KRB5_KTNAME=", full_keytab_file, NULL));
 #ifdef HAVE_HEIMDAL_KERBEROS
         gsskrb5_register_acceptor_identity(full_keytab_file);
 #endif
     } else if (keytab_file && !sflag) {
         gss_log("GSSAPI ReSet KRB5_KTNAME=%s",full_keytab_file);
-        setenv("KRB5_KTNAME",full_keytab_file,1);
+        putenv(pstrcat(main_server->pool, "KRB5_KTNAME=", full_keytab_file, NULL));
 #ifdef HAVE_HEIMDAL_KERBEROS
         gsskrb5_register_acceptor_identity(full_keytab_file);
 #endif
