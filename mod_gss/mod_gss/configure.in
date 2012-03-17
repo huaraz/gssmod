@@ -145,14 +145,21 @@ if test x"$no_krb5" = xt ; then
 	exit 1
 fi
 
-unset have_heimdal 
 AC_MSG_CHECKING([for heimdal])
-AC_TRY_LINK([
-#include "krb5.h"], [printf("%s\n", heimdal_version);],
-[AC_DEFINE(HAVE_HEIMDAL_KERBEROS, 1, [Heimdal kerberos implementation])
-AC_MSG_RESULT(yes) 
-have_heimdal=t],
-[AC_MSG_RESULT(no)]) 
+if test "x$ac_krb5_heimdal" != x ; then
+	AC_DEFINE(HAVE_HEIMDAL_KERBEROS,1,[Heimdal Kerberos implementation])
+	AC_MSG_RESULT(yes)
+else
+	AC_MSG_RESULT(no)
+fi
+# unset have_heimdal 
+# AC_MSG_CHECKING([for heimdal])
+# AC_TRY_LINK([
+# #include "krb5.h"], [printf("%s\n", heimdal_version);],
+# [AC_DEFINE(HAVE_HEIMDAL_KERBEROS, 1, [Heimdal kerberos implementation])
+# AC_MSG_RESULT(yes) 
+# have_heimdal=t],
+# [AC_MSG_RESULT(no)]) 
 
 if test x"$ac_gssapi_libs" != x; then 
 	have_gssapi_krb5="`echo ${LIBS} | grep gssapi_krb5`" 

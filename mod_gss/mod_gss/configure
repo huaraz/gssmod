@@ -4305,34 +4305,26 @@ if test x"$no_krb5" = xt ; then
 	exit 1
 fi
 
-unset have_heimdal
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for heimdal" >&5
 $as_echo_n "checking for heimdal... " >&6; }
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-#include "krb5.h"
-int
-main ()
-{
-printf("%s\n", heimdal_version);
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
+if test "x$ac_krb5_heimdal" != x ; then
 
 $as_echo "#define HAVE_HEIMDAL_KERBEROS 1" >>confdefs.h
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
-have_heimdal=t
 else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
 fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
+# unset have_heimdal
+# AC_MSG_CHECKING([for heimdal])
+# AC_TRY_LINK([
+# #include "krb5.h"], [printf("%s\n", heimdal_version);],
+# [AC_DEFINE(HAVE_HEIMDAL_KERBEROS, 1, [Heimdal kerberos implementation])
+# AC_MSG_RESULT(yes)
+# have_heimdal=t],
+# [AC_MSG_RESULT(no)])
 
 if test x"$ac_gssapi_libs" != x; then
 	have_gssapi_krb5="`echo ${LIBS} | grep gssapi_krb5`"
