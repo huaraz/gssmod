@@ -81,7 +81,7 @@ static unsigned char *ucbuf;
 static pr_netio_t *gss_data_netio = NULL;
 static pr_netio_stream_t *gss_data_rd_nstrm = NULL;
 static pr_netio_stream_t *gss_data_wr_nstrm = NULL;
-static pool fmt_pool;
+static pool *fmt_pool;
 
 /* GSSAPI support functions */
 static char *gss_format_cb(pool *,const char *fmt, ...);
