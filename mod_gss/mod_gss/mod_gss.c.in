@@ -81,7 +81,7 @@ static unsigned char *ucbuf;
 static pr_netio_t *gss_data_netio = NULL;
 static pr_netio_stream_t *gss_data_rd_nstrm = NULL;
 static pr_netio_stream_t *gss_data_wr_nstrm = NULL;
-static pool *fmt_pool;
+static pool *fmt_pool = NULL;
 
 /* GSSAPI support functions */
 static char *gss_format_cb(pool *,const char *fmt, ...);
@@ -2311,8 +2311,10 @@ static void gss_sess_exit_ev(const void *event_data, void *user_data) {
         }
         gcontext = GSS_C_NO_CONTEXT;
     }
-
-    destroy_pool(fmt_pool);
+    
+    if ( fmt_pool != NULL ) {
+        destroy_pool(fmt_pool);
+    }
 
     gss_closelog();
     return;
@@ -2392,8 +2394,10 @@ static int gss_sess_init(void) {
 
     pr_event_register(&gss_module, "core.exit", gss_sess_exit_ev, NULL);
 
-    fmt_pool = make_sub_pool(session.pool ? session.pool : permanent_pool);
-    pr_response_set_pool(fmt_pool);
+    if ( pr_response_get_pool() == NULL ) {
+        fmt_pool = make_sub_pool(session.pool ? session.pool : permanent_pool);
+        pr_response_set_pool(fmt_pool);
+    }
 
     return 0;
 }
