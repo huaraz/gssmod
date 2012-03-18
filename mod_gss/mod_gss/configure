@@ -2967,6 +2967,13 @@ if test x"$krb5fail" = xt ; then
 	exit 0
 fi
 
+o_CPPFLAGS=${CPPFLAGS}
+o_CFLAGS=${CFLAGS}
+o_LDFLAGS=${LDFLAGS}
+CPPFLAGS="${CPPFLAGS} $ac_gssapi_cflags"
+CFLAGS="${CFLAGS} $ac_gssapi_cflags"
+LDFLAGS="${LDFLAGS} $ac_gssapi_libs"
+
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
@@ -4376,7 +4383,11 @@ fi
 $as_echo_n "checking for gss_int32... " >&6; }
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
+#if HAVE_GSSAPI_H
+#include <gssapi.h>
+#elif HAVE_GSSAPI_GSSAPI_H
 #include <gssapi/gssapi.h>
+#endif
 int
 main ()
 {
@@ -5554,6 +5565,10 @@ if test -e mod_auth_gss.c ; then
 fi
 sed -e "s!|GSS_LIBS|!$LIBS!" mod_auth_gss.c.in > .mod_auth_gss.c.tmp
 mv .mod_auth_gss.c.tmp mod_auth_gss.c
+
+CPPFLAGS=${o_CPPFLAGS}
+CFLAGS=${o_CFLAGS}
+LDFLAGS=${o_LDFLAGS}
 
 if test x"$ac_gssapi_libs" != x ; then
 	_optsonly=`echo $ac_gssapi_libs | xargs -n1 | egrep -v '^-l' | xargs echo`
