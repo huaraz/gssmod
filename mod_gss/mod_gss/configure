@@ -4309,6 +4309,14 @@ fi
 
 if test x"$no_krb5" = xt ; then
 	echo "No GSSAPI/Kerberos support - not working krb5"
+	if test x"$krb5confpath" != xno; then
+		if test x"$ac_gssapi_libs" != x ; then
+		        _optsonly=`echo $ac_gssapi_libs | xargs -n1 | egrep -v '^-l' | xargs echo`
+			if test x"$_optsonly" != x ; then
+				echo "Try LDFLAGS -Wl,-R<path> with path from $_optsonly"
+			fi
+		fi
+	fi
 	exit 1
 fi
 
@@ -4460,6 +4468,14 @@ fi
 
 if test x"$no_gssapi" = xt ; then
 	echo "No GSSAPI/Kerberos support - not working gssapi"
+        if test x"$krb5confpath" != xno; then
+		if test x"$ac_gssapi_libs" != x ; then
+			_optsonly=`echo $ac_gssapi_libs | xargs -n1 | egrep -v '^-l' | xargs echo`
+			if test x"$_optsonly" != x ; then
+				echo "Try LDFLAGS -Wl,-R<path> with path from $_optsonly"
+			fi
+		fi
+	fi
 	exit 1
 else
 
