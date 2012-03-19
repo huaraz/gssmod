@@ -44,6 +44,7 @@ if test x"$krb5confpath" != xno; then
 				krb5fail=t 
 			fi 
 		fi
+		ac_krb5_heimdal="`$krb5confpath --version 2>/dev/null | grep -i heimdal`"
 	else
 		AC_CHECK_PROG(ac_krb5_config, krb5-config, yes, no) 
 		if test x"$ac_krb5_config" = xyes; then 
@@ -56,6 +57,7 @@ if test x"$krb5confpath" != xno; then
 				krb5fail=t 
 			fi 
 		fi 
+		ac_krb5_heimdal="`krb5-config --version 2>/dev/null | grep -i heimdal`"
 	fi 
 fi 
 
