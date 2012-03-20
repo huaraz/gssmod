@@ -79,6 +79,11 @@ AC_CHECK_HEADERS(gssapi/gssapi_krb5.h gssapi/gssapi_generic.h)
 
 dnl look for kerberos headers
 AC_CHECK_HEADERS(krb5.h krb5-protos.h com_err.h et/com_err.h)
+AC_MSG_CHECKING([for _krb5_principal2principalname in krb5-private.h])
+AC_EGREP_HEADER(_krb5_principal2principalname,krb5-private.h,AC_DEFINE(HAVE_KRB5_PRINCIPAL2PRINCIPAL,1,[Define to have _krb5_principal2principalname in krb5-private.h])
+AC_MSG_RESULT(yes),
+AC_MSG_RESULT(no))
+
 ac_com_error_message=no
 AC_EGREP_HEADER(com_err.h,krb5.h,ac_com_err_krb5=yes)
 if test x"$ac_com_err_krb5" = xyes ; then
@@ -136,7 +141,7 @@ AC_TRY_RUN([
 #ifdef HAVE_KRB5_H
 #include <krb5.h>
 #endif
-#ifdef HAVE_KRB5_PROTOS_H
+#if defined(HAVE_KRB5_PROTOS_H) && defined(HAVE_KRB5_PRINCIPAL2PRINCIPAL)
 #include <krb5-protos.h>
 krb5_error_code KRB5_LIB_FUNCTION
 _krb5_principal2principalname (
@@ -322,7 +327,7 @@ AH_BOTTOM([#include "conf.h"
 #ifdef HAVE_KRB5_H
 #include <krb5.h>
 #endif
-#ifdef HAVE_KRB5_PROTOS_H
+#if defined(HAVE_KRB5_PROTOS_H) && defined(HAVE_KRB5_PRINCIPAL2PRINCIPAL)
 #include <krb5-protos.h>
 krb5_error_code KRB5_LIB_FUNCTION
 _krb5_principal2principalname (
