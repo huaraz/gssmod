@@ -78,7 +78,7 @@ AC_CHECK_HEADERS(gssapi.h gssapi/gssapi.h gssapi/gssapi_ext.h)
 AC_CHECK_HEADERS(gssapi/gssapi_krb5.h gssapi/gssapi_generic.h) 
 
 dnl look for kerberos headers
-AC_CHECK_HEADERS(krb5.h com_err.h et/com_err.h)
+AC_CHECK_HEADERS(krb5.h krb5-protos.h com_err.h et/com_err.h)
 ac_com_error_message=no
 AC_EGREP_HEADER(com_err.h,krb5.h,ac_com_err_krb5=yes)
 if test x"$ac_com_err_krb5" = xyes ; then
@@ -133,8 +133,15 @@ dnl do compile check
 no_krb5=t
 AC_MSG_CHECKING([for working krb5])
 AC_TRY_RUN([
-#if HAVE_KRB5_H
+#ifdef HAVE_KRB5_H
 #include <krb5.h>
+#endif
+#ifdef HAVE_KRB5_PROTOS_H
+#include <krb5-protos.h>
+krb5_error_code KRB5_LIB_FUNCTION
+_krb5_principal2principalname (
+        PrincipalName */*p*/,
+        const krb5_principal /*from*/);
 #endif
 
 int
@@ -315,6 +322,14 @@ AH_BOTTOM([#include "conf.h"
 #ifdef HAVE_KRB5_H
 #include <krb5.h>
 #endif
+#ifdef HAVE_KRB5_PROTOS_H
+#include <krb5-protos.h>
+krb5_error_code KRB5_LIB_FUNCTION
+_krb5_principal2principalname (
+        PrincipalName */*p*/,
+        const krb5_principal /*from*/);
+#endif
+
 #ifndef HAVE_COM_ERR_IN_KRB5
 #ifdef HAVE_COM_ERR_H
 #include <com_err.h>

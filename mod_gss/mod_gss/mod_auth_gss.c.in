@@ -145,7 +145,7 @@ MODRET auth_gss_authenticate(cmd_rec *cmd) {
 
     /* compare authnid vs authzid UPENN example */
 #ifdef HAVE_HEIMDAL_KERBEROS
-    kerr = krb5_principal2principalname(pn,p);
+    kerr = _krb5_principal2principalname(pn,p);
     if (kerr) { 
         gss_log("GSSAPI-AUTH Could not parse krb5 name (%s).",error_message(kerr));
         krb5_free_context(kc);
@@ -213,7 +213,7 @@ MODRET auth_gss_requires_pass(cmd_rec *cmd) {
 
     /* compare authnid vs authzid UPENN example */
 #ifdef HAVE_HEIMDAL_KERBEROS
-    kerr = krb5_principal2principalname(pn,p);
+    kerr = _krb5_principal2principalname(pn,p);
     if (kerr) {
         gss_log("GSSAPI-UPENN Could not parse krb5 name (%s).",error_message(kerr));
         krb5_free_context(kc);
@@ -284,7 +284,7 @@ MODRET auth_gss_check(cmd_rec *cmd) {
 
     /* compare authnid vs authzid UPENN example */
 #ifdef HAVE_HEIMDAL_KERBEROS
-    kerr = krb5_principal2principalname(pn,p);
+    kerr = _krb5_principal2principalname(pn,p);
     if (kerr) {
         gss_log("GSSAPI-UPENN Could not parse krb5 name (%s).",error_message(kerr));
         krb5_free_context(kc);
