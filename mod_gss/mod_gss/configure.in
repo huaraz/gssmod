@@ -74,11 +74,21 @@ CFLAGS="${CFLAGS} $ac_gssapi_cflags"
 LDFLAGS="${LDFLAGS} $ac_gssapi_libs"
 
 dnl look for gssapi headers
-AC_CHECK_HEADERS(gssapi.h gssapi/gssapi.h gssapi/gssapi_ext.h)
-AC_CHECK_HEADERS(gssapi/gssapi_krb5.h gssapi/gssapi_generic.h) 
+AC_CHECK_HEADERS(gssapi.h gssapi/gssapi.h)
+AC_CHECK_HEADERS([gssapi/gssapi_ext.h gssapi/gssapi_krb5.h gssapi/gssapi_generic.h], [], [],
+[[#ifdef HAVE_GSSAPI_H
+#include <gssapi.h>
+#elif definde(HAVE_GSSAPI_GSSAPI_H)
+#include <gssapi/gssapi.h>
+#endif]])
 
 dnl look for kerberos headers
-AC_CHECK_HEADERS(krb5.h krb5-protos.h com_err.h et/com_err.h)
+AC_CHECK_HEADERS(krb5.h com_err.h et/com_err.h)
+AC_CHECK_HEADERS([krb5-protos.h], [], [], 
+[[#ifdef HAVE_KRB5_H
+#include <krb5.h>
+#endif ]] )
+
 AC_MSG_CHECKING([for _krb5_principal2principalname in krb5-private.h])
 AC_EGREP_HEADER(_krb5_principal2principalname,krb5-private.h,AC_DEFINE(HAVE_KRB5_PRINCIPAL2PRINCIPAL,1,[Define to have _krb5_principal2principalname in krb5-private.h])
 AC_MSG_RESULT(yes),
@@ -201,7 +211,7 @@ fi
 AC_MSG_CHECKING([for gss_int32])
 AC_TRY_COMPILE([#if HAVE_GSSAPI_H
 #include <gssapi.h>
-#elif HAVE_GSSAPI_GSSAPI_H
+#elif defined(HAVE_GSSAPI_GSSAPI_H)
 #include <gssapi/gssapi.h>
 #endif], [gss_int32 gint;],
 	       [AC_DEFINE(HAVE_GSS_INT32,1,[Define gss_int32])
@@ -304,7 +314,7 @@ AH_BOTTOM([#include "conf.h"
 
 #ifdef HAVE_GSSAPI_H
 #include <gssapi.h>
-#elif HAVE_GSSAPI_GSSAPI_H
+#elif defined(HAVE_GSSAPI_GSSAPI_H)
 #include <gssapi/gssapi.h>
 #endif /* HAVE_GSSAPI_H */
 
