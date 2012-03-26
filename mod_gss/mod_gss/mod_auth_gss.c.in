@@ -144,7 +144,7 @@ MODRET auth_gss_authenticate(cmd_rec *cmd) {
     }
 
     /* compare authnid vs authzid UPENN example */
-#ifdef HAVE_HEIMDAL_KERBEROS
+#if defined(HAVE_HEIMDAL_KERBEROS) && defined(HAVE_KRB5_PROTOS_H) && defined(HAVE_KRB5_PRINCIPAL2PRINCIPAL)
     kerr = _krb5_principal2principalname(pn,p);
     if (kerr) { 
         gss_log("GSSAPI-AUTH Could not parse krb5 name (%s).",error_message(kerr));
@@ -153,8 +153,10 @@ MODRET auth_gss_authenticate(cmd_rec *cmd) {
     }
     /* might need to check pn->name_string.len */
     princ_name = pn->name_string.val[0];
-#else
+#elif !defined(HAVE_HEIMDAL_KERBEROS)
     princ_name = krb5_princ_name(kc,p)->data;
+#else
+#error "Missing _krb5_principal2principalname"
 #endif
     gss_log("GSSAPI-UPENN User client_name.value: %s cmd->argv[0]: %s.", (char *) client_name.value,cmd->argv[0]);
     if(strcmp(princ_name,cmd->argv[0]) == 0) {
@@ -212,7 +214,7 @@ MODRET auth_gss_requires_pass(cmd_rec *cmd) {
     }
 
     /* compare authnid vs authzid UPENN example */
-#ifdef HAVE_HEIMDAL_KERBEROS
+#if defined(HAVE_HEIMDAL_KERBEROS) && defined(HAVE_KRB5_PROTOS_H) && defined(HAVE_KRB5_PRINCIPAL2PRINCIPAL)
     kerr = _krb5_principal2principalname(pn,p);
     if (kerr) {
         gss_log("GSSAPI-UPENN Could not parse krb5 name (%s).",error_message(kerr));
@@ -221,8 +223,10 @@ MODRET auth_gss_requires_pass(cmd_rec *cmd) {
     }
     /* might need to check pn->name_string.len */
     princ_name = pn->name_string.val[0];
-#else
+#elif !defined(HAVE_HEIMDAL_KERBEROS)
     princ_name = krb5_princ_name(kc,p)->data;
+#else
+#error "Missing _krb5_principal2principalname"
 #endif
     gss_log("GSSAPI-UPENN User client_name.value: %s cmd->argv[0]: %s.", (char *) client_name.value,cmd->argv[0]);
     if(strcmp(princ_name,cmd->argv[0]) == 0) {
@@ -283,7 +287,7 @@ MODRET auth_gss_check(cmd_rec *cmd) {
     }
 
     /* compare authnid vs authzid UPENN example */
-#ifdef HAVE_HEIMDAL_KERBEROS
+#if defined(HAVE_HEIMDAL_KERBEROS) && defined(HAVE_KRB5_PROTOS_H) && defined(HAVE_KRB5_PRINCIPAL2PRINCIPAL)
     kerr = _krb5_principal2principalname(pn,p);
     if (kerr) {
         gss_log("GSSAPI-UPENN Could not parse krb5 name (%s).",error_message(kerr));
@@ -292,8 +296,10 @@ MODRET auth_gss_check(cmd_rec *cmd) {
     }
     /* might need to check pn->name_string.len */
     princ_name = pn->name_string.val[0];
-#else
+#elif !defined(HAVE_HEIMDAL_KERBEROS)
     princ_name = krb5_princ_name(kc,p)->data;
+#else
+#error "Missing _krb5_principal2principalname"
 #endif
     gss_log("GSSAPI-UPENN User client_name.value: %s cmd->argv[1]: %s.", (char *) client_name.value,cmd->argv[1]);
     if(strcmp(princ_name,cmd->argv[1]) == 0) {
