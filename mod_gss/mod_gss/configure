@@ -3520,7 +3520,7 @@ rm -f conftest*
 fi
 
 if test x"$ac_gssapi_libs" != x; then
-	LIBS="${LIBS} $ac_gssapi_libs"
+	LIBS="${LIBS} $ac_gssapi_libs $ac_krb5_libs"
 else
 	{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lcrypto" >&5
 $as_echo_n "checking for main in -lcrypto... " >&6; }

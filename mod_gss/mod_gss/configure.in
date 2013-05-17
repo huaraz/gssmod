@@ -111,7 +111,7 @@ fi
 							       
 dnl look for libs
 if test x"$ac_gssapi_libs" != x; then 
-	LIBS="${LIBS} $ac_gssapi_libs"
+	LIBS="${LIBS} $ac_gssapi_libs $ac_krb5_libs"
 else
 	AC_CHECK_LIB(crypto, main)
 	AC_CHECK_LIB(des, main)
