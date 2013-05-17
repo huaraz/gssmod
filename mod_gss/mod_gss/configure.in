@@ -353,9 +353,9 @@ _krb5_principal2principalname (
 #endif /* HAVE_COM_ERR_H */
 #endif /* !HAVE_COM_ERR_IN_KRB5 */
 #if !defined(HAVE_ERROR_MESSAGE) && defined(HAVE_KRB5_GET_ERROR_MESSAGE)
-#define error_message(code) krb5_get_error_message(kparam.context, code)
+#define error_message(code) krb5_get_error_message(kc, code)
 #elif !defined(HAVE_ERROR_MESSAGE) && defined(HAVE_KRB5_GET_ERR_TEXT)
-#define error_message(code) krb5_get_err_text(kparam.context, code)
+#define error_message(code) krb5_get_err_text(kc, code)
 #elif !defined(HAVE_ERROR_MESSAGE)
 static char err_code[17];
 const char *KRB5_CALLCONV
