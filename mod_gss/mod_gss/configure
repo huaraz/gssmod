@@ -2973,11 +2973,11 @@ $as_echo "$as_me: WARNING: krb5-config '$krb5confpath' not executable, ignoring"
 		ac_krb5_solaris="`$krb5confpath --version 2>/dev/null | grep -i solaris`"
 		ac_krb5_heimdal="`$krb5confpath --version 2>/dev/null | grep -i heimdal`"
         	if test "x$ac_krb5_solaris" != x ; then
-			ac_krb5_cflags=`-config --cflags krb5 2> /dev/null `
+			ac_krb5_cflags=`$krb5confpath --cflags krb5 2> /dev/null `
 			if test $? != 0; then
 				krb5fail=t
 			fi
-			ac_krb5_libs=`krb5-config --libs krb5 2> /dev/null `
+			ac_krb5_libs=`$krb5confpath --libs krb5 2> /dev/null `
 			if test $? != 0; then
 				krb5fail=t
 			fi
