@@ -31,7 +31,13 @@ AC_ARG_WITH(krb5-config,[  --with-krb5-config=PATH specify path to krb5-config @
 
 unset krb5fail 
 if test x"$krb5confpath" != xno; then 
-	if test x"$krb5confpath" != x; then 
+	if test x"$krb5confpath" = x ; then 
+		AC_CHECK_PROG(ac_krb5_config, krb5-config, yes, no) 
+		if test x"$ac_krb5_config" = xyes; then 
+			krb5confpath=`which krb5-config`
+		fi
+	fi
+	if test x"$krb5confpath" != x ; then
 		if ! test -x "$krb5confpath"; then
 			AC_MSG_WARN([krb5-config '$krb5confpath' not executable, ignoring])
 		else
@@ -39,26 +45,24 @@ if test x"$krb5confpath" != xno; then
 			if test $? != 0; then
 				krb5fail=t
 			fi
-		       	ac_gssapi_libs=`$krb5confpath --libs gssapi 2> /dev/null ` 
+	   	    	ac_gssapi_libs=`$krb5confpath --libs gssapi 2> /dev/null ` 
 			if test $? != 0; then 
 				krb5fail=t 
 			fi 
 		fi
+		ac_krb5_solaris="`$krb5confpath --version 2>/dev/null | grep -i solaris`"
 		ac_krb5_heimdal="`$krb5confpath --version 2>/dev/null | grep -i heimdal`"
-	else
-		AC_CHECK_PROG(ac_krb5_config, krb5-config, yes, no) 
-		if test x"$ac_krb5_config" = xyes; then 
-			ac_gssapi_cflags=`krb5-config --cflags gssapi 2> /dev/null ` 
+        	if test "x$ac_krb5_solaris" != x ; then
+			ac_krb5_cflags=`-config --cflags krb5 2> /dev/null `
 			if test $? != 0; then
 				krb5fail=t
-			fi 
-			ac_gssapi_libs=`krb5-config --libs gssapi 2> /dev/null ` 
-			if test $? != 0; then 
-				krb5fail=t 
-			fi 
-		fi 
-		ac_krb5_heimdal="`krb5-config --version 2>/dev/null | grep -i heimdal`"
-	fi 
+			fi
+			ac_krb5_libs=`krb5-config --libs krb5 2> /dev/null `
+			if test $? != 0; then
+				krb5fail=t
+			fi
+		fi
+	fi
 fi 
 
 if test x"$krb5fail" = xt ; then
@@ -69,9 +73,9 @@ fi
 o_CPPFLAGS=${CPPFLAGS}
 o_CFLAGS=${CFLAGS}
 o_LDFLAGS=${LDFLAGS}
-CPPFLAGS="${CPPFLAGS} $ac_gssapi_cflags"
-CFLAGS="${CFLAGS} $ac_gssapi_cflags"
-LDFLAGS="${LDFLAGS} $ac_gssapi_libs"
+CPPFLAGS="${CPPFLAGS} $ac_gssapi_cflags $ac_krb5_cflags"
+CFLAGS="${CFLAGS} $ac_gssapi_cflags $ac_krb5_cflags"
+LDFLAGS="${LDFLAGS} $ac_gssapi_libs $ac_krb5_libs"
 
 dnl look for gssapi headers
 AC_CHECK_HEADERS(gssapi.h gssapi/gssapi.h)
@@ -191,6 +195,14 @@ if test "x$ac_krb5_heimdal" != x ; then
 else
 	AC_MSG_RESULT(no)
 fi
+AC_MSG_CHECKING([for Solaris])
+if test "x$ac_krb5_solaris" != x ; then
+	AC_DEFINE(HAVE_SOLARIS_KERBEROS,1,[Solaris Kerberos implementation])
+	AC_MSG_RESULT(yes)
+else
+	AC_MSG_RESULT(no)
+fi
+
 # unset have_heimdal 
 # AC_MSG_CHECKING([for heimdal])
 # AC_TRY_LINK([
