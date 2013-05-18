@@ -126,8 +126,6 @@ else
 	AC_CHECK_LIB(gssapi, main)
 	AC_CHECK_LIB(gss, main)
 	AC_CHECK_LIB(ksvc, main)
-
-dnl add as dependency for libdsocks 
 fi 
 if test `echo $LIBS | grep -c com_err` -ne 0 -a "x$ac_com_error_message" = xyes ; then
 	AC_CHECK_LIB(com_err,error_message,
