@@ -1512,6 +1512,7 @@ MODRET gss_adat(cmd_rec *cmd) {
     int error = 0;
     int found = 0;
     int replied = 0;
+    int rev = TRUE;
 
     gss_buffer_desc tok, out_tok, name_buf;
     gss_name_t      server;
@@ -1571,12 +1572,14 @@ MODRET gss_adat(cmd_rec *cmd) {
 	return ERROR(cmd);
     }
 
+    rev = pr_netaddr_set_reverse_dns(TRUE);
     if (strlen(pr_netaddr_get_dnsstr(session.c->local_addr)) > MAXHOSTNAMELEN -1 ) {
 	gss_log("GSSAPI Hostname (%s) longer then MAXHOSTNAMELEN:%d",pr_netaddr_get_dnsstr(session.c->local_addr),MAXHOSTNAMELEN);
         pr_response_add_err(R_535, "Internal error"); 
 	return ERROR(cmd);
     }
     strcpy(localname,pr_netaddr_get_dnsstr(session.c->local_addr));
+    pr_netaddr_set_reverse_dns(rev);
 
     gss_switch_keytab(gss_keytab_file,1);
     for (service = gss_services; *service; service++) {
