@@ -744,19 +744,19 @@ MODRET gss_authenticate(cmd_rec *cmd) {
     int             user_ok;
     
     if (!gss_engine)
-	return DECLINED(cmd);
+	return PR_DECLINED(cmd);
 
     /* only allow Kerberos 5 authentication if GSSAPI was used */
     if ( !(gss_flags & GSS_SESS_AUTH_OK) )
-	return DECLINED(cmd);
+	return PR_DECLINED(cmd);
 
     if (!client_name.value) {
         if (gss_flags & GSS_SESS_ADAT_OK ) {
            gss_log("GSSAPI Client name not set, but ADAT successful");
-           return ERROR_INT(cmd,PR_AUTH_ERROR);
+           return PR_ERROR_INT(cmd,PR_AUTH_ERROR);
         } else {
            gss_log("GSSAPI Client name not set and ADAT not successful. Use other methods to authenticate.");
-           return DECLINED(cmd);
+           return PR_DECLINED(cmd);
         }
     }
 
@@ -773,7 +773,7 @@ MODRET gss_authenticate(cmd_rec *cmd) {
         }
     }
     gss_log("GSSAPI User %s is not authorized. Use other methods to authenticate.", cmd->argv[0]);
-    return DECLINED(cmd);
+    return PR_DECLINED(cmd);
 #else
     krb5_boolean k5ret;
     krb5_context kc;
@@ -781,25 +781,25 @@ MODRET gss_authenticate(cmd_rec *cmd) {
     krb5_error_code kerr;
 
     if (!gss_engine)
-	return DECLINED(cmd);
+	return PR_DECLINED(cmd);
 
     /* only allow Kerberos 5 authentication if GSSAPI was used */
     if ( !(gss_flags & GSS_SESS_AUTH_OK) )
-	return DECLINED(cmd);
+	return PR_DECLINED(cmd);
 
     kerr = krb5_init_context(&kc);
     if (kerr) {
         gss_log("GSSAPI Could not initialise krb5 context (%s)",error_message(kerr));
-        return ERROR_INT(cmd,PR_AUTH_ERROR);
+        return PR_ERROR_INT(cmd,PR_AUTH_ERROR);
     }
     
     if (!client_name.value) {
         if (gss_flags & GSS_SESS_ADAT_OK ) {
            gss_log("GSSAPI Client name not set, but ADAT successful");
-           return ERROR_INT(cmd,PR_AUTH_ERROR);
+           return PR_ERROR_INT(cmd,PR_AUTH_ERROR);
         } else {
            gss_log("GSSAPI Client name not set and ADAT not successful. Use other methods to authenticate.");       
-           return DECLINED(cmd);
+           return PR_DECLINED(cmd);
 	} 
     }
 
@@ -807,7 +807,7 @@ MODRET gss_authenticate(cmd_rec *cmd) {
     if (kerr) { 
         gss_log("GSSAPI Could not parse krb5 name (%s).",error_message(kerr));
         krb5_free_context(kc);
-        return ERROR_INT(cmd,PR_AUTH_ERROR);
+        return PR_ERROR_INT(cmd,PR_AUTH_ERROR);
     }
 
     /* Check first if principal and local user match or .k5login has correct entry,
@@ -831,16 +831,16 @@ MODRET gss_authenticate(cmd_rec *cmd) {
             if ( gss_flags & GSS_AUTH_AUTHORITATIVE ) {
                 switch ( kerr ) {
                     case KRB5KDC_ERR_CLIENT_REVOKED:
-                       return ERROR_INT(cmd,PR_AUTH_BADPWD);
+                       return PR_ERROR_INT(cmd,PR_AUTH_BADPWD);
                     case KRB5KDC_ERR_C_PRINCIPAL_UNKNOWN:
-                       return ERROR_INT(cmd,PR_AUTH_NOPWD);
+                       return PR_ERROR_INT(cmd,PR_AUTH_NOPWD);
                     case KRB5KDC_ERR_PREAUTH_FAILED:
-                       return ERROR_INT(cmd,PR_AUTH_BADPWD);
+                       return PR_ERROR_INT(cmd,PR_AUTH_BADPWD);
                     default:
-                       return ERROR_INT(cmd,PR_AUTH_BADPWD);
+                       return PR_ERROR_INT(cmd,PR_AUTH_BADPWD);
                 }
             } else {
-                return DECLINED(cmd);
+                return PR_DECLINED(cmd);
             }
         } else {
            gss_log("GSSAPI User %s/%s authorized by kdc.",cmd->argv[0],client_name.value? (char *) client_name.value:"-");
@@ -848,7 +848,7 @@ MODRET gss_authenticate(cmd_rec *cmd) {
         }
     }
     gss_log("GSSAPI User %s is not authorized. Use other methods to authenticate.", cmd->argv[0]);
-    return DECLINED(cmd);
+    return PR_DECLINED(cmd);
 #endif
 }
 /* This function does the main authentication work, and is called in the
@@ -862,19 +862,19 @@ MODRET gss_auth_requires_pass(cmd_rec *cmd) {
     int             user_ok;
 
     if (!gss_engine)
-	return DECLINED(cmd);
+	return PR_DECLINED(cmd);
 
     /* only allow Kerberos 5 authentication if GSSAPI was used */
     if ( !(gss_flags & GSS_SESS_AUTH_OK) )
-	return DECLINED(cmd);
+	return PR_DECLINED(cmd);
 
     if (!client_name.value) {
         if (gss_flags & GSS_SESS_ADAT_OK ) {
            gss_log("GSSAPI Client name not set, but ADAT successful");
-           return ERROR_INT(cmd,PR_AUTH_ERROR);
+           return PR_ERROR_INT(cmd,PR_AUTH_ERROR);
         } else {
            gss_log("GSSAPI Client name not set and ADAT not successful. Use other methods to authenticate.");
-           return DECLINED(cmd);
+           return PR_DECLINED(cmd);
         }
     }
 
@@ -889,7 +889,7 @@ MODRET gss_auth_requires_pass(cmd_rec *cmd) {
         }
     }
     gss_log("GSSAPI User %s is not authorized. Use other methods to authenticate.", cmd->argv[0]);
-    return DECLINED(cmd);
+    return PR_DECLINED(cmd);
 #else
     krb5_boolean k5ret;
     krb5_context kc;
@@ -897,25 +897,25 @@ MODRET gss_auth_requires_pass(cmd_rec *cmd) {
     krb5_error_code kerr;
 
     if (!gss_engine)
-	return DECLINED(cmd);
+	return PR_DECLINED(cmd);
 
     /* only allow Kerberos 5 authentication if GSSAPI was used */
     if ( !(gss_flags & GSS_SESS_AUTH_OK) )
-	return DECLINED(cmd);
+	return PR_DECLINED(cmd);
 
     kerr = krb5_init_context(&kc);
     if (kerr) {
         gss_log("GSSAPI Could not initialise krb5 context (%s)",error_message(kerr));
-        return ERROR_INT(cmd,PR_AUTH_ERROR);
+        return PR_ERROR_INT(cmd,PR_AUTH_ERROR);
     }
     
     if (!client_name.value) {
         if (gss_flags & GSS_SESS_ADAT_OK ) {
            gss_log("GSSAPI Client name not set, but ADAT successful");
-           return ERROR_INT(cmd,PR_AUTH_ERROR);
+           return PR_ERROR_INT(cmd,PR_AUTH_ERROR);
         } else {
            gss_log("GSSAPI Client name not set and ADAT not successful. Use other methods to authenticate.");       
-           return DECLINED(cmd);
+           return PR_DECLINED(cmd);
 	} 
     }
 
@@ -923,7 +923,7 @@ MODRET gss_auth_requires_pass(cmd_rec *cmd) {
     if (kerr) { 
         gss_log("GSSAPI Could not parse krb5 name (%s).",error_message(kerr));
         krb5_free_context(kc);
-        return ERROR_INT(cmd,PR_AUTH_ERROR);
+        return PR_ERROR_INT(cmd,PR_AUTH_ERROR);
     }
 
     /* Check first if principal and local user match or .k5login has correct entry,
@@ -940,7 +940,7 @@ MODRET gss_auth_requires_pass(cmd_rec *cmd) {
        return mod_create_data(cmd, (void *) PR_AUTH_RFC2228_OK);
     }
     gss_log("GSSAPI User %s is not authorized as %s. Use other methods to authenticate.", (char *) client_name.value,cmd->argv[0]);
-    return DECLINED(cmd);
+    return PR_DECLINED(cmd);
 #endif
 }
 /* This function does the main authentication work, and is called in the
@@ -956,19 +956,19 @@ MODRET gss_auth_check(cmd_rec *cmd) {
     int             user_ok;
 
     if (!gss_engine)
-	return DECLINED(cmd);
+	return PR_DECLINED(cmd);
 
     /* only allow Kerberos 5 authentication if GSSAPI was used */
     if ( !(gss_flags & GSS_SESS_AUTH_OK) )
-	return DECLINED(cmd);
+	return PR_DECLINED(cmd);
 
     if (!client_name.value) {
         if (gss_flags & GSS_SESS_ADAT_OK ) {
            gss_log("GSSAPI Client name not set, but ADAT successful");
-           return ERROR_INT(cmd,PR_AUTH_ERROR);
+           return PR_ERROR_INT(cmd,PR_AUTH_ERROR);
         } else {
            gss_log("GSSAPI Client name not set and ADAT not successful. Use other methods to authenticate.");
-           return DECLINED(cmd);
+           return PR_DECLINED(cmd);
         }
     }
 
@@ -985,7 +985,7 @@ MODRET gss_auth_check(cmd_rec *cmd) {
         }
     }
     gss_log("GSSAPI User %s is not authorized. Use other methods to authenticate.", cmd->argv[1]);
-    return DECLINED(cmd);
+    return PR_DECLINED(cmd);
 #else
     krb5_boolean k5ret;
     krb5_context kc;
@@ -993,26 +993,26 @@ MODRET gss_auth_check(cmd_rec *cmd) {
     krb5_error_code kerr;
 
     if (!gss_engine)
-	return DECLINED(cmd);
+	return PR_DECLINED(cmd);
 
     /* only allow Kerberos 5 authentication if GSSAPI was used */
     if ( !(gss_flags & GSS_SESS_AUTH_OK) )
-	return DECLINED(cmd);
+	return PR_DECLINED(cmd);
     
 
     kerr = krb5_init_context(&kc);
     if (kerr) {
         gss_log("GSSAPI Could not initialise krb5 context (%s).",error_message(kerr));
-        return ERROR_INT(cmd,PR_AUTH_ERROR);
+        return PR_ERROR_INT(cmd,PR_AUTH_ERROR);
     }
 
     if (!client_name.value) {
         if (gss_flags & GSS_SESS_ADAT_OK ) {
            gss_log("GSSAPI Client name not set, but ADAT successful");
-	   return ERROR_INT(cmd,PR_AUTH_ERROR);
+	   return PR_ERROR_INT(cmd,PR_AUTH_ERROR);
         } else {
            gss_log("GSSAPI Client name not set and ADAT not successful. Use other methods to authenticate.");
-           return DECLINED(cmd);
+           return PR_DECLINED(cmd);
 	}
     }
 
@@ -1020,7 +1020,7 @@ MODRET gss_auth_check(cmd_rec *cmd) {
     if (kerr) { 
         gss_log("GSSAPI Could not parse krb5 name (%s).",error_message(kerr));
         krb5_free_context(kc);
-        return ERROR_INT(cmd,PR_AUTH_ERROR);
+        return PR_ERROR_INT(cmd,PR_AUTH_ERROR);
     }
 
     /* Check first if principal and local user match or .k5login has correct entry,
@@ -1044,16 +1044,16 @@ MODRET gss_auth_check(cmd_rec *cmd) {
             if ( gss_flags & GSS_AUTH_AUTHORITATIVE ) {
                 switch ( kerr ) {
                     case KRB5KDC_ERR_CLIENT_REVOKED:
-                       return ERROR_INT(cmd,PR_AUTH_BADPWD);
+                       return PR_ERROR_INT(cmd,PR_AUTH_BADPWD);
                     case KRB5KDC_ERR_C_PRINCIPAL_UNKNOWN:
-                       return ERROR_INT(cmd,PR_AUTH_NOPWD);
+                       return PR_ERROR_INT(cmd,PR_AUTH_NOPWD);
                     case KRB5KDC_ERR_PREAUTH_FAILED:
-                       return ERROR_INT(cmd,PR_AUTH_BADPWD);
+                       return PR_ERROR_INT(cmd,PR_AUTH_BADPWD);
                     default:
-                       return ERROR_INT(cmd,PR_AUTH_BADPWD);
+                       return PR_ERROR_INT(cmd,PR_AUTH_BADPWD);
                 }
             } else {
-                return DECLINED(cmd);
+                return PR_DECLINED(cmd);
             }
         } else {
            gss_log("GSSAPI User %s/%s authorized by kdc.",cmd->argv[1],client_name.value? (char *) client_name.value:"-");
@@ -1061,7 +1061,7 @@ MODRET gss_auth_check(cmd_rec *cmd) {
         }
     }
     gss_log("GSSAPI User %s is not authorized. Use other methods to authenticate.", cmd->argv[1]);
-    return DECLINED(cmd);
+    return PR_DECLINED(cmd);
 #endif
 }
 
@@ -1072,12 +1072,12 @@ MODRET gss_ccc(cmd_rec *cmd) {
     char *mesg = "CCC (clear command channel) not supported.";
 
     if (!gss_engine)
-	return DECLINED(cmd);
+	return PR_DECLINED(cmd);
 
     CHECK_CMD_ARGS(cmd, 1);
 
     if ( session.rfc2228_mech && strcmp(session.rfc2228_mech, "GSSAPI") != 0 ) {
-        return DECLINED(cmd);
+        return PR_DECLINED(cmd);
     } else if (!(gss_flags & GSS_SESS_ADAT_OK)) {
         pr_response_add_err(R_503, "Security data exchange not completed");
         gss_log("GSSAPI security data exchange not completed before %s command",cmd->argv[0]);
@@ -1100,12 +1100,12 @@ MODRET gss_fwccc(cmd_rec *cmd) {
     char *mesg = "FWCCC (clear PORT/EPORT/PASV/EPASV command) not supported.";
 
     if (!gss_engine)
-        return DECLINED(cmd);
+        return PR_DECLINED(cmd);
 
     CHECK_CMD_ARGS(cmd, 1);
 
     if ( session.rfc2228_mech && strcmp(session.rfc2228_mech, "GSSAPI") != 0 ) {
-        return DECLINED(cmd);
+        return PR_DECLINED(cmd);
     } else if (!(gss_flags & GSS_SESS_ADAT_OK)) {
         pr_response_add_err(R_503, "Security data exchange not completed");
         gss_log("GSSAPI security data exchange not completed before %s command",cmd->argv[0]);
@@ -1157,12 +1157,12 @@ MODRET gss_dec(cmd_rec *cmd) {
     OM_uint32       maj_stat, min_stat;
 
     if (!gss_engine)
-	return DECLINED(cmd);
+	return PR_DECLINED(cmd);
 
     CHECK_CMD_ARGS(cmd, 2);
 
     if ( session.rfc2228_mech && strcmp(session.rfc2228_mech, "GSSAPI") != 0 ) {
-        return DECLINED(cmd);
+        return PR_DECLINED(cmd);
     } else if (!(gss_flags & GSS_SESS_ADAT_OK)) {
         pr_response_add_err(R_503, "Security data exchange not completed");
         gss_log("GSSAPI security data exchange not completed before %s command",cmd->argv[0]);
@@ -1255,7 +1255,7 @@ MODRET gss_dec(cmd_rec *cmd) {
 MODRET gss_any(cmd_rec *cmd) {
 
     if (!gss_engine)
-	return DECLINED(cmd);
+	return PR_DECLINED(cmd);
 
     /* from mod_tls:
      *
@@ -1272,11 +1272,11 @@ MODRET gss_any(cmd_rec *cmd) {
 	!strcmp(cmd->argv[0], C_ENC) ||
 	!strcmp(cmd->argv[0], C_MIC) ||
 	!strcmp(cmd->argv[0], C_CONF))
-        return DECLINED(cmd);
+        return PR_DECLINED(cmd);
 
     /* Ignore commands from dispatched gss_dec*/
     if (gss_flags & GSS_SESS_DISPATCH) {
-        return DECLINED(cmd);
+        return PR_DECLINED(cmd);
     }
 
     /* Ignore clear PORT/PASV commands if FWCCC is allowed*/
@@ -1285,13 +1285,13 @@ MODRET gss_any(cmd_rec *cmd) {
         ( (gss_flags & GSS_SESS_FWCCC) && !strcmp(cmd->argv[0], C_EPRT) ) ||
         ( (gss_flags & GSS_SESS_FWCCC) && !strcmp(cmd->argv[0], C_EPSV) )) {
         session.sp_flags = SP_CCC; 
-        return DECLINED(cmd);
+        return PR_DECLINED(cmd);
     }
 
     /* Ignore clear commands if CCC is allowed*/
     if ((gss_opts & GSS_OPT_ALLOW_CCC) && (gss_flags & GSS_SESS_CCC)) {
         session.sp_flags = SP_CCC; 
-        return DECLINED(cmd);
+        return PR_DECLINED(cmd);
     }
 
     /* protection on control channel is required (except for commands dispatched by gss_dec) */
@@ -1309,7 +1309,7 @@ MODRET gss_any(cmd_rec *cmd) {
 	return ERROR(cmd);
     }
 
-    return DECLINED(cmd);
+    return PR_DECLINED(cmd);
 }
 
 /*
@@ -1369,7 +1369,7 @@ MODRET gss_auth(cmd_rec *cmd) {
     OM_uint32 maj_stat, min_stat;
 
     if (!gss_engine)
-	return DECLINED(cmd);
+	return PR_DECLINED(cmd);
 
     CHECK_CMD_ARGS(cmd, 2);
 
@@ -1407,7 +1407,7 @@ MODRET gss_auth(cmd_rec *cmd) {
   return ERROR(cmd);
 */
         gss_flags &= ~GSS_SESS_AUTH_OK;
-        return DECLINED(cmd);
+        return PR_DECLINED(cmd);
     }
 
     session.rfc2228_mech = "GSSAPI";
@@ -1531,7 +1531,7 @@ MODRET gss_adat(cmd_rec *cmd) {
     gss_channel_bindings_t chan=GSS_C_NO_CHANNEL_BINDINGS;
 
     if (!gss_engine)
-        return DECLINED(cmd);
+        return PR_DECLINED(cmd);
 
     if (!(gss_opts & GSS_OPT_ALLOW_FW_NAT)) { 
         chan = pcalloc(cmd->tmp_pool,sizeof(*chan));
@@ -1548,7 +1548,7 @@ MODRET gss_adat(cmd_rec *cmd) {
     CHECK_CMD_ARGS(cmd, 2);
 
     if ( session.rfc2228_mech && strcmp(session.rfc2228_mech, "GSSAPI") != 0 ) {
-        return DECLINED(cmd);
+        return PR_DECLINED(cmd);
     } else if (!(gss_flags & GSS_SESS_AUTH_OK)) {
 	pr_response_add_err(R_503, "You must issue the AUTH command prior to ADAT");
         gss_log("GSSAPI You must issue the AUTH command prior to ADAT");
@@ -1805,12 +1805,12 @@ err:
 MODRET gss_pbsz(cmd_rec *cmd) {
 
     if (!gss_engine)
-	return DECLINED(cmd);
+	return PR_DECLINED(cmd);
 
     CHECK_CMD_ARGS(cmd, 2);
 
     if ( session.rfc2228_mech && strcmp(session.rfc2228_mech, "GSSAPI") != 0 ) {
-        return DECLINED(cmd);
+        return PR_DECLINED(cmd);
     } else if (!(gss_flags & GSS_SESS_ADAT_OK)) {
 	pr_response_add_err(R_503, "PBSZ not allowed on insecure control connection");
         gss_log("GSSAPI PBSZ not allowed on insecure control connection");
@@ -2003,12 +2003,12 @@ MODRET gss_prot(cmd_rec *cmd) {
     int i;
 
     if (!gss_engine)
-	return DECLINED(cmd);
+	return PR_DECLINED(cmd);
 
     CHECK_CMD_ARGS(cmd, 2);
 
     if ( session.rfc2228_mech && strcmp(session.rfc2228_mech, "GSSAPI") != 0 ) {
-        return DECLINED(cmd);
+        return PR_DECLINED(cmd);
     } else if (!(gss_flags & GSS_SESS_PBSZ_OK)) {
    	pr_response_add_err(R_503, "You must issue the PBSZ command prior to PROT");
         gss_log("GSSAPI You must issue the PBSZ command prior to PROT");

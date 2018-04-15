@@ -114,25 +114,25 @@ MODRET auth_gss_authenticate(cmd_rec *cmd) {
     char *princ_name;
 
     if (!gss_engine)
-	return DECLINED(cmd);
+	return PR_DECLINED(cmd);
 
     /* only allow Kerberos 5 authentication if GSSAPI was used */
     if ( !(gss_flags & GSS_SESS_AUTH_OK) )
-	return DECLINED(cmd);
+	return PR_DECLINED(cmd);
 
     kerr = krb5_init_context(&kc);
     if (kerr) {
         gss_log("GSSAPI-AUTH Could not initialise krb5 context (%s)",error_message(kerr));
-        return ERROR_INT(cmd,PR_AUTH_ERROR);
+        return PR_ERROR_INT(cmd,PR_AUTH_ERROR);
     }
     
     if (!client_name.value) {
         if (gss_flags & GSS_SESS_ADAT_OK ) {
            gss_log("GSSAPI-AUTH Client name not set, but ADAT successful");
-           return ERROR_INT(cmd,PR_AUTH_ERROR);
+           return PR_ERROR_INT(cmd,PR_AUTH_ERROR);
         } else {
            gss_log("GSSAPI-AUTH Client name not set and ADAT not successful. Use other methods to authenticate.");       
-           return DECLINED(cmd);
+           return PR_DECLINED(cmd);
 	} 
     }
 
@@ -140,7 +140,7 @@ MODRET auth_gss_authenticate(cmd_rec *cmd) {
     if (kerr) { 
         gss_log("GSSAPI-AUTH Could not parse krb5 name (%s).",error_message(kerr));
         krb5_free_context(kc);
-        return ERROR_INT(cmd,PR_AUTH_ERROR);
+        return PR_ERROR_INT(cmd,PR_AUTH_ERROR);
     }
 
     /* compare authnid vs authzid UPENN example */
@@ -149,7 +149,7 @@ MODRET auth_gss_authenticate(cmd_rec *cmd) {
     if (kerr) { 
         gss_log("GSSAPI-AUTH Could not parse krb5 name (%s).",error_message(kerr));
         krb5_free_context(kc);
-        return ERROR_INT(cmd,PR_AUTH_ERROR);
+        return PR_ERROR_INT(cmd,PR_AUTH_ERROR);
     }
     /* might need to check pn->name_string.len */
     princ_name = pn->name_string.val[0];
@@ -167,7 +167,7 @@ MODRET auth_gss_authenticate(cmd_rec *cmd) {
 
     krb5_free_principal(kc, p);
     gss_log("GSSAPI-AUTH User %s is not authorized. Use other methods to authenticate.", cmd->argv[0]);
-    return DECLINED(cmd);
+    return PR_DECLINED(cmd);
 }
 /* This function does the main authentication work, and is called in the
  * normal course of events:
@@ -184,25 +184,25 @@ MODRET auth_gss_requires_pass(cmd_rec *cmd) {
     char *princ_name;
 
     if (!gss_engine)
-	return DECLINED(cmd);
+	return PR_DECLINED(cmd);
 
     /* only allow Kerberos 5 authentication if GSSAPI was used */
     if ( !(gss_flags & GSS_SESS_AUTH_OK) )
-	return DECLINED(cmd);
+	return PR_DECLINED(cmd);
 
     kerr = krb5_init_context(&kc);
     if (kerr) {
         gss_log("GSSAPI-AUTH Could not initialise krb5 context (%s)",error_message(kerr));
-        return ERROR_INT(cmd,PR_AUTH_ERROR);
+        return PR_ERROR_INT(cmd,PR_AUTH_ERROR);
     }
     
     if (!client_name.value) {
         if (gss_flags & GSS_SESS_ADAT_OK ) {
            gss_log("GSSAPI-AUTH Client name not set, but ADAT successful");
-           return ERROR_INT(cmd,PR_AUTH_ERROR);
+           return PR_ERROR_INT(cmd,PR_AUTH_ERROR);
         } else {
            gss_log("GSSAPI-AUTH Client name not set and ADAT not successful. Use other methods to authenticate.");       
-           return DECLINED(cmd);
+           return PR_DECLINED(cmd);
 	} 
     }
 
@@ -210,7 +210,7 @@ MODRET auth_gss_requires_pass(cmd_rec *cmd) {
     if (kerr) { 
         gss_log("GSSAPI-AUTH Could not parse krb5 name (%s).",error_message(kerr));
         krb5_free_context(kc);
-        return ERROR_INT(cmd,PR_AUTH_ERROR);
+        return PR_ERROR_INT(cmd,PR_AUTH_ERROR);
     }
 
     /* compare authnid vs authzid UPENN example */
@@ -219,7 +219,7 @@ MODRET auth_gss_requires_pass(cmd_rec *cmd) {
     if (kerr) {
         gss_log("GSSAPI-UPENN Could not parse krb5 name (%s).",error_message(kerr));
         krb5_free_context(kc);
-        return ERROR_INT(cmd,PR_AUTH_ERROR);
+        return PR_ERROR_INT(cmd,PR_AUTH_ERROR);
     }
     /* might need to check pn->name_string.len */
     princ_name = pn->name_string.val[0];
@@ -237,7 +237,7 @@ MODRET auth_gss_requires_pass(cmd_rec *cmd) {
 		
     krb5_free_principal(kc, p);
     gss_log("GSSAPI-AUTH User %s is not authorized. Use other methods to authenticate.", cmd->argv[0]);
-    return DECLINED(cmd);
+    return PR_DECLINED(cmd);
 }
 /* This function does the main authentication work, and is called in the
  * normal course of events:
@@ -256,26 +256,26 @@ MODRET auth_gss_check(cmd_rec *cmd) {
     char *princ_name;
 
     if (!gss_engine)
-	return DECLINED(cmd);
+	return PR_DECLINED(cmd);
 
     /* only allow Kerberos 5 authentication if GSSAPI was used */
     if ( !(gss_flags & GSS_SESS_AUTH_OK) )
-	return DECLINED(cmd);
+	return PR_DECLINED(cmd);
     
 
     kerr = krb5_init_context(&kc);
     if (kerr) {
         gss_log("GSSAPI-AUTH Could not initialise krb5 context (%s).",error_message(kerr));
-        return ERROR_INT(cmd,PR_AUTH_ERROR);
+        return PR_ERROR_INT(cmd,PR_AUTH_ERROR);
     }
 
     if (!client_name.value) {
         if (gss_flags & GSS_SESS_ADAT_OK ) {
            gss_log("GSSAPI-AUTH Client name not set, but ADAT successful");
-	   return ERROR_INT(cmd,PR_AUTH_ERROR);
+	   return PR_ERROR_INT(cmd,PR_AUTH_ERROR);
         } else {
            gss_log("GSSAPI-AUTH Client name not set and ADAT not successful. Use other methods to authenticate.");
-           return DECLINED(cmd);
+           return PR_DECLINED(cmd);
 	}
     }
 
@@ -283,7 +283,7 @@ MODRET auth_gss_check(cmd_rec *cmd) {
     if (kerr) { 
         gss_log("GSSAPI-AUTH Could not parse krb5 name (%s).",error_message(kerr));
         krb5_free_context(kc);
-        return ERROR_INT(cmd,PR_AUTH_ERROR);
+        return PR_ERROR_INT(cmd,PR_AUTH_ERROR);
     }
 
     /* compare authnid vs authzid UPENN example */
@@ -292,7 +292,7 @@ MODRET auth_gss_check(cmd_rec *cmd) {
     if (kerr) {
         gss_log("GSSAPI-UPENN Could not parse krb5 name (%s).",error_message(kerr));
         krb5_free_context(kc);
-        return ERROR_INT(cmd,PR_AUTH_ERROR);
+        return PR_ERROR_INT(cmd,PR_AUTH_ERROR);
     }
     /* might need to check pn->name_string.len */
     princ_name = pn->name_string.val[0];
@@ -310,7 +310,7 @@ MODRET auth_gss_check(cmd_rec *cmd) {
 		
     krb5_free_principal(kc, p);
     gss_log("GSSAPIi-AUTH User %s is not authorized. Use other methods to authenticate.", cmd->argv[1]);
-    return DECLINED(cmd);
+    return PR_DECLINED(cmd);
 }
 
 
