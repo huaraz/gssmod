@@ -1,7 +1,7 @@
 /*
  * mod_gss - an RFC2228 GSSAPI module for ProFTPD
  *
- * Copyright (c) 2002-2005 M Moeller <markus_moeller@compuserve.com>
+ * Copyright (c) 2002-2018 M Moeller <markus_moeller@compuserve.com>
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -31,10 +31,10 @@
  *  $SEAM-Libraries: -lgss -R/usr/lib/gss/(gl|do/) -Wl,/usr/lib/gss/(gl|do/)mech_krb5.so$
  *  $NAS-Libraries: -L/usr/lib -lksvc -lgssapi_krb5 -lkrb5$
  * 
- * $Id$
- * $Source$
- * $Author$
- * $Date$
+ * $Id: mod_gss.c.in,v 1.38 2012/03/18 14:34:56 mamoeller Exp $
+ * $Source: /cvsroot/gssmod/mod_gss/mod_gss/mod_gss.c.in,v $
+ * $Author: mamoeller $
+ * $Date: 2012/03/18 14:34:56 $
  */
 
 /* 
@@ -820,14 +820,14 @@ MODRET gss_authenticate(cmd_rec *cmd) {
     pr_signals_unblock();
     krb5_free_principal(kc, p);
     if (k5ret == TRUE) {
-       gss_log("GSSAPI User %s is authorized as %s.", (char *) client_name.value,cmd->argv[0]);
+       gss_log("GSSAPI User %s is authorized as %s.", (char *) client_name.value,(char *) cmd->argv[0]);
        return mod_create_data(cmd, (void *) PR_AUTH_RFC2228_OK);
     } else if (cmd->argv[1] != NULL) {
 
         /* check password against kdc */
         kerr = kpass(cmd->argv[0],cmd->argv[1]);
         if ( kerr ) {
-            gss_log("GSSAPI User %s is not authorized as %s. Use other methods to authenticate.", (char *) client_name.value,cmd->argv[0]);
+            gss_log("GSSAPI User %s is not authorized as %s. Use other methods to authenticate.", (char *) client_name.value,(char *) cmd->argv[0]);
             if ( gss_flags & GSS_AUTH_AUTHORITATIVE ) {
                 switch ( kerr ) {
                     case KRB5KDC_ERR_CLIENT_REVOKED:
@@ -843,11 +843,11 @@ MODRET gss_authenticate(cmd_rec *cmd) {
                 return PR_DECLINED(cmd);
             }
         } else {
-           gss_log("GSSAPI User %s/%s authorized by kdc.",cmd->argv[0],client_name.value? (char *) client_name.value:"-");
-	   return HANDLED(cmd);
+           gss_log("GSSAPI User %s/%s authorized by kdc.",(char *) cmd->argv[0],client_name.value? (char *) client_name.value:"-");
+	   return PR_HANDLED(cmd);
         }
     }
-    gss_log("GSSAPI User %s is not authorized. Use other methods to authenticate.", cmd->argv[0]);
+    gss_log("GSSAPI User %s is not authorized. Use other methods to authenticate.", (char *) cmd->argv[0]);
     return PR_DECLINED(cmd);
 #endif
 }
@@ -936,10 +936,10 @@ MODRET gss_auth_requires_pass(cmd_rec *cmd) {
     pr_signals_unblock();
     krb5_free_principal(kc, p);
     if (k5ret == TRUE) {
-       gss_log("GSSAPI User %s is authorized as %s.", (char *) client_name.value,cmd->argv[0]);
+       gss_log("GSSAPI User %s is authorized as %s.", (char *) client_name.value,(char *) cmd->argv[0]);
        return mod_create_data(cmd, (void *) PR_AUTH_RFC2228_OK);
     }
-    gss_log("GSSAPI User %s is not authorized as %s. Use other methods to authenticate.", (char *) client_name.value,cmd->argv[0]);
+    gss_log("GSSAPI User %s is not authorized as %s. Use other methods to authenticate.", (char *) client_name.value,(char*) cmd->argv[0]);
     return PR_DECLINED(cmd);
 #endif
 }
@@ -1033,14 +1033,14 @@ MODRET gss_auth_check(cmd_rec *cmd) {
     pr_signals_unblock();
     krb5_free_principal(kc, p);
     if (k5ret == TRUE) {
-       gss_log("GSSAPI User %s is authorized as %s.", (char *) client_name.value,cmd->argv[1]);
+       gss_log("GSSAPI User %s is authorized as %s.", (char *) client_name.value,(char *) cmd->argv[1]);
        return mod_create_data(cmd, (void *) PR_AUTH_RFC2228_OK);
     } else if (cmd->argv[2] != NULL) {
 
         /* check password against kdc */
         kerr = kpass(cmd->argv[1],cmd->argv[2]);
         if ( kerr ) {
-            gss_log("GSSAPI User %s is not authorized as %s. Use other methods to authenticate.", (char *) client_name.value,cmd->argv[1]);
+            gss_log("GSSAPI User %s is not authorized as %s. Use other methods to authenticate.", (char *) client_name.value,(char *) cmd->argv[1]);
             if ( gss_flags & GSS_AUTH_AUTHORITATIVE ) {
                 switch ( kerr ) {
                     case KRB5KDC_ERR_CLIENT_REVOKED:
@@ -1056,11 +1056,11 @@ MODRET gss_auth_check(cmd_rec *cmd) {
                 return PR_DECLINED(cmd);
             }
         } else {
-           gss_log("GSSAPI User %s/%s authorized by kdc.",cmd->argv[1],client_name.value? (char *) client_name.value:"-");
-	   return HANDLED(cmd);
+           gss_log("GSSAPI User %s/%s authorized by kdc.",(char *) cmd->argv[1],client_name.value? (char *) client_name.value:"-");
+	   return PR_HANDLED(cmd);
         }
     }
-    gss_log("GSSAPI User %s is not authorized. Use other methods to authenticate.", cmd->argv[1]);
+    gss_log("GSSAPI User %s is not authorized. Use other methods to authenticate.", (char *) cmd->argv[1]);
     return PR_DECLINED(cmd);
 #endif
 }
@@ -1080,19 +1080,19 @@ MODRET gss_ccc(cmd_rec *cmd) {
         return PR_DECLINED(cmd);
     } else if (!(gss_flags & GSS_SESS_ADAT_OK)) {
         pr_response_add_err(R_503, "Security data exchange not completed");
-        gss_log("GSSAPI security data exchange not completed before %s command",cmd->argv[0]);
-        return ERROR(cmd);
+        gss_log("GSSAPI security data exchange not completed before %s command",(char *) cmd->argv[0]);
+        return PR_ERROR(cmd);
     }
  
     if (gss_opts & GSS_OPT_ALLOW_CCC){
         gss_flags |= GSS_SESS_CCC;
         pr_response_add(R_200, "CCC command successful");
-        return HANDLED(cmd);
+        return PR_HANDLED(cmd);
     }
 
     pr_response_add_err(R_534, mesg);
     gss_log("GSSAPI %s", mesg);
-    return ERROR(cmd);
+    return PR_ERROR(cmd);
 
 }
 
@@ -1108,8 +1108,8 @@ MODRET gss_fwccc(cmd_rec *cmd) {
         return PR_DECLINED(cmd);
     } else if (!(gss_flags & GSS_SESS_ADAT_OK)) {
         pr_response_add_err(R_503, "Security data exchange not completed");
-        gss_log("GSSAPI security data exchange not completed before %s command",cmd->argv[0]);
-        return ERROR(cmd);
+        gss_log("GSSAPI security data exchange not completed before %s command",(char *) cmd->argv[0]);
+        return PR_ERROR(cmd);
     }
 
     if (gss_opts & GSS_OPT_ALLOW_FW_CCC){
@@ -1118,12 +1118,12 @@ MODRET gss_fwccc(cmd_rec *cmd) {
         else
            gss_flags |= GSS_SESS_FWCCC;
         pr_response_add(R_200, "FWCCC command successfully switched %s",gss_flags & GSS_SESS_FWCCC ? "On":"Off");
-        return HANDLED(cmd);
+        return PR_HANDLED(cmd);
     }
 
     pr_response_add_err(R_534, mesg);
     gss_log("GSSAPI %s", mesg);
-    return ERROR(cmd);
+    return PR_ERROR(cmd);
 
 }
 
@@ -1165,8 +1165,8 @@ MODRET gss_dec(cmd_rec *cmd) {
         return PR_DECLINED(cmd);
     } else if (!(gss_flags & GSS_SESS_ADAT_OK)) {
         pr_response_add_err(R_503, "Security data exchange not completed");
-        gss_log("GSSAPI security data exchange not completed before %s command",cmd->argv[0]);
-        return ERROR(cmd);
+        gss_log("GSSAPI security data exchange not completed before %s command",(char *) cmd->argv[0]);
+        return PR_ERROR(cmd);
     }
 
     if ( ! strcmp(cmd->argv[0], "CONF") ) {
@@ -1175,7 +1175,7 @@ MODRET gss_dec(cmd_rec *cmd) {
 /*
   session.sp_flags = SP_CONF;
 */
-        return ERROR(cmd);
+        return PR_ERROR(cmd);
     } else if ( ! strcmp(cmd->argv[0], "ENC") && (gss_flags & GSS_SESS_CONF_SUP)) { 
         session.sp_flags = SP_ENC;
 	conf_state = 1;
@@ -1183,9 +1183,9 @@ MODRET gss_dec(cmd_rec *cmd) {
        session.sp_flags = SP_MIC;
        conf_state = 0;
     } else {
-        pr_response_add_err(R_536,"Protection level %s not supported.",cmd->argv[0]);
-        gss_log("GSSAPI Protection level %s not supported.",cmd->argv[0]);
-        return ERROR(cmd);
+        pr_response_add_err(R_536,"Protection level %s not supported.",(char *)cmd->argv[0]);
+        gss_log("GSSAPI Protection level %s not supported.",(char *) cmd->argv[0]);
+        return PR_ERROR(cmd);
     }
 
     /* remove trailing \r \n */
@@ -1203,7 +1203,7 @@ MODRET gss_dec(cmd_rec *cmd) {
 	gss_log("GSSAPI Can't base 64 decode argument to %s command (%s)",
 		session.sp_flags & SP_ENC ? "ENC" : 
                 session.sp_flags & SP_MIC ? "MIC" : "", radix_error(error));
-        return ERROR(cmd);
+        return PR_ERROR(cmd);
     }
 
     /* decrypt the message */
@@ -1223,7 +1223,7 @@ MODRET gss_dec(cmd_rec *cmd) {
                        session.sp_flags & SP_MIC ? 
 		       "failed unsealing/unwraping MIC message":
                        "failed unsealing/unwraping message");
-        return ERROR(cmd);
+        return PR_ERROR(cmd);
     }
     
     dec_buf=pcalloc(cmd->pool, msg_buf.length+1);
@@ -1245,11 +1245,11 @@ MODRET gss_dec(cmd_rec *cmd) {
         gss_flags &= ~GSS_SESS_DISPATCH;
       	pr_response_add_err(R_535,"command %s rejected",dec_buf);
         gss_log("GSSAPI Failed dispatching command %s",dec_buf);
-        return ERROR(cmd);
+        return PR_ERROR(cmd);
     }
     gss_flags &= ~GSS_SESS_DISPATCH;
 
-    return HANDLED(cmd);
+    return PR_HANDLED(cmd);
 }
 
 MODRET gss_any(cmd_rec *cmd) {
@@ -1298,15 +1298,15 @@ MODRET gss_any(cmd_rec *cmd) {
     if ( gss_required_on_ctrl ) {
 	pr_response_add_err(R_550, "GSS protection required on control channel");
 	gss_log("GSSAPI GSS protection required on control channel");
-	return ERROR(cmd);
+	return PR_ERROR(cmd);
     }
 
     /* After ADAT all commands have to be protected by ENC/MIC/CONF */
     if ( (gss_flags & GSS_SESS_ADAT_OK) ) {
         session.sp_flags = SP_CCC; 
 	pr_response_add_err(R_533, "All commands must be protected.");
-	gss_log("GSSAPI Unprotected command(%s) received",cmd->argv[0]);
-	return ERROR(cmd);
+	gss_log("GSSAPI Unprotected command(%s) received",(char *) cmd->argv[0]);
+	return PR_ERROR(cmd);
     }
 
     return PR_DECLINED(cmd);
@@ -1395,10 +1395,10 @@ MODRET gss_auth(cmd_rec *cmd) {
     
     /* Convert the parameter to upper case */
     for (i = 0; i < strlen(cmd->argv[1]); i++)
-	(cmd->argv[1])[i] = toupper((cmd->argv[1])[i]);
+	((char *)cmd->argv[1])[i] = toupper(((char *)cmd->argv[1])[i]);
 
     if (!strcmp(cmd->argv[1], "GSSAPI")) { 
-	pr_response_send(R_334, "Using authentication type %s; ADAT must follow", cmd->argv[1]);
+	pr_response_send(R_334, "Using authentication type %s; ADAT must follow", (char *) cmd->argv[1]);
 	gss_log("GSSAPI Auth GSSAPI requested, ADAT must follow");
 	gss_flags |= GSS_SESS_AUTH_OK;
     } else {
@@ -1411,7 +1411,7 @@ MODRET gss_auth(cmd_rec *cmd) {
     }
 
     session.rfc2228_mech = "GSSAPI";
-    return HANDLED(cmd);
+    return PR_HANDLED(cmd);
 }
 
 /*
@@ -1512,7 +1512,6 @@ MODRET gss_adat(cmd_rec *cmd) {
     int error = 0;
     int found = 0;
     int replied = 0;
-    int rev = TRUE;
 
     gss_buffer_desc tok, out_tok, name_buf;
     gss_name_t      server;
@@ -1552,7 +1551,7 @@ MODRET gss_adat(cmd_rec *cmd) {
     } else if (!(gss_flags & GSS_SESS_AUTH_OK)) {
 	pr_response_add_err(R_503, "You must issue the AUTH command prior to ADAT");
         gss_log("GSSAPI You must issue the AUTH command prior to ADAT");
-        return ERROR(cmd); 
+        return PR_ERROR(cmd); 
     }
   
     /* Use cmd->arg instead of cmd->argv[1]
@@ -1569,17 +1568,15 @@ MODRET gss_adat(cmd_rec *cmd) {
     if ((error = radix_encode((unsigned char*)cmd->arg, tok.value , (int *)&tok.length, 1)) !=0  ) {
 	pr_response_add_err(R_501, "Couldn't decode ADAT (%s)",radix_error(error)); 
 	gss_log("GSSAPI Could not decode ADAT (%s)",radix_error(error));
-	return ERROR(cmd);
+	return PR_ERROR(cmd);
     }
 
-    rev = pr_netaddr_set_reverse_dns(TRUE);
     if (strlen(pr_netaddr_get_dnsstr(session.c->local_addr)) > MAXHOSTNAMELEN -1 ) {
 	gss_log("GSSAPI Hostname (%s) longer then MAXHOSTNAMELEN:%d",pr_netaddr_get_dnsstr(session.c->local_addr),MAXHOSTNAMELEN);
         pr_response_add_err(R_535, "Internal error"); 
-	return ERROR(cmd);
+	return PR_ERROR(cmd);
     }
     strcpy(localname,pr_netaddr_get_dnsstr(session.c->local_addr));
-    pr_netaddr_set_reverse_dns(rev);
 
     gss_switch_keytab(gss_keytab_file,1);
     for (service = gss_services; *service; service++) {
@@ -1746,7 +1743,7 @@ MODRET gss_adat(cmd_rec *cmd) {
         session.sp_flags = 0;
 
         gss_switch_keytab(env_keytab_file,0);
-        return HANDLED(cmd);
+        return PR_HANDLED(cmd);
     } else if (maj_stat == GSS_S_CONTINUE_NEEDED) {
 	/* If the server accepts the security data, and
 	   requires additional data, it should respond with
@@ -1756,7 +1753,7 @@ MODRET gss_adat(cmd_rec *cmd) {
         gss_release_cred(&acquire_min, &server_creds);
 	gss_release_name(&min_stat, &server);
         gss_switch_keytab(env_keytab_file,0);
-	return HANDLED(cmd);
+	return PR_HANDLED(cmd);
     } else {
 	/* "If the server rejects the security data (if
 	   a checksum fails, for instance), it should
@@ -1769,7 +1766,7 @@ MODRET gss_adat(cmd_rec *cmd) {
     }
 err:
     gss_switch_keytab(env_keytab_file,0);
-    return ERROR(cmd);
+    return PR_ERROR(cmd);
 }
 
 /*
@@ -1814,16 +1811,16 @@ MODRET gss_pbsz(cmd_rec *cmd) {
     } else if (!(gss_flags & GSS_SESS_ADAT_OK)) {
 	pr_response_add_err(R_503, "PBSZ not allowed on insecure control connection");
         gss_log("GSSAPI PBSZ not allowed on insecure control connection");
-	return ERROR(cmd);
+	return PR_ERROR(cmd);
     }
 
 
     if (strlen(cmd->argv[1]) > 10 ||
 	( strlen(cmd->argv[1]) == 10 && strcmp(cmd->argv[1],"4294967296") >= 0 )) {
-	pr_response_add_err(R_501, "Bad value for PBSZ: %s", cmd->argv[1]);
-	gss_log("GSSAPI Bad value for PBSZ: %s", cmd->argv[1]);
-	return ERROR(cmd);
-    } else if (actualbuf >= (maxbuf =(unsigned int) atol(cmd->argv[1]))) {
+	pr_response_add_err(R_501, "Bad value for PBSZ: %s", (char *)cmd->argv[1]);
+	gss_log("GSSAPI Bad value for PBSZ: %s", (char *)cmd->argv[1]);
+	return PR_ERROR(cmd);
+    } else if (actualbuf >= (maxbuf =(unsigned int) atol((char *)cmd->argv[1]))) {
 	pr_response_send(R_200, "PBSZ=%u", actualbuf);
 	gss_log("GSSAPI Set PBSZ=%u", actualbuf);
     } else {
@@ -1837,7 +1834,7 @@ MODRET gss_pbsz(cmd_rec *cmd) {
 	    } else {
 		pr_response_add_err(R_421, "Local resource failure: pcalloc");
 		gss_log("GSSAPI Local resource failure: pcalloc");
-		return ERROR(cmd);
+		return PR_ERROR(cmd);
 	    }
 	}
 	pr_response_send(R_200, "PBSZ=%u", maxbuf = actualbuf);
@@ -1845,7 +1842,7 @@ MODRET gss_pbsz(cmd_rec *cmd) {
     }
 
     gss_flags |= GSS_SESS_PBSZ_OK;
-    return HANDLED(cmd);
+    return PR_HANDLED(cmd);
 }
 
 /*
@@ -2012,12 +2009,12 @@ MODRET gss_prot(cmd_rec *cmd) {
     } else if (!(gss_flags & GSS_SESS_PBSZ_OK)) {
    	pr_response_add_err(R_503, "You must issue the PBSZ command prior to PROT");
         gss_log("GSSAPI You must issue the PBSZ command prior to PROT");
-	return ERROR(cmd);
+	return PR_ERROR(cmd);
     }
 
     /* Convert the parameter to upper case */
     for (i = 0; i < strlen(cmd->argv[1]); i++)
-	(cmd->argv[1])[i] = toupper((cmd->argv[1])[i]);
+	((char *)cmd->argv[1])[i] = toupper(((char *)cmd->argv[1])[i]);
 
     /* Only PROT S , PROT C or PROT P is valid with respect to GSS. */
     if (!strcmp(cmd->argv[1], "C")) {
@@ -2035,7 +2032,7 @@ MODRET gss_prot(cmd_rec *cmd) {
 	} else {
 	    pr_response_add_err(R_534, "Unwilling to accept security parameters");
             gss_log("GSSAPI Unwilling to accept security parameters");
-	    return ERROR(cmd);
+	    return PR_ERROR(cmd);
 	}
 
     } else if (!strcmp(cmd->argv[1], "P") && (gss_flags & GSS_SESS_CONF_SUP)) {
@@ -2057,17 +2054,17 @@ MODRET gss_prot(cmd_rec *cmd) {
 	gss_prot_flags = GSS_SESS_PROT_E;
 	pr_response_add_err(R_536, "PROT E (Confidential) unsupported");
 	gss_log("GSSAPI %s", mesg);
-	return ERROR(cmd);
+	return PR_ERROR(cmd);
 
     } else {
 	char *mesg = "Unsupported protection type";
-	pr_response_add_err(R_504, "PROT %s unsupported", cmd->argv[1]);
-	gss_log("GSSAPI %s %s", mesg,cmd->argv[1]);
-	return ERROR(cmd);	    
+	pr_response_add_err(R_504, "PROT %s unsupported", (char *) cmd->argv[1]);
+	gss_log("GSSAPI %s %s", mesg,(char *)cmd->argv[1]);
+	return PR_ERROR(cmd);	    
 
     }
 
-    return HANDLED(cmd);
+    return PR_HANDLED(cmd);
 }
 
 
@@ -2089,7 +2086,7 @@ MODRET set_gssengine(cmd_rec *cmd) {
     c->argv[0] = pcalloc(c->pool, sizeof(unsigned char));
     *((unsigned char *) c->argv[0]) = bool;
 
-    return HANDLED(cmd);
+    return PR_HANDLED(cmd);
 }
 
 /* usage: GSSKeytab file */
@@ -2101,11 +2098,11 @@ MODRET set_gsskeytab(cmd_rec *cmd) {
     if (!file_exists(cmd->argv[1]))
 	CONF_ERROR(cmd, "file does not exist");
 
-    if (*cmd->argv[1] != '/')
+    if (*(char *)cmd->argv[1] != '/')
 	CONF_ERROR(cmd, "parameter must be an absolute path");
 
     add_config_param_str(cmd->argv[0], 1, cmd->argv[1]);
-    return HANDLED(cmd);
+    return PR_HANDLED(cmd);
 }
 
 /* usage: GSSLog file */
@@ -2115,7 +2112,7 @@ MODRET set_gsslog(cmd_rec *cmd) {
     CHECK_CONF(cmd, CONF_ROOT|CONF_VIRTUAL|CONF_GLOBAL);
 
     add_config_param_str(cmd->argv[0], 1, cmd->argv[1]);
-    return HANDLED(cmd);
+    return PR_HANDLED(cmd);
 }
 
 /* usage: GSSOptions opt1 opt2 ... */
@@ -2162,7 +2159,7 @@ MODRET set_gssoptions(cmd_rec *cmd) {
     c->argv[0] = pcalloc(c->pool, sizeof(unsigned long));
     *((unsigned long *) c->argv[0]) = opts;
 
-    return HANDLED(cmd);
+    return PR_HANDLED(cmd);
 }
 
 /* usage: GSSRequired on|off|both|ctrl|control|data */
@@ -2204,7 +2201,7 @@ MODRET set_gssrequired(cmd_rec *cmd) {
     c->argv[1] = pcalloc(c->pool, sizeof(unsigned char));
     *((unsigned char *) c->argv[1]) = on_data;
 
-    return HANDLED(cmd);
+    return PR_HANDLED(cmd);
 }
 
 /* usage: GSSInet6 on|off|yes|no*/
@@ -2237,7 +2234,7 @@ MODRET set_gss_af_inet6(cmd_rec *cmd) {
     c->argv[0] = pcalloc(c->pool, sizeof(unsigned char));
     *((unsigned char *) c->argv[0]) = on_inet6;
 
-    return HANDLED(cmd);
+    return PR_HANDLED(cmd);
 }
 
 /* Event handlers
@@ -2265,11 +2262,11 @@ static void gss_postparse_ev(const void *event_data, void *user_data) {
                pr_log_pri(LOG_NOTICE, MOD_GSS_VERSION ": notice: unable to open GSSLog: %s",
                        strerror(errno));
 
-           else if (res == LOG_WRITEABLE_DIR)
+           else if (res == PR_LOG_WRITABLE_DIR)
                pr_log_pri(LOG_NOTICE, "notice: unable to open GSSLog: "
                        "parent directory is world writeable");
 
-           else if (res == LOG_SYMLINK)
+           else if (res == PR_LOG_SYMLINK)
                pr_log_pri(LOG_NOTICE, "notice: unable to open GSSLog: "
                        "cannot log to a symbolic link");
        }
@@ -2386,11 +2383,11 @@ static int gss_sess_init(void) {
 	    pr_log_pri(LOG_NOTICE, MOD_GSS_VERSION ": notice: unable to open GSSLog: %s",
 		    strerror(errno));
 
-	else if (res == LOG_WRITEABLE_DIR)
+	else if (res == PR_LOG_WRITABLE_DIR)
 	    pr_log_pri(LOG_NOTICE, "notice: unable to open GSSLog: "
 		    "parent directory is world writeable");
 
-	else if (res == LOG_SYMLINK)
+	else if (res == PR_LOG_SYMLINK)
 	    pr_log_pri(LOG_NOTICE, "notice: unable to open GSSLog: "
 		    "cannot log to a symbolic link");
     }
@@ -2621,7 +2618,7 @@ static int gss_dispatch(char *buf)
 
     *((char **) push_array(tarr)) = NULL;
 
-    newcmd->argv = (char **) tarr->elts;
+    newcmd->argv = (void **) tarr->elts;
     /* This table will not contain that many entries, so a low number
      * of chains should suffice.
      */

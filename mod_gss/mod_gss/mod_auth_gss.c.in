@@ -1,7 +1,7 @@
 /*
  * mod_auth_gss - an RFC2228 GSSAPI auth module for ProFTPD
  *
- * Copyright (c) 2002-2005 M Moeller <markus_moeller@compuserve.com>
+ * Copyright (c) 2002-2018 M Moeller <markus_moeller@compuserve.com>
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -31,10 +31,10 @@
  *  $SEAM-Libraries: -lgss -R/usr/lib/gss/(gl|do/) -Wl,/usr/lib/gss/(gl|do/)mech_krb5.so$
  *  $NAS-Libraries: -L/usr/lib -lksvc -lgssapi_krb5 -lkrb5$
  * 
- * $Id$
- * $Source$
- * $Author$
- * $Date$
+ * $Id: mod_auth_gss.c.in,v 1.15 2012/03/26 19:15:55 mamoeller Exp $
+ * $Source: /cvsroot/gssmod/mod_gss/mod_gss/mod_auth_gss.c.in,v $
+ * $Author: mamoeller $
+ * $Date: 2012/03/26 19:15:55 $
  */
 
 #include "mod_gss.h"

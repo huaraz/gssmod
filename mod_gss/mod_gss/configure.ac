@@ -289,7 +289,7 @@ AC_CONFIG_HEADER(mod_gss.h)
 AH_TOP([/*
 * mod_gss - an RFC2228 GSSAPI module for ProFTPD
 *
-* Copyright (c) 2002-2007 M Moeller <|MAIL|>
+* Copyright (c) 2002-2018 M Moeller <|MAIL|>
 * All rights reserved.
 *
 * This program is free software; you can redistribute it and/or modify
