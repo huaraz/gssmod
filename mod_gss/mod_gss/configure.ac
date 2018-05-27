@@ -14,7 +14,7 @@ dnl Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307, USA.
 dnl
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([mod_gss],[1.3.8],[markus_moeller@compuserve.com])
+AC_INIT([mod_gss],[1.3.9],[markus_moeller@compuserve.com])
 
 AC_TRY_COMPILE([int main()
                  {
@@ -40,19 +40,10 @@ if test x"$krb5confpath" != xno; then
 	if test x"$krb5confpath" != x ; then
 		if ! test -x "$krb5confpath"; then
 			AC_MSG_WARN([krb5-config '$krb5confpath' not executable, ignoring])
-		else
-			ac_gssapi_cflags=`$krb5confpath --cflags gssapi 2> /dev/null ` 
-			if test $? != 0; then
-				krb5fail=t
-			fi
-	   	    	ac_gssapi_libs=`$krb5confpath --libs gssapi 2> /dev/null ` 
-			if test $? != 0; then 
-				krb5fail=t 
-			fi 
 		fi
 		ac_krb5_solaris="`$krb5confpath --version 2>/dev/null | grep -i solaris`"
 		ac_krb5_heimdal="`$krb5confpath --version 2>/dev/null | grep -i heimdal`"
-        	if test "x$ac_krb5_solaris" != x ; then
+        	if test "x$ac_krb5_solaris" == x ; then
 			ac_krb5_cflags=`$krb5confpath --cflags krb5 2> /dev/null `
 			if test $? != 0; then
 				krb5fail=t
@@ -61,6 +52,14 @@ if test x"$krb5confpath" != xno; then
 			if test $? != 0; then
 				krb5fail=t
 			fi
+			ac_gssapi_cflags=`$krb5confpath --cflags gssapi 2> /dev/null ` 
+			if test $? != 0; then
+				krb5fail=t
+			fi
+	   	    	ac_gssapi_libs=`$krb5confpath --libs gssapi 2> /dev/null ` 
+			if test $? != 0; then 
+				krb5fail=t 
+			fi 
 		fi
 	fi
 fi 
@@ -82,14 +81,16 @@ AC_CHECK_HEADERS(gssapi.h gssapi/gssapi.h)
 AC_CHECK_HEADERS([gssapi/gssapi_ext.h gssapi/gssapi_krb5.h gssapi/gssapi_generic.h], [], [],
 [[#ifdef HAVE_GSSAPI_H
 #include <gssapi.h>
-#elif definde(HAVE_GSSAPI_GSSAPI_H)
+#elif defined(HAVE_GSSAPI_GSSAPI_H)
 #include <gssapi/gssapi.h>
 #endif]])
 
 dnl look for kerberos headers
-AC_CHECK_HEADERS(krb5.h com_err.h et/com_err.h)
+AC_CHECK_HEADERS(kerberosv5/krb5.h krb5.h com_err.h et/com_err.h)
 AC_CHECK_HEADERS([krb5-protos.h], [], [], 
-[[#ifdef HAVE_KRB5_H
+[[#ifdef HAVE_KERBEROSV5_KRB5_H
+#include <kerberosv5/krb5.h>
+#elif HAVE_KRB5_H
 #include <krb5.h>
 #endif ]] )
 
@@ -150,7 +151,9 @@ dnl do compile check
 no_krb5=t
 AC_MSG_CHECKING([for working krb5])
 AC_TRY_RUN([
-#ifdef HAVE_KRB5_H
+#ifdef HAVE_KERBEROSV5_KRB5_H
+#include <kerberosv5/krb5.h>
+#elif HAVE_KRB5_H
 #include <krb5.h>
 #endif
 #if defined(HAVE_KRB5_PROTOS_H) && defined(HAVE_KRB5_PRINCIPAL2PRINCIPAL)
@@ -344,7 +347,9 @@ AH_BOTTOM([#include "conf.h"
 #define gss_int32 int32_t
 #endif
 
-#ifdef HAVE_KRB5_H
+#ifdef HAVE_KERBEROSV5_KRB5_H
+#include <kerberosv5/krb5.h>
+#elif HAVE_KRB5_H
 #include <krb5.h>
 #endif
 #if defined(HAVE_KRB5_PROTOS_H) && defined(HAVE_KRB5_PRINCIPAL2PRINCIPAL)

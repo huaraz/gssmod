@@ -76,7 +76,7 @@ static char *radixN = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz01234
 static char *gss_services[] = { "ftp", "host", 0 };
 static char *gss_keytab_file = NULL;
 static char *env_keytab_file = NULL;
-static unsigned int  maxbuf, actualbuf;
+static OM_uint32 maxbuf, actualbuf;
 static unsigned char *ucbuf;
    
 static pr_netio_t *gss_data_netio = NULL;
@@ -88,11 +88,11 @@ static pool *fmt_pool = NULL;
 static char *gss_format_cb(pool *,const char *fmt, ...);
 static void gss_closelog(void);
 static char *radix_error(int e);
-static int  radix_encode(unsigned char inbuf[], unsigned char outbuf[], int *len, int decode);
+static int  radix_encode(unsigned char inbuf[], unsigned char outbuf[], size_t *len, int decode);
 static void reply_gss_error(char *code, OM_uint32 maj_stat, OM_uint32 min_stat, char *s);
 static void log_gss_error(OM_uint32 maj_stat, OM_uint32 min_stat, char *s);
-static ssize_t looping_read(int fd, register char *buf,register int len);
-static ssize_t looping_write(int fd, register const char *buf, int len);
+static ssize_t looping_read(int fd, register char *buf,register size_t len);
+static ssize_t looping_write(int fd, register const char *buf, size_t len);
 static int gss_dispatch(char *buf);
 #ifndef HAVE___GSS_USEROK
 static krb5_error_code kpass(char *name, char *pass);
@@ -188,15 +188,15 @@ __attribute__ ((format (printf, 1, 2)));
    determine whether the peer supports confidentiality services.
 
  */
-static ssize_t gss_write(pr_netio_stream_t *nstrm, char *buf,int buflen) {
+static ssize_t gss_write(pr_netio_stream_t *nstrm, char *buf,size_t buflen) {
     ssize_t count;
     int  conf_state;
     int  errno_write;
 
     char *enc_buf;
     pool *pool;
-    gss_int32 length;
-    gss_uint32 net_len;
+    size_t    length;
+    OM_uint32 net_len;
 
     gss_buffer_desc gss_in_buf, gss_out_buf;
     OM_uint32       maj_stat, min_stat;
@@ -237,7 +237,7 @@ static ssize_t gss_write(pr_netio_stream_t *nstrm, char *buf,int buflen) {
     gss_out_buf.length = 0;
     gss_out_buf.value = NULL;
 
-    net_len = htonl((u_long) length);
+    net_len = htonl((OM_uint32) length);
     if ( (count=looping_write(nstrm->strm_fd,(char *) &net_len, 4)) != 4 ) {
         errno_write = errno;
         pr_response_add_err(R_535, "Could not write PROT buffer length %d/%s",
@@ -251,9 +251,9 @@ static ssize_t gss_write(pr_netio_stream_t *nstrm, char *buf,int buflen) {
     }
     if ( (count=looping_write(nstrm->strm_fd, enc_buf,length)) != length) {
         errno_write = errno;
-        pr_response_add_err(R_535, "Could not write %u byte PROT buffer: %s",
+        pr_response_add_err(R_535, "Could not write %zu byte PROT buffer: %s",
 			 length, count == -1 ? strerror(errno) : "premature EOF");
-	gss_log("GSSAPI Could not write %u byte PROT buffer: %s",
+	gss_log("GSSAPI Could not write %zu byte PROT buffer: %s",
 		length, count == -1 ? strerror(errno) : "premature EOF");
         if (pool)
            destroy_pool(pool);
@@ -268,8 +268,8 @@ static ssize_t gss_write(pr_netio_stream_t *nstrm, char *buf,int buflen) {
 
 static int gss_netio_write_cb(pr_netio_stream_t *nstrm, char *buf,size_t buflen) {
 
-    int     count=0;
-    int     total_count=0;
+    ssize_t count=0;
+    size_t  total_count=0;
     char    *p;
  
     OM_uint32   maj_stat, min_stat;
@@ -313,7 +313,7 @@ static int gss_netio_write_cb(pr_netio_stream_t *nstrm, char *buf,size_t buflen)
     while ( buflen > total_count ) { 
 	/* */ 
 	if ( buflen - total_count > max_buf_size ) {
-	    if ((count = gss_write(nstrm,p,max_buf_size)) != max_buf_size ) {
+	    if ((count = gss_write(nstrm,p,(size_t)max_buf_size)) != max_buf_size ) {
                 errno = (count == -1) ? errno : EIO;
 		return -1;
             } 
@@ -333,17 +333,17 @@ static int gss_netio_write_cb(pr_netio_stream_t *nstrm, char *buf,size_t buflen)
 
 static int gss_netio_read_cb(pr_netio_stream_t *nstrm, char *buf,
 			     size_t buflen) {
-    int count;
-    int conf_state;
-    int errno_read;
+    ssize_t count;
+    int     conf_state;
+    int     errno_read;
 
-    static int msg_count=0;
-    static int msg_length=0;
+    static size_t msg_count=0;
+    static size_t msg_length=0;
     static char *msg_p;
     static char *dec_buf;
     static pool *pool=NULL;
      
-    gss_uint32      length;
+    size_t          length;
     gss_buffer_desc xmit_buf, msg_buf;
     OM_uint32       maj_stat, min_stat;
 
@@ -390,17 +390,17 @@ static int gss_netio_read_cb(pr_netio_stream_t *nstrm, char *buf,
 	count = looping_read(nstrm->strm_fd, (char *)&length, sizeof(length));    
 	if ( count != sizeof(length) ){
             errno_read = errno;
-	    gss_log("GSSAPI Could not read PROT buffer length %d/%s",
+	    gss_log("GSSAPI Could not read PROT buffer length %zd/%s",
 		    count, count == -1 ? strerror(errno):"premature EOF");
-	    pr_response_add_err(R_535,"Could not read PROT buffer length %d/%s",
+	    pr_response_add_err(R_535,"Could not read PROT buffer length %zd/%s",
 			     count, count == -1 ? strerror(errno):"premature EOF");
             errno = (count == -1) ? errno_read : EIO;
 	    return -1;
 	}
-	if ((length = (u_long) ntohl(length)) > maxbuf) {
-	    gss_log("GSSAPI Length (%d) of PROT buffer > PBSZ=%u",
+	if ((length = (size_t) ntohl((OM_uint32)length)) > maxbuf) {
+	    gss_log("GSSAPI Length (%zu) of PROT buffer > PBSZ=%u",
 		    length, maxbuf);
-	    pr_response_add_err(R_535,"Length (%d) of PROT buffer > PBSZ=%u",
+	    pr_response_add_err(R_535,"Length (%zu) of PROT buffer > PBSZ=%u",
 			     length, maxbuf);
             errno = EIO;
 	    return -1;
@@ -411,9 +411,9 @@ static int gss_netio_read_cb(pr_netio_stream_t *nstrm, char *buf,
 
 	if ( count != length ) {
             errno_read = errno;
-	    gss_log("GSSAPI Could not read %u byte PROT buffer: %s",
+	    gss_log("GSSAPI Could not read %zu byte PROT buffer: %s",
 		    length, count == -1 ? strerror(errno) : "premature EOF");
-	    pr_response_add_err(R_535,"Could not read %u byte PROT buffer: %s",
+	    pr_response_add_err(R_535,"Could not read %zu byte PROT buffer: %s",
 			     length, count == -1 ? strerror(errno) : "premature EOF");
             errno = (count == -1) ? errno_read : EIO;
 	    return -1;
@@ -786,11 +786,11 @@ MODRET gss_authenticate(cmd_rec *cmd) {
     pr_signals_unblock();
     if (maj_stat== GSS_S_COMPLETE) {
         if (user_ok) {
-            gss_log("GSSAPI User %s is authorized as %s.", (char *) client_name.value,cmd->argv[0]);
+            gss_log("GSSAPI User %s is authorized as %s.", (char *) client_name.value, (char *) cmd->argv[0]);
             return mod_create_data(cmd, (void *) PR_AUTH_RFC2228_OK);
         }
     }
-    gss_log("GSSAPI User %s is not authorized. Use other methods to authenticate.", cmd->argv[0]);
+    gss_log("GSSAPI User %s is not authorized. Use other methods to authenticate.", (char *) cmd->argv[0]);
     return PR_DECLINED(cmd);
 #else
     krb5_boolean k5ret;
@@ -838,14 +838,14 @@ MODRET gss_authenticate(cmd_rec *cmd) {
     pr_signals_unblock();
     krb5_free_principal(kc, p);
     if (k5ret == TRUE) {
-       gss_log("GSSAPI User %s is authorized as %s.", (char *) client_name.value,(char *) cmd->argv[0]);
+       gss_log("GSSAPI User %s is authorized as %s.", (char *) client_name.value, (char *) cmd->argv[0]);
        return mod_create_data(cmd, (void *) PR_AUTH_RFC2228_OK);
     } else if (cmd->argv[1] != NULL) {
 
         /* check password against kdc */
         kerr = kpass(cmd->argv[0],cmd->argv[1]);
         if ( kerr ) {
-            gss_log("GSSAPI User %s is not authorized as %s. Use other methods to authenticate.", (char *) client_name.value,(char *) cmd->argv[0]);
+            gss_log("GSSAPI User %s is not authorized as %s. Use other methods to authenticate.", (char *) client_name.value, (char *) cmd->argv[0]);
             if ( gss_flags & GSS_AUTH_AUTHORITATIVE ) {
                 switch ( kerr ) {
                     case KRB5KDC_ERR_CLIENT_REVOKED:
@@ -861,7 +861,7 @@ MODRET gss_authenticate(cmd_rec *cmd) {
                 return PR_DECLINED(cmd);
             }
         } else {
-           gss_log("GSSAPI User %s/%s authorized by kdc.",(char *) cmd->argv[0],client_name.value? (char *) client_name.value:"-");
+           gss_log("GSSAPI User %s/%s authorized by kdc.", (char *) cmd->argv[0],client_name.value? (char *) client_name.value:"-");
 	   return PR_HANDLED(cmd);
         }
     }
@@ -902,11 +902,11 @@ MODRET gss_auth_requires_pass(cmd_rec *cmd) {
     PRIVS_RELINQUISH
     if (maj_stat== GSS_S_COMPLETE) {
         if (user_ok) {
-            gss_log("GSSAPI User %s is authorized as %s.", (char *) client_name.value,cmd->argv[0]);
+            gss_log("GSSAPI User %s is authorized as %s.", (char *) client_name.value, (char *) cmd->argv[0]);
             return mod_create_data(cmd, (void *) PR_AUTH_RFC2228_OK);
         }
     }
-    gss_log("GSSAPI User %s is not authorized. Use other methods to authenticate.", cmd->argv[0]);
+    gss_log("GSSAPI User %s is not authorized. Use other methods to authenticate.", (char *) cmd->argv[0]);
     return PR_DECLINED(cmd);
 #else
     krb5_boolean k5ret;
@@ -954,10 +954,10 @@ MODRET gss_auth_requires_pass(cmd_rec *cmd) {
     pr_signals_unblock();
     krb5_free_principal(kc, p);
     if (k5ret == TRUE) {
-       gss_log("GSSAPI User %s is authorized as %s.", (char *) client_name.value,(char *) cmd->argv[0]);
+       gss_log("GSSAPI User %s is authorized as %s.", (char *) client_name.value, (char *) cmd->argv[0]);
        return mod_create_data(cmd, (void *) PR_AUTH_RFC2228_OK);
     }
-    gss_log("GSSAPI User %s is not authorized as %s. Use other methods to authenticate.", (char *) client_name.value,(char*) cmd->argv[0]);
+    gss_log("GSSAPI User %s is not authorized as %s. Use other methods to authenticate.", (char *) client_name.value, (char*) cmd->argv[0]);
     return PR_DECLINED(cmd);
 #endif
 }
@@ -998,11 +998,11 @@ MODRET gss_auth_check(cmd_rec *cmd) {
     pr_signals_unblock();
     if (maj_stat== GSS_S_COMPLETE) {
         if (user_ok) {
-            gss_log("GSSAPI User %s is authorized as %s.", (char *) client_name.value,cmd->argv[1]);
+            gss_log("GSSAPI User %s is authorized as %s.", (char *) client_name.value, (char *) cmd->argv[1]);
             return mod_create_data(cmd, (void *) PR_AUTH_RFC2228_OK);
         }
     }
-    gss_log("GSSAPI User %s is not authorized. Use other methods to authenticate.", cmd->argv[1]);
+    gss_log("GSSAPI User %s is not authorized. Use other methods to authenticate.", (char *) cmd->argv[1]);
     return PR_DECLINED(cmd);
 #else
     krb5_boolean k5ret;
@@ -1051,14 +1051,14 @@ MODRET gss_auth_check(cmd_rec *cmd) {
     pr_signals_unblock();
     krb5_free_principal(kc, p);
     if (k5ret == TRUE) {
-       gss_log("GSSAPI User %s is authorized as %s.", (char *) client_name.value,(char *) cmd->argv[1]);
+       gss_log("GSSAPI User %s is authorized as %s.", (char *) client_name.value, (char *) cmd->argv[1]);
        return mod_create_data(cmd, (void *) PR_AUTH_RFC2228_OK);
     } else if (cmd->argv[2] != NULL) {
 
         /* check password against kdc */
         kerr = kpass(cmd->argv[1],cmd->argv[2]);
         if ( kerr ) {
-            gss_log("GSSAPI User %s is not authorized as %s. Use other methods to authenticate.", (char *) client_name.value,(char *) cmd->argv[1]);
+            gss_log("GSSAPI User %s is not authorized as %s. Use other methods to authenticate.", (char *) client_name.value, (char *) cmd->argv[1]);
             if ( gss_flags & GSS_AUTH_AUTHORITATIVE ) {
                 switch ( kerr ) {
                     case KRB5KDC_ERR_CLIENT_REVOKED:
@@ -1202,7 +1202,7 @@ MODRET gss_dec(cmd_rec *cmd) {
        conf_state = 0;
     } else {
         pr_response_add_err(R_536,"Protection level %s not supported.",(char *)cmd->argv[0]);
-        gss_log("GSSAPI Protection level %s not supported.",(char *) cmd->argv[0]);
+        gss_log("GSSAPI Protection level %s not supported.", (char *) cmd->argv[0]);
         return PR_ERROR(cmd);
     }
 
@@ -1214,7 +1214,7 @@ MODRET gss_dec(cmd_rec *cmd) {
     xmit_buf.length=strlen(cmd->arg)+1;
     /* protected string <= unprotected string */
     xmit_buf.value=pcalloc(cmd->pool,strlen(cmd->arg)+1);
-    if ((error = radix_encode((unsigned char*)cmd->arg, xmit_buf.value, (int *)&xmit_buf.length, 1)) != 0 ) {
+    if ((error = radix_encode((unsigned char*)cmd->arg, xmit_buf.value, &xmit_buf.length, 1)) != 0 ) {
 	pr_response_add_err(R_501, "Couldn't base 64 decode argument to %s command (%s)",
 		session.sp_flags & SP_ENC ? "ENC" : 
                 session.sp_flags & SP_MIC ? "MIC" : "", radix_error(error));
@@ -1327,7 +1327,7 @@ MODRET gss_any(cmd_rec *cmd) {
     if ( (gss_flags & GSS_SESS_ADAT_OK) ) {
         session.sp_flags = SP_CCC; 
 	pr_response_add_err(R_533, "All commands must be protected.");
-	gss_log("GSSAPI Unprotected command(%s) received",(char *) cmd->argv[0]);
+	gss_log("GSSAPI Unprotected command(%s) received", (char *) cmd->argv[0]);
 	return PR_ERROR(cmd);
     }
 
@@ -1594,7 +1594,7 @@ MODRET gss_adat(cmd_rec *cmd) {
     */
 
     tok.value=pcalloc(cmd->tmp_pool,strlen(cmd->arg));
-    if ((error = radix_encode((unsigned char*)cmd->arg, tok.value , (int *)&tok.length, 1)) !=0  ) {
+    if ((error = radix_encode((unsigned char*)cmd->arg, tok.value , &tok.length, 1)) !=0  ) {
 	pr_response_add_err(R_501, "Couldn't decode ADAT (%s)",radix_error(error)); 
 	gss_log("GSSAPI Could not decode ADAT (%s)",radix_error(error));
 	return PR_ERROR(cmd);
@@ -1680,7 +1680,7 @@ MODRET gss_adat(cmd_rec *cmd) {
 
     if (out_tok.length) {
         gbuf = pcalloc(cmd->tmp_pool,out_tok.length*4+1);
-	if ( (error = radix_encode((unsigned char*)out_tok.value, (unsigned char*)gbuf, (int *)&out_tok.length, 0)) != 0 ) {
+	if ( (error = radix_encode((unsigned char*)out_tok.value, (unsigned char*)gbuf, &out_tok.length, 0)) != 0 ) {
 	    pr_response_add_err(R_535,"Couldn't encode ADAT reply (%s)",
 			     radix_error(error));
 	    gss_log("GSSAPI Could not encode ADAT reply (%s)",radix_error(error));
@@ -2112,7 +2112,7 @@ MODRET gss_prot(cmd_rec *cmd) {
     } else {
 	char *mesg = "Unsupported protection type";
 	pr_response_add_err(R_504, "PROT %s unsupported", (char *) cmd->argv[1]);
-	gss_log("GSSAPI %s %s", mesg,(char *)cmd->argv[1]);
+	gss_log("GSSAPI %s %s", mesg, (char *)cmd->argv[1]);
 	return PR_ERROR(cmd);	    
 
     }
@@ -2627,7 +2627,7 @@ static char *gss_format_cb(pool *pool, const char *fmt, ...)
     } 
     /* protected reply <= 4*unprotected reply */
     reply=pcalloc(pool, gss_out_buf.length*4+1);
-    if ((error = radix_encode(gss_out_buf.value, (unsigned char*)reply, (int *)&gss_out_buf.length, 0)) != 0 ) {
+    if ((error = radix_encode(gss_out_buf.value, (unsigned char*)reply, &gss_out_buf.length, 0)) != 0 ) {
 	gss_log("Couldn't encode reply (%s)", radix_error(error));
 	gss_release_buffer(&min_stat, &gss_out_buf);
         gss_out_buf.length = 0;
@@ -2885,10 +2885,10 @@ static void gss_set_channel_bindings(gss_channel_bindings_t chan,OM_uint32 af_in
 
 /* write data to stream 
  */
-static ssize_t looping_write(int fd, register const char *buf, int len)
+static ssize_t looping_write(int fd, register const char *buf, size_t len)
 {
-    int cc;
-    register int wrlen = len;
+    ssize_t cc;
+    register size_t wrlen = len;
     do {
         cc = write(fd, buf, wrlen);
         if (cc < 0) {
@@ -2905,9 +2905,9 @@ static ssize_t looping_write(int fd, register const char *buf, int len)
 }
 /* read data from stream
  */
-static ssize_t looping_read(int fd, register char *buf, int len)
+static ssize_t looping_read(int fd, register char *buf, size_t len)
 {
-    int cc, len2 = 0;
+    ssize_t cc, len2 = 0;
 
     do {
         cc = read(fd, buf, len);
@@ -2987,7 +2987,7 @@ static ssize_t looping_read(int fd, register char *buf, int len)
    Case must not be ignored when reading commands and replies containing
    base 64 encodings.
  */
-static int radix_encode(unsigned char inbuf[], unsigned char outbuf[], int *len, int decode)
+static int radix_encode(unsigned char inbuf[], unsigned char outbuf[], size_t *len, int decode)
 {
     int           i,j,D=0;
     char          *p;
