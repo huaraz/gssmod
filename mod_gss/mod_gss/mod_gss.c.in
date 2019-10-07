@@ -2830,7 +2830,7 @@ void gss_switch_keytab(char *keytab_file, int sflag){
 static void gss_set_channel_bindings(gss_channel_bindings_t chan,OM_uint32 af_inet6) {
 
 	switch (pr_netaddr_get_family(session.c->remote_addr)) {
-#ifdef USE_IPV6
+#ifdef PR_USE_IPV6
             case AF_INET6:
                 pr_log_debug(DEBUG9, "GSSAPI Channel Binding: remote %sIPv6 family",pr_netaddr_is_v4mappedv6(session.c->remote_addr)?"IPv4 mapped in ":"");
                 if (pr_netaddr_is_v4mappedv6(session.c->remote_addr)) {
@@ -2855,7 +2855,7 @@ static void gss_set_channel_bindings(gss_channel_bindings_t chan,OM_uint32 af_in
         }
 
         switch (pr_netaddr_get_family(session.c->local_addr)) {
-#ifdef USE_IPV6
+#ifdef PR_USE_IPV6
             case AF_INET6:
                 pr_log_debug(DEBUG9, "GSSAPI Channel Binding: local %sIPv6 family",pr_netaddr_is_v4mappedv6(session.c->local_addr)?"IPv4 mapped in ":"");
                 if (pr_netaddr_is_v4mappedv6(session.c->remote_addr)) {
