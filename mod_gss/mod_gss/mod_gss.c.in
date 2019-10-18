@@ -2825,6 +2825,25 @@ void gss_switch_keytab(char *keytab_file, int sflag){
     }
 }
 
+static void *get_v4inaddr(const pr_netaddr_t *na) {
+  /*
+   * The function was stolen from proftpd/src/netaadr.c. The proftpd
+   * defines get_v4inaddr() as static, hence we can not expect linker
+   * to see it.
+   * 
+   * This function is specifically for IPv4 clients (when gethostbyname2(2) is
+   * present) that have an IPv4-mapped IPv6 address, when performing reverse
+   * DNS checks.  This function is called iff the given netaddr object is
+   * indeed an IPv4-mapped IPv6 address.  IPv6 address have 128 bits in their
+   * sin6_addr field.  For IPv4-mapped IPv6 addresses, the relevant 32 bits
+   * are the last of those 128 bits (or, alternatively, the last 4 bytes of
+   * those 16 bytes); hence the read of 12 bytes after the start of the
+   * sin6_addr pointer.
+   */
+
+  return (((char *) pr_netaddr_get_inaddr(na)) + 12);
+}
+
 /* Set channel bindings
  */
 static void gss_set_channel_bindings(gss_channel_bindings_t chan,OM_uint32 af_inet6) {
