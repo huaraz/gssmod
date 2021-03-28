@@ -2,7 +2,7 @@
 rm -f config.cache
 rm -f acconfig.h
 aclocal
-autoconf
+autoreconf
 # acconfig
 autoheader
 #automake -a
