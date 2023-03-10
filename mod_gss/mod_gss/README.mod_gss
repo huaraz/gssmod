@@ -56,4 +56,3 @@ Because of the internal handling of the user authentication in proftpd 1.2.8 the
 password despite of a successful Kerberos authentication. This will probably be changed in proftpd 1.2.9.
 
 When running proftpd as non root make sure that the user proftpd is running under has access to the keytab file.
-
